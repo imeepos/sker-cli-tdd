@@ -34,10 +34,13 @@ export interface MCPResource {
   description?: string;
 }
 
+import { MCPPromptManager, MCPPrompt } from './mcp-prompts';
+import { MCPWorkspaceManager, MCPWorkspace } from './mcp-workspace';
+
 /**
  * 遵循 TDD 原则的 MCP 服务器实现
- * 管理 AI 模型交互的工具和资源
- * 遵循单一职责原则：只负责工具和资源管理，不包含具体业务逻辑
+ * 管理 AI 模型交互的工具、资源、提示词和工作空间
+ * 遵循单一职责原则：只负责协议层管理，不包含具体业务逻辑
  */
 export class MCPServer {
   private readonly name: string = 'sker-ai-mcp-server';
@@ -45,6 +48,9 @@ export class MCPServer {
   private running: boolean = false;
   private readonly tools: Map<string, MCPTool> = new Map();
   private readonly resources: Map<string, MCPResource> = new Map();
+  private promptManager: MCPPromptManager | undefined;
+  private workspaceManager: MCPWorkspaceManager | undefined;
+  private currentWorkspaceId: string = 'global';
 
   /**
    * 获取服务器名称
@@ -96,25 +102,43 @@ export class MCPServer {
   }
 
   /**
-   * 获取所有已注册的工具
-   * @returns 所有已注册工具的数组
+   * 获取所有已注册的工具（包括工作空间工具）
+   * @returns 所有已注册工具的数组（全局工具 + 当前工作空间工具）
    */
   getTools(): MCPTool[] {
+    // 如果有工作空间管理器，返回合并后的工具列表
+    if (this.workspaceManager) {
+      const mergedTools = this.workspaceManager.getMergedTools(this.currentWorkspaceId);
+      // 同时包含服务器直接注册的工具（向后兼容）
+      const serverTools = Array.from(this.tools.values());
+      return [...serverTools, ...mergedTools];
+    }
+
+    // 向后兼容：没有工作空间管理器时返回服务器工具
     return Array.from(this.tools.values());
   }
 
   /**
-   * 按名称执行工具
+   * 按名称执行工具（包括工作空间工具）
    * @param name 要执行的工具名称
    * @param params 传递给工具的参数
    * @returns 工具执行的结果
    * @throws Error 如果工具未找到则抛出错误
    */
   async executeTool(name: string, params: any): Promise<any> {
-    const tool = this.tools.get(name);
+    // 首先在服务器直接注册的工具中查找（向后兼容）
+    let tool = this.tools.get(name);
+
+    // 如果没找到且有工作空间管理器，在合并的工具列表中查找
+    if (!tool && this.workspaceManager) {
+      const mergedTools = this.workspaceManager.getMergedTools(this.currentWorkspaceId);
+      tool = mergedTools.find(t => t.name === name);
+    }
+
     if (!tool) {
       throw new Error(`工具 "${name}" 未找到`);
     }
+
     return await tool.handler(params);
   }
 
@@ -153,5 +177,105 @@ export class MCPServer {
     return { content: '', mimeType: resource.mimeType };
   }
 
+  /**
+   * 设置 Prompt 管理器
+   * @param promptManager Prompt 管理器实例
+   */
+  setPromptManager(promptManager: MCPPromptManager): void {
+    this.promptManager = promptManager;
+  }
 
+  /**
+   * 获取 Prompt 管理器
+   * @returns Prompt 管理器实例
+   * @throws Error 如果 Prompt 管理器未设置
+   */
+  getPromptManager(): MCPPromptManager {
+    if (!this.promptManager) {
+      throw new Error('Prompt 管理器未设置');
+    }
+    return this.promptManager;
+  }
+
+  /**
+   * 获取所有已注册的提示词
+   * @returns 所有提示词的数组
+   * @throws Error 如果 Prompt 管理器未设置
+   */
+  getPrompts(): MCPPrompt[] {
+    if (!this.promptManager) {
+      throw new Error('Prompt 管理器未设置');
+    }
+    return this.promptManager.getPrompts();
+  }
+
+  /**
+   * 渲染提示词
+   * @param name 提示词名称
+   * @param args 渲染参数
+   * @returns 渲染后的文本
+   * @throws Error 如果 Prompt 管理器未设置或提示词不存在
+   */
+  async renderPrompt(name: string, args: Record<string, any>): Promise<string> {
+    if (!this.promptManager) {
+      throw new Error('Prompt 管理器未设置');
+    }
+    return await this.promptManager.renderPrompt(name, args);
+  }
+
+  /**
+   * 设置工作空间管理器
+   * @param workspaceManager 工作空间管理器实例
+   */
+  setWorkspaceManager(workspaceManager: MCPWorkspaceManager): void {
+    this.workspaceManager = workspaceManager;
+  }
+
+  /**
+   * 获取工作空间管理器
+   * @returns 工作空间管理器实例
+   * @throws Error 如果工作空间管理器未设置
+   */
+  getWorkspaceManager(): MCPWorkspaceManager {
+    if (!this.workspaceManager) {
+      throw new Error('工作空间管理器未设置');
+    }
+    return this.workspaceManager;
+  }
+
+  /**
+   * 设置当前工作空间
+   * @param workspaceId 工作空间 ID
+   * @throws Error 如果工作空间管理器未设置或工作空间不存在
+   */
+  setCurrentWorkspace(workspaceId: string): void {
+    if (!this.workspaceManager) {
+      throw new Error('工作空间管理器未设置');
+    }
+
+    const workspace = this.workspaceManager.getWorkspace(workspaceId);
+    if (!workspace) {
+      throw new Error(`工作空间 "${workspaceId}" 不存在`);
+    }
+
+    this.currentWorkspaceId = workspaceId;
+  }
+
+  /**
+   * 获取当前工作空间
+   * @returns 当前工作空间实例
+   * @throws Error 如果工作空间管理器未设置
+   */
+  getCurrentWorkspace(): MCPWorkspace {
+    if (!this.workspaceManager) {
+      throw new Error('工作空间管理器未设置');
+    }
+
+    const workspace = this.workspaceManager.getWorkspace(this.currentWorkspaceId);
+    if (!workspace) {
+      throw new Error(`当前工作空间 "${this.currentWorkspaceId}" 不存在`);
+    }
+
+    return workspace;
+  }
 }

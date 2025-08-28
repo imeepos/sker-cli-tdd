@@ -9,13 +9,23 @@ export { Calculator } from './calculator';
 export { MCPServer, MCPTool, MCPResource } from './mcp-server';
 export { CalculatorToolsProvider } from './calculator-tools';
 export { MCPConfig, MCPConfigData } from './mcp-config';
+export { MCPPrompt, MCPPromptArgument, MCPPromptManager } from './mcp-prompts';
+export { PromptTemplatesProvider } from './prompt-templates';
+export { MCPWorkspace, MCPWorkspaceManager, MCPWorkspaceCreateOptions } from './mcp-workspace';
 export { runMCPExample } from './mcp-example';
 export { runMCPConfigExample } from './mcp-config-example';
+export { runMCPPromptsExample } from './mcp-prompts-example';
+export { runMCPWorkspaceExample } from './mcp-workspace-example';
 
 // 为方便使用，重新导出所有模块的内容
 export * from './calculator';
 export * from './mcp-server';
 export * from './calculator-tools';
 export * from './mcp-config';
+export * from './mcp-prompts';
+export * from './prompt-templates';
+export * from './mcp-workspace';
 export * from './mcp-example';
 export * from './mcp-config-example';
+export * from './mcp-prompts-example';
+export * from './mcp-workspace-example';
