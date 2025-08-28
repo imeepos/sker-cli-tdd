@@ -938,6 +938,259 @@ export class FolderContext implements Context {
 
     return null;
   }
+
+  /**
+   * 获取文件夹总大小（递归计算所有子文件）
+   *
+   * 递归遍历文件夹及其所有子文件夹，计算所有文件的总大小。
+   * 这个方法会访问文件系统获取每个文件的实际大小。
+   *
+   * @returns Promise，解析为文件夹总大小（字节）
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/my-project');
+   * const totalSize = await folder.getTotalSize();
+   * console.log(`项目总大小: ${totalSize} bytes`);
+   * ```
+   */
+  async getTotalSize(): Promise<number> {
+    let totalSize = 0;
+
+    for (const child of this.children) {
+      if (child.type === 'file') {
+        try {
+          const stats = await fs.promises.stat(child.path);
+          totalSize += stats.size;
+        } catch (error) {
+          // 忽略无法访问的文件
+          console.warn(`无法获取文件大小 ${child.path}: ${(error as Error).message}`);
+        }
+      } else if (child.type === 'folder') {
+        // 递归计算子文件夹大小
+        totalSize += await (child as FolderContext).getTotalSize();
+      }
+    }
+
+    return totalSize;
+  }
+
+  /**
+   * 获取最近更新时间（递归查找所有子文件）
+   *
+   * 递归遍历文件夹及其所有子文件夹，找到最近修改的文件的修改时间。
+   * 这个方法会访问文件系统获取每个文件的修改时间。
+   *
+   * @returns Promise，解析为最近更新时间，如果没有文件则返回文件夹自身的修改时间
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/my-project');
+   * const lastModified = await folder.getLastModified();
+   * console.log(`最近更新: ${lastModified.toISOString()}`);
+   * ```
+   */
+  async getLastModified(): Promise<Date> {
+    let latestTime = new Date(0); // 初始化为最早时间
+
+    // 检查文件夹自身的修改时间
+    try {
+      const folderStats = await fs.promises.stat(this.path);
+      latestTime = folderStats.mtime;
+    } catch (error) {
+      console.warn(`无法获取文件夹修改时间 ${this.path}: ${(error as Error).message}`);
+    }
+
+    // 递归检查所有子项
+    for (const child of this.children) {
+      try {
+        if (child.type === 'file') {
+          const stats = await fs.promises.stat(child.path);
+          if (stats.mtime > latestTime) {
+            latestTime = stats.mtime;
+          }
+        } else if (child.type === 'folder') {
+          // 递归获取子文件夹的最近更新时间
+          const childLatest = await (child as FolderContext).getLastModified();
+          if (childLatest > latestTime) {
+            latestTime = childLatest;
+          }
+        }
+      } catch (error) {
+        // 忽略无法访问的文件/文件夹
+        console.warn(`无法获取修改时间 ${child.path}: ${(error as Error).message}`);
+      }
+    }
+
+    return latestTime;
+  }
+
+  /**
+   * 通过正则表达式查找文件
+   *
+   * 递归搜索文件夹及其所有子文件夹，返回文件名匹配正则表达式的所有文件。
+   * 只匹配文件名部分，不包括路径。
+   *
+   * @param pattern 正则表达式模式
+   * @returns 匹配的文件Context数组
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/my-project');
+   *
+   * // 查找所有TypeScript文件
+   * const tsFiles = folder.findFilesByPattern(/\.tsx?$/);
+   *
+   * // 查找所有配置文件
+   * const configFiles = folder.findFilesByPattern(/\.(json|yaml|yml)$/);
+   * ```
+   */
+  findFilesByPattern(pattern: RegExp): FileContext[] {
+    const matchedFiles: FileContext[] = [];
+
+    for (const child of this.children) {
+      if (child.type === 'file') {
+        if (pattern.test(child.name)) {
+          matchedFiles.push(child as FileContext);
+        }
+      } else if (child.type === 'folder') {
+        // 递归搜索子文件夹
+        matchedFiles.push(...(child as FolderContext).findFilesByPattern(pattern));
+      }
+    }
+
+    return matchedFiles;
+  }
+
+  /**
+   * 通过正则表达式查找文件夹
+   *
+   * 递归搜索文件夹及其所有子文件夹，返回文件夹名匹配正则表达式的所有文件夹。
+   * 只匹配文件夹名部分，不包括路径。
+   *
+   * @param pattern 正则表达式模式
+   * @returns 匹配的文件夹Context数组
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/my-project');
+   *
+   * // 查找源码文件夹
+   * const sourceFolders = folder.findFoldersByPattern(/^(src|lib|source)$/);
+   *
+   * // 查找测试文件夹
+   * const testFolders = folder.findFoldersByPattern(/test|spec/);
+   * ```
+   */
+  findFoldersByPattern(pattern: RegExp): FolderContext[] {
+    const matchedFolders: FolderContext[] = [];
+
+    for (const child of this.children) {
+      if (child.type === 'folder') {
+        const folderChild = child as FolderContext;
+        if (pattern.test(folderChild.name)) {
+          matchedFolders.push(folderChild);
+        }
+        // 递归搜索子文件夹
+        matchedFolders.push(...folderChild.findFoldersByPattern(pattern));
+      }
+    }
+
+    return matchedFolders;
+  }
+
+  /**
+   * 生成文件夹简介
+   *
+   * 生成包含文件夹基本信息的简介，包括：
+   * - 项目信息（如果是项目根目录）
+   * - 文件和文件夹统计
+   * - 总大小
+   * - 最近更新时间
+   * - 主要文件类型分布
+   *
+   * @returns Promise，解析为文件夹简介字符串
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/my-project');
+   * const summary = await folder.getSummary();
+   * console.log(summary);
+   * // 输出:
+   * // 📁 my-project
+   * // 📊 统计: 15 files, 3 folders
+   * // 💾 大小: 2.5 KB
+   * // 🕒 最近更新: 2024-01-15 10:30:45
+   * ```
+   */
+  async getSummary(): Promise<string> {
+    const lines: string[] = [];
+
+    // 文件夹名称和项目信息
+    if (this.isProjectRoot && this.projectInfo) {
+      lines.push(`📁 ${this.projectInfo.name} (v${this.projectInfo.version || '1.0.0'})`);
+      if (this.projectInfo.description) {
+        lines.push(`📝 ${this.projectInfo.description}`);
+      }
+    } else {
+      lines.push(`📁 ${this.name}`);
+    }
+
+    // 统计信息
+    const allFiles = this.getAllFiles();
+    const allFolders = this.getAllSubfolders();
+    lines.push(`📊 统计: ${allFiles.length} files, ${allFolders.length} folders`);
+
+    // 总大小
+    try {
+      const totalSize = await this.getTotalSize();
+      lines.push(`💾 大小: ${this.formatFileSize(totalSize)}`);
+    } catch (error) {
+      lines.push(`💾 大小: 无法计算`);
+    }
+
+    // 最近更新时间
+    try {
+      const lastModified = await this.getLastModified();
+      lines.push(`🕒 最近更新: ${lastModified.toLocaleString()}`);
+    } catch (error) {
+      lines.push(`🕒 最近更新: 未知`);
+    }
+
+    // 文件类型分布
+    if (allFiles.length > 0) {
+      const fileTypes = new Map<string, number>();
+      for (const file of allFiles) {
+        const ext = path.extname(file.name).toLowerCase();
+        const type = ext || '(无扩展名)';
+        fileTypes.set(type, (fileTypes.get(type) || 0) + 1);
+      }
+
+      const sortedTypes = Array.from(fileTypes.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5); // 只显示前5种类型
+
+      if (sortedTypes.length > 0) {
+        lines.push(`📄 主要文件类型: ${sortedTypes.map(([type, count]) => `${type}(${count})`).join(', ')}`);
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 格式化文件大小
+   *
+   * 将字节数转换为人类可读的格式（B, KB, MB, GB）。
+   *
+   * @param bytes 字节数
+   * @returns 格式化的文件大小字符串
+   * @private
+   */
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 B';
+
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const k = 1024;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${units[i]}`;
+  }
 }
 
 /**

@@ -716,5 +716,177 @@ custom-ignored/
         if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
       }
     });
+
+    it('应该获取文件夹总大小', async () => {
+      const testDir = path.join(os.tmpdir(), 'sker-test-size-' + Date.now());
+      const subDir = path.join(testDir, 'subdir');
+      const file1 = path.join(testDir, 'file1.txt');
+      const file2 = path.join(subDir, 'file2.txt');
+
+      try {
+        await fs.promises.mkdir(subDir, { recursive: true });
+        await fs.promises.writeFile(file1, 'Hello World'); // 11 bytes
+        await fs.promises.writeFile(file2, 'This is a test file content'); // 28 bytes
+
+        const builder = new ContextBuilder();
+        const rootContext = await builder.buildFromDirectory(testDir);
+
+        // ❌ 这会失败，因为getTotalSize方法还没有实现
+        const totalSize = await rootContext.getTotalSize();
+        expect(totalSize).toBeGreaterThanOrEqual(38); // 至少38字节，考虑换行符差异
+        expect(totalSize).toBeLessThanOrEqual(40); // 最多40字节
+      } finally {
+        if (fs.existsSync(file1)) await fs.promises.unlink(file1);
+        if (fs.existsSync(file2)) await fs.promises.unlink(file2);
+        if (fs.existsSync(subDir)) await fs.promises.rmdir(subDir);
+        if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
+      }
+    });
+
+    it('应该获取最近更新时间', async () => {
+      const testDir = path.join(os.tmpdir(), 'sker-test-mtime-' + Date.now());
+      const file1 = path.join(testDir, 'old-file.txt');
+      const file2 = path.join(testDir, 'new-file.txt');
+
+      try {
+        await fs.promises.mkdir(testDir, { recursive: true });
+        await fs.promises.writeFile(file1, 'old content');
+
+        // 等待一小段时间确保时间戳不同
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        await fs.promises.writeFile(file2, 'new content');
+
+        const builder = new ContextBuilder();
+        const rootContext = await builder.buildFromDirectory(testDir);
+
+        // ❌ 这会失败，因为getLastModified方法还没有实现
+        const lastModified = await rootContext.getLastModified();
+        const file2Stats = await fs.promises.stat(file2);
+
+        expect(lastModified.getTime()).toBeCloseTo(file2Stats.mtime.getTime(), -2); // 允许2ms误差
+      } finally {
+        if (fs.existsSync(file1)) await fs.promises.unlink(file1);
+        if (fs.existsSync(file2)) await fs.promises.unlink(file2);
+        if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
+      }
+    });
+
+    it('应该通过正则表达式查找文件', async () => {
+      const testDir = path.join(os.tmpdir(), 'sker-test-search-' + Date.now());
+      const subDir = path.join(testDir, 'src');
+      const file1 = path.join(testDir, 'index.js');
+      const file2 = path.join(testDir, 'config.json');
+      const file3 = path.join(subDir, 'utils.ts');
+      const file4 = path.join(subDir, 'component.tsx');
+      const file5 = path.join(testDir, 'README.md');
+
+      try {
+        await fs.promises.mkdir(subDir, { recursive: true });
+        await fs.promises.writeFile(file1, 'console.log("hello");');
+        await fs.promises.writeFile(file2, '{"name": "test"}');
+        await fs.promises.writeFile(file3, 'export function test() {}');
+        await fs.promises.writeFile(file4, 'export const Component = () => {};');
+        await fs.promises.writeFile(file5, '# Test Project');
+
+        const builder = new ContextBuilder();
+        const rootContext = await builder.buildFromDirectory(testDir);
+
+        // ❌ 这会失败，因为findFilesByPattern方法还没有实现
+
+        // 查找所有TypeScript文件
+        const tsFiles = rootContext.findFilesByPattern(/\.tsx?$/);
+        expect(tsFiles).toHaveLength(2);
+        expect(tsFiles.map(f => f.name)).toEqual(expect.arrayContaining(['utils.ts', 'component.tsx']));
+
+        // 查找所有JavaScript相关文件
+        const jsFiles = rootContext.findFilesByPattern(/\.(js|ts|tsx)$/);
+        expect(jsFiles).toHaveLength(3);
+        expect(jsFiles.map(f => f.name)).toEqual(expect.arrayContaining(['index.js', 'utils.ts', 'component.tsx']));
+
+        // 查找配置文件
+        const configFiles = rootContext.findFilesByPattern(/\.(json|md)$/);
+        expect(configFiles).toHaveLength(2);
+        expect(configFiles.map(f => f.name)).toEqual(expect.arrayContaining(['config.json', 'README.md']));
+      } finally {
+        if (fs.existsSync(file1)) await fs.promises.unlink(file1);
+        if (fs.existsSync(file2)) await fs.promises.unlink(file2);
+        if (fs.existsSync(file3)) await fs.promises.unlink(file3);
+        if (fs.existsSync(file4)) await fs.promises.unlink(file4);
+        if (fs.existsSync(file5)) await fs.promises.unlink(file5);
+        if (fs.existsSync(subDir)) await fs.promises.rmdir(subDir);
+        if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
+      }
+    });
+
+    it('应该通过正则表达式查找文件夹', async () => {
+      const testDir = path.join(os.tmpdir(), 'sker-test-search-folders-' + Date.now());
+      const srcDir = path.join(testDir, 'src');
+      const testDirPath = path.join(testDir, 'tests');
+      const nodeModulesDir = path.join(testDir, 'node_modules');
+      const distDir = path.join(testDir, 'dist');
+
+      try {
+        await fs.promises.mkdir(srcDir, { recursive: true });
+        await fs.promises.mkdir(testDirPath, { recursive: true });
+        await fs.promises.mkdir(nodeModulesDir, { recursive: true });
+        await fs.promises.mkdir(distDir, { recursive: true });
+
+        const builder = new ContextBuilder();
+        const rootContext = await builder.buildFromDirectory(testDir);
+
+        // ❌ 这会失败，因为findFoldersByPattern方法还没有实现
+
+        // 查找源码相关文件夹
+        const sourceFolders = rootContext.findFoldersByPattern(/^(src|tests?)$/);
+        expect(sourceFolders).toHaveLength(2);
+        expect(sourceFolders.map(f => f.name)).toEqual(expect.arrayContaining(['src', 'tests']));
+
+        // 查找构建相关文件夹
+        const buildFolders = rootContext.findFoldersByPattern(/(dist|build|out)/);
+        expect(buildFolders).toHaveLength(1);
+        expect(buildFolders[0]?.name).toBe('dist');
+      } finally {
+        if (fs.existsSync(srcDir)) await fs.promises.rmdir(srcDir);
+        if (fs.existsSync(testDirPath)) await fs.promises.rmdir(testDirPath);
+        if (fs.existsSync(nodeModulesDir)) await fs.promises.rmdir(nodeModulesDir);
+        if (fs.existsSync(distDir)) await fs.promises.rmdir(distDir);
+        if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
+      }
+    });
+
+    it('应该生成文件夹简介', async () => {
+      const testDir = path.join(os.tmpdir(), 'sker-test-summary-' + Date.now());
+      const srcDir = path.join(testDir, 'src');
+      const skerJsonPath = path.join(testDir, 'sker.json');
+      const indexFile = path.join(srcDir, 'index.ts');
+      const readmeFile = path.join(testDir, 'README.md');
+
+      try {
+        await fs.promises.mkdir(srcDir, { recursive: true });
+        await fs.promises.writeFile(skerJsonPath, JSON.stringify({ name: 'test-project', version: '1.0.0' }));
+        await fs.promises.writeFile(indexFile, 'export function hello() { return "world"; }');
+        await fs.promises.writeFile(readmeFile, '# Test Project\n\nThis is a test project.');
+
+        const builder = new ContextBuilder();
+        const rootContext = await builder.buildFromDirectory(testDir);
+
+        // ❌ 这会失败，因为getSummary方法还没有实现
+        const summary = await rootContext.getSummary();
+
+        expect(summary).toContain('test-project');
+        expect(summary).toContain('1.0.0');
+        expect(summary).toContain('3 files'); // index.ts, README.md, sker.json
+        expect(summary).toContain('1 folders'); // src
+        expect(summary).toMatch(/\d+(\.\d+)?\s+(B|KB|MB|GB)/); // 总大小
+        expect(summary).toMatch(/最近更新/); // 最近更新时间
+      } finally {
+        if (fs.existsSync(skerJsonPath)) await fs.promises.unlink(skerJsonPath);
+        if (fs.existsSync(indexFile)) await fs.promises.unlink(indexFile);
+        if (fs.existsSync(readmeFile)) await fs.promises.unlink(readmeFile);
+        if (fs.existsSync(srcDir)) await fs.promises.rmdir(srcDir);
+        if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
+      }
+    });
   });
 });
