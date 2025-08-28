@@ -1,41 +1,174 @@
 /**
- * 🔄 TDD 重构阶段：常用提示词模板提供者
- * 提供一系列预定义的常用提示词模板
- * 遵循单一职责原则：专门负责提供提示词模板
+ * 🔄 TDD 重构阶段：全局提示词模板加载器
+ * 从用户目录 ~/.sker/prompts 加载提示词模板
+ * 遵循单一职责原则：专门负责从全局目录加载提示词模板
  */
 
-import { MCPPromptManager } from './mcp-prompts';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { MCPPromptManager, MCPPrompt } from './mcp-prompts';
 
 /**
- * 提示词模板提供者
- * 负责创建和管理常用的提示词模板
+ * 全局提示词模板加载器
+ * 负责从用户目录 ~/.sker/prompts 加载提示词模板
  */
 export class PromptTemplatesProvider {
   private readonly promptManager: MCPPromptManager;
+  private readonly globalPromptsDir: string;
 
   constructor(promptManager: MCPPromptManager) {
     this.promptManager = promptManager;
+    this.globalPromptsDir = path.join(os.homedir(), '.sker', 'prompts');
   }
 
   /**
-   * 注册所有预定义的提示词模板
+   * 获取全局提示词目录路径
    */
-  registerAllTemplates(): void {
-    this.registerCodingTemplates();
-    this.registerWritingTemplates();
-    this.registerAnalysisTemplates();
-    this.registerEducationTemplates();
+  getGlobalPromptsDirectory(): string {
+    return this.globalPromptsDir;
   }
 
   /**
-   * 注册编程相关的提示词模板
+   * 确保全局提示词目录存在
    */
-  registerCodingTemplates(): void {
-    // 代码审查提示词
-    this.promptManager.registerPrompt({
-      name: 'code-review',
-      description: '代码审查提示词',
-      template: `请对以下 {{language}} 代码进行详细审查：
+  async ensureGlobalPromptsDirectory(): Promise<void> {
+    try {
+      await fs.promises.mkdir(this.getGlobalPromptsDirectory(), { recursive: true });
+    } catch (error) {
+      console.warn(`无法创建全局提示词目录 ${this.getGlobalPromptsDirectory()}: ${(error as Error).message}`);
+      throw error; // 重新抛出异常，让调用者处理
+    }
+  }
+
+  /**
+   * 从全局目录加载所有提示词模板
+   */
+  async loadAllTemplates(): Promise<void> {
+    try {
+      await this.ensureGlobalPromptsDirectory();
+
+      const files = await fs.promises.readdir(this.getGlobalPromptsDirectory());
+      const jsonFiles = files.filter(file => file.endsWith('.json'));
+
+      for (const file of jsonFiles) {
+        await this.loadTemplateFromFile(file);
+      }
+
+      console.log(`✅ 从 ${this.getGlobalPromptsDirectory()} 加载了 ${jsonFiles.length} 个提示词模板`);
+
+      // 如果没有找到任何模板文件，回退到内置模板
+      if (jsonFiles.length === 0) {
+        console.log('🔄 未找到全局提示词模板，使用内置模板');
+        this.registerBuiltinTemplates();
+      }
+    } catch (error) {
+      console.warn(`无法访问全局提示词目录: ${(error as Error).message}`);
+      // 如果无法访问全局目录，回退到内置模板
+      console.log('🔄 使用内置提示词模板作为回退方案');
+      this.registerBuiltinTemplates();
+    }
+  }
+
+  /**
+   * 从指定文件加载提示词模板
+   */
+  async loadTemplateFromFile(filename: string): Promise<void> {
+    const filePath = path.join(this.getGlobalPromptsDirectory(), filename);
+
+    try {
+      const content = await fs.promises.readFile(filePath, 'utf8');
+      const template: MCPPrompt = JSON.parse(content);
+
+      // 验证模板格式
+      if (this.validateTemplate(template)) {
+        this.promptManager.registerPrompt(template);
+        console.log(`✅ 加载提示词模板: ${template.name}`);
+      } else {
+        console.warn(`❌ 提示词模板格式无效: ${filename}`);
+      }
+    } catch (error) {
+      console.warn(`无法加载提示词模板 ${filename}: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * 验证提示词模板格式
+   */
+  private validateTemplate(template: any): template is MCPPrompt {
+    return (
+      typeof template === 'object' &&
+      typeof template.name === 'string' &&
+      typeof template.description === 'string' &&
+      typeof template.template === 'string' &&
+      Array.isArray(template.arguments)
+    );
+  }
+
+  /**
+   * 保存提示词模板到全局目录
+   */
+  async saveTemplate(template: MCPPrompt): Promise<void> {
+    await this.ensureGlobalPromptsDirectory();
+
+    const filename = `${template.name}.json`;
+    const filePath = path.join(this.getGlobalPromptsDirectory(), filename);
+
+    try {
+      const content = JSON.stringify(template, null, 2);
+      await fs.promises.writeFile(filePath, content, 'utf8');
+      console.log(`✅ 保存提示词模板: ${template.name} -> ${filename}`);
+    } catch (error) {
+      console.error(`无法保存提示词模板 ${template.name}: ${(error as Error).message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 创建默认的提示词模板文件
+   */
+  async createDefaultTemplates(): Promise<void> {
+    await this.ensureGlobalPromptsDirectory();
+
+    const defaultTemplates = this.getBuiltinTemplates();
+
+    for (const template of defaultTemplates) {
+      const filename = `${template.name}.json`;
+      const filePath = path.join(this.getGlobalPromptsDirectory(), filename);
+
+      // 只有文件不存在时才创建
+      if (!fs.existsSync(filePath)) {
+        await this.saveTemplate(template);
+      }
+    }
+
+    console.log(`✅ 创建了 ${defaultTemplates.length} 个默认提示词模板`);
+  }
+
+  /**
+   * 注册内置模板（作为回退方案）
+   */
+  private registerBuiltinTemplates(): void {
+    console.log('🔄 使用内置提示词模板作为回退方案');
+    const templates = this.getBuiltinTemplates();
+
+    for (const template of templates) {
+      this.promptManager.registerPrompt(template);
+    }
+
+    console.log(`✅ 注册了 ${templates.length} 个内置提示词模板`);
+  }
+
+  /**
+   * 获取内置提示词模板列表
+   */
+  private getBuiltinTemplates(): MCPPrompt[] {
+    return [
+      // 代码审查提示词
+      {
+        name: 'code-review',
+        description: '代码审查提示词',
+        template: `请对以下 {{language}} 代码进行详细审查：
 
 代码：
 \`\`\`{{language}}
@@ -50,31 +183,30 @@ export class PromptTemplatesProvider {
 5. 潜在的 bug 或问题
 
 审查重点：{{focus}}`,
-      arguments: [
-        {
-          name: 'language',
-          description: '编程语言',
-          required: true
-        },
-        {
-          name: 'code',
-          description: '要审查的代码',
-          required: true
-        },
-        {
-          name: 'focus',
-          description: '审查重点',
-          required: false,
-          default: '代码质量和性能'
-        }
-      ]
-    });
-
-    // 代码解释提示词
-    this.promptManager.registerPrompt({
-      name: 'code-explain',
-      description: '代码解释提示词',
-      template: `请详细解释以下 {{language}} 代码的功能和工作原理：
+        arguments: [
+          {
+            name: 'language',
+            description: '编程语言',
+            required: true
+          },
+          {
+            name: 'code',
+            description: '要审查的代码',
+            required: true
+          },
+          {
+            name: 'focus',
+            description: '审查重点',
+            required: false,
+            default: '代码质量和性能'
+          }
+        ]
+      },
+      // 代码解释提示词
+      {
+        name: 'code-explain',
+        description: '代码解释提示词',
+        template: `请详细解释以下 {{language}} 代码的功能和工作原理：
 
 \`\`\`{{language}}
 {{code}}
@@ -87,31 +219,31 @@ export class PromptTemplatesProvider {
 4. 代码的执行流程
 
 解释级别：{{level}}`,
-      arguments: [
-        {
-          name: 'language',
-          description: '编程语言',
-          required: true
-        },
-        {
-          name: 'code',
-          description: '要解释的代码',
-          required: true
-        },
-        {
-          name: 'level',
-          description: '解释详细程度',
-          required: false,
-          default: '中等详细'
-        }
-      ]
-    });
+        arguments: [
+          {
+            name: 'language',
+            description: '编程语言',
+            required: true
+          },
+          {
+            name: 'code',
+            description: '要解释的代码',
+            required: true
+          },
+          {
+            name: 'level',
+            description: '解释详细程度',
+            required: false,
+            default: '中等详细'
+          }
+        ]
+      },
 
-    // 代码重构提示词
-    this.promptManager.registerPrompt({
-      name: 'code-refactor',
-      description: '代码重构建议提示词',
-      template: `请为以下 {{language}} 代码提供重构建议：
+      // 代码重构提示词
+      {
+        name: 'code-refactor',
+        description: '代码重构建议提示词',
+        template: `请为以下 {{language}} 代码提供重构建议：
 
 当前代码：
 \`\`\`{{language}}
@@ -125,191 +257,28 @@ export class PromptTemplatesProvider {
 2. 重构后的代码示例
 3. 重构的好处和理由
 4. 需要注意的风险点`,
-      arguments: [
-        {
-          name: 'language',
-          description: '编程语言',
-          required: true
-        },
-        {
-          name: 'code',
-          description: '要重构的代码',
-          required: true
-        },
-        {
-          name: 'goal',
-          description: '重构目标',
-          required: false,
-          default: '提高代码质量和可维护性'
-        }
-      ]
-    });
+        arguments: [
+          {
+            name: 'language',
+            description: '编程语言',
+            required: true
+          },
+          {
+            name: 'code',
+            description: '要重构的代码',
+            required: true
+          },
+          {
+            name: 'goal',
+            description: '重构目标',
+            required: false,
+            default: '提高代码质量和可维护性'
+          }
+        ]
+      }
+    ];
   }
 
-  /**
-   * 注册写作相关的提示词模板
-   */
-  registerWritingTemplates(): void {
-    // 文档写作提示词
-    this.promptManager.registerPrompt({
-      name: 'documentation',
-      description: '技术文档写作提示词',
-      template: `请为 {{project}} 项目编写 {{type}} 文档：
 
-项目描述：{{description}}
 
-文档要求：
-- 目标读者：{{audience}}
-- 详细程度：{{detail_level}}
-- 包含示例：{{include_examples}}
-
-请确保文档结构清晰，内容准确，易于理解。`,
-      arguments: [
-        {
-          name: 'project',
-          description: '项目名称',
-          required: true
-        },
-        {
-          name: 'type',
-          description: '文档类型',
-          required: true
-        },
-        {
-          name: 'description',
-          description: '项目描述',
-          required: true
-        },
-        {
-          name: 'audience',
-          description: '目标读者',
-          required: false,
-          default: '开发者'
-        },
-        {
-          name: 'detail_level',
-          description: '详细程度',
-          required: false,
-          default: '详细'
-        },
-        {
-          name: 'include_examples',
-          description: '是否包含示例',
-          required: false,
-          default: '是'
-        }
-      ]
-    });
-  }
-
-  /**
-   * 注册分析相关的提示词模板
-   */
-  registerAnalysisTemplates(): void {
-    // 需求分析提示词
-    this.promptManager.registerPrompt({
-      name: 'requirement-analysis',
-      description: '需求分析提示词',
-      template: `请对以下项目需求进行详细分析：
-
-项目名称：{{project_name}}
-需求描述：{{requirements}}
-
-分析维度：
-1. 功能需求分析
-2. 非功能需求识别
-3. 技术可行性评估
-4. 风险评估
-5. 实现建议
-
-分析重点：{{focus_area}}
-项目规模：{{project_scale}}`,
-      arguments: [
-        {
-          name: 'project_name',
-          description: '项目名称',
-          required: true
-        },
-        {
-          name: 'requirements',
-          description: '需求描述',
-          required: true
-        },
-        {
-          name: 'focus_area',
-          description: '分析重点',
-          required: false,
-          default: '功能完整性和技术可行性'
-        },
-        {
-          name: 'project_scale',
-          description: '项目规模',
-          required: false,
-          default: '中等规模'
-        }
-      ]
-    });
-  }
-
-  /**
-   * 注册教育相关的提示词模板
-   */
-  registerEducationTemplates(): void {
-    // 学习计划提示词
-    this.promptManager.registerPrompt({
-      name: 'learning-plan',
-      description: '学习计划制定提示词',
-      template: `请为学习 {{subject}} 制定一个详细的学习计划：
-
-学习者背景：
-- 当前水平：{{current_level}}
-- 目标水平：{{target_level}}
-- 可用时间：{{available_time}}
-- 学习偏好：{{learning_style}}
-
-请提供：
-1. 分阶段的学习路径
-2. 每个阶段的学习目标
-3. 推荐的学习资源
-4. 实践项目建议
-5. 进度评估方法
-
-特殊要求：{{special_requirements}}`,
-      arguments: [
-        {
-          name: 'subject',
-          description: '学习主题',
-          required: true
-        },
-        {
-          name: 'current_level',
-          description: '当前水平',
-          required: true
-        },
-        {
-          name: 'target_level',
-          description: '目标水平',
-          required: true
-        },
-        {
-          name: 'available_time',
-          description: '可用学习时间',
-          required: false,
-          default: '每天1-2小时'
-        },
-        {
-          name: 'learning_style',
-          description: '学习偏好',
-          required: false,
-          default: '理论结合实践'
-        },
-        {
-          name: 'special_requirements',
-          description: '特殊要求',
-          required: false,
-          default: '无'
-        }
-      ]
-    });
-  }
 }
