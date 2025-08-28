@@ -502,6 +502,9 @@ export class FolderContext implements Context {
   /** 子级上下文列表（文件和子文件夹） */
   public readonly children: Context[] = [];
 
+  /** 是否为项目根目录（包含sker.json文件） */
+  public isProjectRoot: boolean = false;
+
   /**
    * 创建文件夹上下文实例
    * @param folderPath 文件夹的完整路径
@@ -769,37 +772,65 @@ export class FolderContext implements Context {
   }
 
   /**
-   * 检查当前文件夹是否为项目根目录
+   * 检查当前文件夹是否为项目根目录（同步方法）
    *
-   * 通过检查文件夹中是否存在sker.json文件来判断是否为项目根目录。
+   * 返回在扫描时预先标记的项目根目录状态。
    * 项目根目录用于上下文隔离，不会向上级查找。
+   *
+   * @returns true表示是项目根目录，false表示不是
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/my-project');
+   * if (folder.isProjectRoot) {
+   *   console.log('这是一个项目根目录');
+   * }
+   * ```
+   */
+  getIsProjectRoot(): boolean {
+    return this.isProjectRoot;
+  }
+
+  /**
+   * 异步检查当前文件夹是否为项目根目录（兼容性方法）
+   *
+   * 为了保持向后兼容性，提供异步版本的方法。
+   * 如果isProjectRoot属性已设置，直接返回；否则进行文件系统检查。
    *
    * @returns Promise，解析为true表示是项目根目录，false表示不是
    * @example
    * ```typescript
    * const folder = new FolderContext('/my-project');
-   * const isProject = await folder.isProjectRoot();
+   * const isProject = await folder.checkIsProjectRoot();
    * if (isProject) {
    *   console.log('这是一个项目根目录');
    * }
    * ```
    */
-  async isProjectRoot(): Promise<boolean> {
+  async checkIsProjectRoot(): Promise<boolean> {
+    // 如果已经在扫描时标记过，直接返回
+    if (this.isProjectRoot !== undefined) {
+      return this.isProjectRoot;
+    }
+
+    // 否则进行文件系统检查（兼容性）
     const skerJsonPath = path.join(this.path, 'sker.json');
 
     try {
       await fs.promises.access(skerJsonPath, fs.constants.F_OK);
+      this.isProjectRoot = true;
       return true;
     } catch {
+      this.isProjectRoot = false;
       return false;
     }
   }
 
   /**
-   * 检查当前文件夹是否为多子项目工作空间
+   * 检查当前文件夹是否为多子项目工作空间（优化版本）
    *
-   * 通过检查直接子文件夹中是否存在多个包含sker.json的文件夹来判断。
+   * 通过检查直接子文件夹中标记为项目根目录的数量来判断。
    * 多子项目工作空间中每个子项目拥有独立的上下文。
+   * 这个方法不需要文件系统访问，性能更好。
    *
    * @returns Promise，解析为true表示是多子项目工作空间，false表示不是
    * @example
@@ -812,28 +843,12 @@ export class FolderContext implements Context {
    * ```
    */
   async isMultiProjectWorkspace(): Promise<boolean> {
-    try {
-      const entries = await fs.promises.readdir(this.path, { withFileTypes: true });
-      const subProjects = [];
+    // 基于已扫描的children快速判断
+    const projectRoots = this.children.filter(child =>
+      child.type === 'folder' && (child as FolderContext).isProjectRoot
+    );
 
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          const subPath = path.join(this.path, entry.name);
-          const skerJsonPath = path.join(subPath, 'sker.json');
-
-          try {
-            await fs.promises.access(skerJsonPath, fs.constants.F_OK);
-            subProjects.push(entry.name);
-          } catch {
-            // 忽略没有sker.json的文件夹
-          }
-        }
-      }
-
-      return subProjects.length >= 2; // 至少2个子项目才算工作空间
-    } catch {
-      return false;
-    }
+    return projectRoots.length >= 2; // 至少2个子项目才算工作空间
   }
 
   /**
@@ -906,7 +921,7 @@ export class FolderContext implements Context {
    * ```
    */
   async getProjectInfo(): Promise<ProjectInfo | null> {
-    const isProject = await this.isProjectRoot();
+    const isProject = await this.checkIsProjectRoot();
     if (!isProject) {
       return null;
     }
@@ -1113,6 +1128,10 @@ export class ContextBuilder {
           // 递归扫描子目录
           await this.scanDirectory(subfolderContext, options, currentDepth + 1);
         } else if (entry.isFile()) {
+          // 检查是否为sker.json文件，如果是则标记父文件夹为项目根目录
+          if (entry.name === 'sker.json') {
+            folderContext.isProjectRoot = true;
+          }
           // 检查文件扩展名过滤
           const ext = path.extname(entry.name);
 

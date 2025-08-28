@@ -498,10 +498,17 @@ custom-ignored/
         await fs.promises.mkdir(testDir, { recursive: true });
         await fs.promises.writeFile(skerJsonPath, JSON.stringify({ name: 'test-project' }));
 
-        const folderContext = new FolderContext(testDir);
+        // 使用ContextBuilder扫描，这样会自动标记isProjectRoot
+        const builder = new ContextBuilder();
+        const parentDir = path.dirname(testDir);
+        const rootContext = await builder.buildFromDirectory(parentDir);
+        const folderContext = rootContext.findChild(path.basename(testDir)) as FolderContext;
 
-        // ❌ 这会失败，因为isProjectRoot方法还没有实现
-        const isProject = await folderContext.isProjectRoot();
+        expect(folderContext).toBeDefined();
+        expect(folderContext.isProjectRoot).toBe(true);
+
+        // 异步方法也应该返回true
+        const isProject = await folderContext.checkIsProjectRoot();
         expect(isProject).toBe(true);
       } finally {
         if (fs.existsSync(skerJsonPath)) await fs.promises.unlink(skerJsonPath);
@@ -517,8 +524,8 @@ custom-ignored/
 
         const folderContext = new FolderContext(testDir);
 
-        // ❌ 这会失败，因为isProjectRoot方法还没有实现
-        const isProject = await folderContext.isProjectRoot();
+        // ❌ 这会失败，因为checkIsProjectRoot方法还没有实现
+        const isProject = await folderContext.checkIsProjectRoot();
         expect(isProject).toBe(false);
       } finally {
         if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
@@ -538,13 +545,15 @@ custom-ignored/
         await fs.promises.writeFile(sker1Path, JSON.stringify({ name: 'project1' }));
         await fs.promises.writeFile(sker2Path, JSON.stringify({ name: 'project2' }));
 
-        const workspaceContext = new FolderContext(workspaceDir);
+        // 使用ContextBuilder扫描，这样会自动标记子项目的isProjectRoot
+        const builder = new ContextBuilder();
+        const workspaceContext = await builder.buildFromDirectory(workspaceDir);
 
-        // ❌ 这会失败，因为isMultiProjectWorkspace方法还没有实现
+        // 现在isMultiProjectWorkspace应该基于children的isProjectRoot属性快速判断
         const isWorkspace = await workspaceContext.isMultiProjectWorkspace();
         expect(isWorkspace).toBe(true);
 
-        // ❌ 这会失败，因为getSubProjects方法还没有实现
+        // getSubProjects方法应该仍然工作
         const subProjects = await workspaceContext.getSubProjects();
         expect(subProjects).toHaveLength(2);
         expect(subProjects.map(p => p.name)).toEqual(expect.arrayContaining(['project1', 'project2']));
@@ -553,6 +562,79 @@ custom-ignored/
         if (fs.existsSync(sker2Path)) await fs.promises.unlink(sker2Path);
         if (fs.existsSync(project1Dir)) await fs.promises.rmdir(project1Dir);
         if (fs.existsSync(project2Dir)) await fs.promises.rmdir(project2Dir);
+        if (fs.existsSync(workspaceDir)) await fs.promises.rmdir(workspaceDir);
+      }
+    });
+
+    it('应该在扫描时自动标记项目根目录', async () => {
+      const testDir = path.join(os.tmpdir(), 'sker-test-scan-' + Date.now());
+      const projectDir = path.join(testDir, 'my-project');
+      const skerJsonPath = path.join(projectDir, 'sker.json');
+      const srcDir = path.join(projectDir, 'src');
+      const indexFile = path.join(srcDir, 'index.ts');
+
+      try {
+        await fs.promises.mkdir(srcDir, { recursive: true });
+        await fs.promises.writeFile(skerJsonPath, JSON.stringify({ name: 'my-project' }));
+        await fs.promises.writeFile(indexFile, 'console.log("hello");');
+
+        const builder = new ContextBuilder();
+        const rootContext = await builder.buildFromDirectory(testDir);
+
+        const projectContext = rootContext.findChild('my-project') as FolderContext;
+        expect(projectContext).toBeDefined();
+
+        // ❌ 这会失败，因为isProjectRoot属性还没有实现
+        expect(projectContext.isProjectRoot).toBe(true);
+
+        // 同步方法应该直接返回缓存的结果，不需要文件系统访问
+        const isProject = await projectContext.checkIsProjectRoot();
+        expect(isProject).toBe(true);
+      } finally {
+        if (fs.existsSync(indexFile)) await fs.promises.unlink(indexFile);
+        if (fs.existsSync(skerJsonPath)) await fs.promises.unlink(skerJsonPath);
+        if (fs.existsSync(srcDir)) await fs.promises.rmdir(srcDir);
+        if (fs.existsSync(projectDir)) await fs.promises.rmdir(projectDir);
+        if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
+      }
+    });
+
+    it('应该基于children快速判断多项目工作空间', async () => {
+      const workspaceDir = path.join(os.tmpdir(), 'sker-test-fast-workspace-' + Date.now());
+      const project1Dir = path.join(workspaceDir, 'project1');
+      const project2Dir = path.join(workspaceDir, 'project2');
+      const normalDir = path.join(workspaceDir, 'docs');
+      const sker1Path = path.join(project1Dir, 'sker.json');
+      const sker2Path = path.join(project2Dir, 'sker.json');
+
+      try {
+        await fs.promises.mkdir(project1Dir, { recursive: true });
+        await fs.promises.mkdir(project2Dir, { recursive: true });
+        await fs.promises.mkdir(normalDir, { recursive: true });
+        await fs.promises.writeFile(sker1Path, JSON.stringify({ name: 'project1' }));
+        await fs.promises.writeFile(sker2Path, JSON.stringify({ name: 'project2' }));
+
+        const builder = new ContextBuilder();
+        const workspaceContext = await builder.buildFromDirectory(workspaceDir);
+
+        // ❌ 这会失败，因为优化后的isMultiProjectWorkspace方法还没有实现
+        const isWorkspace = await workspaceContext.isMultiProjectWorkspace();
+        expect(isWorkspace).toBe(true);
+
+        // 验证子项目被正确标记
+        const project1Context = workspaceContext.findChild('project1') as FolderContext;
+        const project2Context = workspaceContext.findChild('project2') as FolderContext;
+        const docsContext = workspaceContext.findChild('docs') as FolderContext;
+
+        expect(project1Context.isProjectRoot).toBe(true);
+        expect(project2Context.isProjectRoot).toBe(true);
+        expect(docsContext.isProjectRoot).toBe(false);
+      } finally {
+        if (fs.existsSync(sker1Path)) await fs.promises.unlink(sker1Path);
+        if (fs.existsSync(sker2Path)) await fs.promises.unlink(sker2Path);
+        if (fs.existsSync(project1Dir)) await fs.promises.rmdir(project1Dir);
+        if (fs.existsSync(project2Dir)) await fs.promises.rmdir(project2Dir);
+        if (fs.existsSync(normalDir)) await fs.promises.rmdir(normalDir);
         if (fs.existsSync(workspaceDir)) await fs.promises.rmdir(workspaceDir);
       }
     });
