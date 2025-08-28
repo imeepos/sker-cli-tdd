@@ -6,6 +6,7 @@
 import { Context, FileContext, FolderContext, ContextBuilder } from './context'; // ❌ 这会失败 - 正确的！
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 describe('Context上下文功能', () => {
   describe('Context基础接口', () => {
@@ -487,6 +488,73 @@ custom-ignored/
       const files = descendants.filter(d => d.type === 'file');
       expect(folders).toHaveLength(2);
       expect(files).toHaveLength(2);
+    });
+
+    it('应该检测项目根目录（包含sker.json）', async () => {
+      const testDir = path.join(os.tmpdir(), 'sker-test-project-' + Date.now());
+      const skerJsonPath = path.join(testDir, 'sker.json');
+
+      try {
+        await fs.promises.mkdir(testDir, { recursive: true });
+        await fs.promises.writeFile(skerJsonPath, JSON.stringify({ name: 'test-project' }));
+
+        const folderContext = new FolderContext(testDir);
+
+        // ❌ 这会失败，因为isProjectRoot方法还没有实现
+        const isProject = await folderContext.isProjectRoot();
+        expect(isProject).toBe(true);
+      } finally {
+        if (fs.existsSync(skerJsonPath)) await fs.promises.unlink(skerJsonPath);
+        if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
+      }
+    });
+
+    it('应该检测非项目目录（不包含sker.json）', async () => {
+      const testDir = path.join(os.tmpdir(), 'sker-test-non-project-' + Date.now());
+
+      try {
+        await fs.promises.mkdir(testDir, { recursive: true });
+
+        const folderContext = new FolderContext(testDir);
+
+        // ❌ 这会失败，因为isProjectRoot方法还没有实现
+        const isProject = await folderContext.isProjectRoot();
+        expect(isProject).toBe(false);
+      } finally {
+        if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
+      }
+    });
+
+    it('应该检测多子项目工作空间', async () => {
+      const workspaceDir = path.join(os.tmpdir(), 'sker-test-workspace-' + Date.now());
+      const project1Dir = path.join(workspaceDir, 'project1');
+      const project2Dir = path.join(workspaceDir, 'project2');
+      const sker1Path = path.join(project1Dir, 'sker.json');
+      const sker2Path = path.join(project2Dir, 'sker.json');
+
+      try {
+        await fs.promises.mkdir(project1Dir, { recursive: true });
+        await fs.promises.mkdir(project2Dir, { recursive: true });
+        await fs.promises.writeFile(sker1Path, JSON.stringify({ name: 'project1' }));
+        await fs.promises.writeFile(sker2Path, JSON.stringify({ name: 'project2' }));
+
+        const workspaceContext = new FolderContext(workspaceDir);
+
+        // ❌ 这会失败，因为isMultiProjectWorkspace方法还没有实现
+        const isWorkspace = await workspaceContext.isMultiProjectWorkspace();
+        expect(isWorkspace).toBe(true);
+
+        // ❌ 这会失败，因为getSubProjects方法还没有实现
+        const subProjects = await workspaceContext.getSubProjects();
+        expect(subProjects).toHaveLength(2);
+        expect(subProjects.map(p => p.name)).toEqual(expect.arrayContaining(['project1', 'project2']));
+      } finally {
+        if (fs.existsSync(sker1Path)) await fs.promises.unlink(sker1Path);
+        if (fs.existsSync(sker2Path)) await fs.promises.unlink(sker2Path);
+        if (fs.existsSync(project1Dir)) await fs.promises.rmdir(project1Dir);
+        if (fs.existsSync(project2Dir)) await fs.promises.rmdir(project2Dir);
+        if (fs.existsSync(workspaceDir)) await fs.promises.rmdir(workspaceDir);
+      }
     });
   });
 });

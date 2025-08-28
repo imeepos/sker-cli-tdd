@@ -23,6 +23,32 @@ import ignore from 'ignore';
 import * as mimeTypes from 'mime-types';
 
 /**
+ * 项目信息接口
+ *
+ * 定义了从sker.json文件中读取的项目配置信息。
+ * 用于项目识别和上下文隔离。
+ *
+ * @example
+ * ```typescript
+ * const projectInfo: ProjectInfo = {
+ *   name: 'my-project',
+ *   version: '1.0.0',
+ *   description: 'My awesome project'
+ * };
+ * ```
+ */
+export interface ProjectInfo {
+  /** 项目名称 */
+  name: string;
+  /** 项目版本 */
+  version?: string;
+  /** 项目描述 */
+  description?: string;
+  /** 其他配置项 */
+  [key: string]: any;
+}
+
+/**
  * Context基础接口
  *
  * 定义所有上下文对象的基本属性和方法，为文件系统中的文件和文件夹
@@ -740,6 +766,169 @@ export class FolderContext implements Context {
     }
 
     return descendants;
+  }
+
+  /**
+   * 检查当前文件夹是否为项目根目录
+   *
+   * 通过检查文件夹中是否存在sker.json文件来判断是否为项目根目录。
+   * 项目根目录用于上下文隔离，不会向上级查找。
+   *
+   * @returns Promise，解析为true表示是项目根目录，false表示不是
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/my-project');
+   * const isProject = await folder.isProjectRoot();
+   * if (isProject) {
+   *   console.log('这是一个项目根目录');
+   * }
+   * ```
+   */
+  async isProjectRoot(): Promise<boolean> {
+    const skerJsonPath = path.join(this.path, 'sker.json');
+
+    try {
+      await fs.promises.access(skerJsonPath, fs.constants.F_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * 检查当前文件夹是否为多子项目工作空间
+   *
+   * 通过检查直接子文件夹中是否存在多个包含sker.json的文件夹来判断。
+   * 多子项目工作空间中每个子项目拥有独立的上下文。
+   *
+   * @returns Promise，解析为true表示是多子项目工作空间，false表示不是
+   * @example
+   * ```typescript
+   * const workspace = new FolderContext('/workspace');
+   * const isWorkspace = await workspace.isMultiProjectWorkspace();
+   * if (isWorkspace) {
+   *   console.log('这是一个多子项目工作空间');
+   * }
+   * ```
+   */
+  async isMultiProjectWorkspace(): Promise<boolean> {
+    try {
+      const entries = await fs.promises.readdir(this.path, { withFileTypes: true });
+      const subProjects = [];
+
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const subPath = path.join(this.path, entry.name);
+          const skerJsonPath = path.join(subPath, 'sker.json');
+
+          try {
+            await fs.promises.access(skerJsonPath, fs.constants.F_OK);
+            subProjects.push(entry.name);
+          } catch {
+            // 忽略没有sker.json的文件夹
+          }
+        }
+      }
+
+      return subProjects.length >= 2; // 至少2个子项目才算工作空间
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * 获取所有子项目信息
+   *
+   * 扫描直接子文件夹，返回所有包含sker.json的子项目信息。
+   * 每个子项目都有独立的上下文隔离。
+   *
+   * @returns Promise，解析为子项目信息数组
+   * @example
+   * ```typescript
+   * const workspace = new FolderContext('/workspace');
+   * const subProjects = await workspace.getSubProjects();
+   * subProjects.forEach(project => {
+   *   console.log(`子项目: ${project.name}`);
+   * });
+   * ```
+   */
+  async getSubProjects(): Promise<ProjectInfo[]> {
+    const subProjects: ProjectInfo[] = [];
+
+    try {
+      const entries = await fs.promises.readdir(this.path, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const subPath = path.join(this.path, entry.name);
+          const skerJsonPath = path.join(subPath, 'sker.json');
+
+          try {
+            await fs.promises.access(skerJsonPath, fs.constants.F_OK);
+            const content = await fs.promises.readFile(skerJsonPath, 'utf8');
+            const projectInfo: ProjectInfo = JSON.parse(content);
+
+            // 确保项目名称存在，如果没有则使用文件夹名
+            if (!projectInfo.name) {
+              projectInfo.name = entry.name;
+            }
+
+            subProjects.push(projectInfo);
+          } catch (error) {
+            // 如果读取失败，创建基本的项目信息
+            console.warn(`无法读取项目配置 ${skerJsonPath}: ${(error as Error).message}`);
+            subProjects.push({
+              name: entry.name
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`无法扫描子项目 ${this.path}: ${(error as Error).message}`);
+    }
+
+    return subProjects;
+  }
+
+  /**
+   * 获取项目信息
+   *
+   * 如果当前文件夹是项目根目录，读取并返回sker.json中的项目信息。
+   *
+   * @returns Promise，解析为项目信息，如果不是项目根目录则返回null
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/my-project');
+   * const projectInfo = await folder.getProjectInfo();
+   * if (projectInfo) {
+   *   console.log(`项目名称: ${projectInfo.name}`);
+   * }
+   * ```
+   */
+  async getProjectInfo(): Promise<ProjectInfo | null> {
+    const isProject = await this.isProjectRoot();
+    if (!isProject) {
+      return null;
+    }
+
+    const skerJsonPath = path.join(this.path, 'sker.json');
+
+    try {
+      const content = await fs.promises.readFile(skerJsonPath, 'utf8');
+      const projectInfo: ProjectInfo = JSON.parse(content);
+
+      // 确保项目名称存在，如果没有则使用文件夹名
+      if (!projectInfo.name) {
+        projectInfo.name = this.name;
+      }
+
+      return projectInfo;
+    } catch (error) {
+      console.warn(`无法读取项目配置 ${skerJsonPath}: ${(error as Error).message}`);
+      return {
+        name: this.name
+      };
+    }
   }
 }
 
