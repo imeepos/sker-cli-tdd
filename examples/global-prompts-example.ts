@@ -12,6 +12,7 @@
 
 import * as path from 'path';
 import * as os from 'os';
+import * as fs from 'fs';
 import { MCPPromptManager } from '../src/mcp-prompts';
 import { PromptTemplatesProvider } from '../src/prompt-templates';
 
@@ -32,13 +33,21 @@ async function main(): Promise<void> {
   const globalDir = templateProvider.getGlobalPromptsDirectory();
   console.log(`   📂 ${globalDir}`);
 
-  // 3. 创建默认模板文件
-  console.log('\n🔧 创建默认模板文件:');
+  // 3. 创建示例模板文件（如果目录为空）
+  console.log('\n� 检查并创建示例模板:');
   try {
-    await templateProvider.createDefaultTemplates();
-    console.log('   ✅ 默认模板创建完成');
+    const files = await fs.promises.readdir(globalDir).catch(() => []);
+    const mdFiles = files.filter(file => file.endsWith('.md'));
+
+    if (mdFiles.length === 0) {
+      console.log('   📂 目录为空，创建示例模板文件');
+      await templateProvider.createExampleTemplate();
+      console.log('   ✅ 示例模板创建完成');
+    } else {
+      console.log(`   📋 发现 ${mdFiles.length} 个现有模板文件`);
+    }
   } catch (error) {
-    console.log(`   ❌ 创建默认模板失败: ${(error as Error).message}`);
+    console.log(`   ❌ 检查模板文件失败: ${(error as Error).message}`);
   }
 
   // 4. 从全局目录加载所有模板
@@ -64,7 +73,7 @@ async function main(): Promise<void> {
   // 6. 演示模板渲染
   console.log('\n🎨 模板渲染演示:');
   if (loadedPrompts.length > 0) {
-    const firstPrompt = loadedPrompts[0];
+    const firstPrompt = loadedPrompts[0]!;
     console.log(`   🎯 使用模板: ${firstPrompt.name}`);
     
     try {
@@ -100,8 +109,8 @@ async function main(): Promise<void> {
     }
   }
 
-  // 7. 演示保存自定义模板
-  console.log('\n💾 保存自定义模板演示:');
+  // 7. 演示保存自定义Markdown模板
+  console.log('\n💾 保存自定义Markdown模板演示:');
   const customTemplate = {
     name: 'custom-greeting',
     description: '自定义问候模板',
@@ -111,7 +120,13 @@ async function main(): Promise<void> {
 
 今天是 {{date}}，希望你有美好的一天！
 
-特别说明：{{note}}`,
+特别说明：{{note}}
+
+## 使用指南
+
+1. 请确保填写正确的{{name}}
+2. {{product}}名称要准确
+3. 如有疑问，请查看{{note}}部分`,
     arguments: [
       {
         name: 'name',
@@ -139,19 +154,20 @@ async function main(): Promise<void> {
   };
 
   try {
-    await templateProvider.saveTemplate(customTemplate);
-    console.log('   ✅ 自定义模板保存成功');
-    
+    // 保存为Markdown格式
+    await templateProvider.saveTemplate(customTemplate, 'md');
+    console.log('   ✅ 自定义Markdown模板保存成功');
+
     // 注册到管理器
     promptManager.registerPrompt(customTemplate);
     console.log('   ✅ 模板注册成功');
-    
+
     // 测试渲染
     const customRendered = promptManager.renderPrompt('custom-greeting', {
       name: '张三',
       product: 'Sker AI'
     });
-    
+
     console.log('   🎨 自定义模板渲染结果:');
     const customText = String(customRendered);
     console.log(`      ${customText.replace(/\n/g, '\n      ')}`);
@@ -170,10 +186,12 @@ async function main(): Promise<void> {
   // 9. 使用建议
   console.log('\n💡 使用建议:');
   console.log('   1. 将常用的提示词模板保存到全局目录');
-  console.log('   2. 使用JSON格式定义模板，便于版本控制');
-  console.log('   3. 为模板参数提供合理的默认值');
-  console.log('   4. 使用描述性的模板名称和说明');
-  console.log('   5. 定期备份全局提示词目录');
+  console.log('   2. 使用Markdown格式编写模板，便于阅读和编辑');
+  console.log('   3. 使用{{参数名}}格式定义模板参数');
+  console.log('   4. 文件名即为模板名称，使用描述性命名');
+  console.log('   5. 支持复杂的Markdown格式，包括代码块、列表等');
+  console.log('   6. 定期备份全局提示词目录');
+  console.log('   7. 可以直接用文本编辑器编辑.md模板文件');
 
   console.log('\n🎉 演示完成！');
 }

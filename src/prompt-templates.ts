@@ -49,24 +49,27 @@ export class PromptTemplatesProvider {
       await this.ensureGlobalPromptsDirectory();
 
       const files = await fs.promises.readdir(this.getGlobalPromptsDirectory());
-      const jsonFiles = files.filter(file => file.endsWith('.json'));
+      const mdFiles = files.filter(file => file.endsWith('.md'));
 
-      for (const file of jsonFiles) {
+      for (const file of mdFiles) {
         await this.loadTemplateFromFile(file);
       }
 
-      console.log(`✅ 从 ${this.getGlobalPromptsDirectory()} 加载了 ${jsonFiles.length} 个提示词模板`);
+      console.log(`✅ 从 ${this.getGlobalPromptsDirectory()} 加载了 ${mdFiles.length} 个提示词模板`);
 
-      // 如果没有找到任何模板文件，回退到内置模板
-      if (jsonFiles.length === 0) {
-        console.log('🔄 未找到全局提示词模板，使用内置模板');
-        this.registerBuiltinTemplates();
+      // 如果没有找到任何模板文件，创建示例文件
+      if (mdFiles.length === 0) {
+        console.log('� 未找到提示词模板，创建示例文件');
+        await this.createExampleTemplate();
       }
     } catch (error) {
       console.warn(`无法访问全局提示词目录: ${(error as Error).message}`);
-      // 如果无法访问全局目录，回退到内置模板
-      console.log('🔄 使用内置提示词模板作为回退方案');
-      this.registerBuiltinTemplates();
+      // 如果无法访问全局目录，尝试创建示例文件
+      try {
+        await this.createExampleTemplate();
+      } catch (createError) {
+        console.warn(`无法创建示例文件: ${(createError as Error).message}`);
+      }
     }
   }
 
@@ -78,17 +81,94 @@ export class PromptTemplatesProvider {
 
     try {
       const content = await fs.promises.readFile(filePath, 'utf8');
-      const template: MCPPrompt = JSON.parse(content);
 
-      // 验证模板格式
-      if (this.validateTemplate(template)) {
+      if (filename.endsWith('.md')) {
+        // 处理Markdown文件
+        const template = this.parseMarkdownTemplate(filename, content);
         this.promptManager.registerPrompt(template);
         console.log(`✅ 加载提示词模板: ${template.name}`);
-      } else {
-        console.warn(`❌ 提示词模板格式无效: ${filename}`);
+      } else if (filename.endsWith('.json')) {
+        // 处理JSON文件（向后兼容）
+        const template: MCPPrompt = JSON.parse(content);
+
+        // 验证模板格式
+        if (this.validateTemplate(template)) {
+          this.promptManager.registerPrompt(template);
+          console.log(`✅ 加载提示词模板: ${template.name}`);
+        } else {
+          console.warn(`❌ 提示词模板格式无效: ${filename}`);
+        }
       }
     } catch (error) {
       console.warn(`无法加载提示词模板 ${filename}: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * 从Markdown内容解析提示词模板
+   */
+  private parseMarkdownTemplate(filename: string, content: string): MCPPrompt {
+    // 从文件名提取模板名称（去掉.md扩展名）
+    const name = path.basename(filename, '.md');
+
+    // 解析模板参数（查找{{参数名}}格式）
+    const paramRegex = /\{\{(\w+)\}\}/g;
+    const params = new Set<string>();
+    let match;
+
+    while ((match = paramRegex.exec(content)) !== null) {
+      if (match[1]) {
+        params.add(match[1]);
+      }
+    }
+
+    // 创建参数定义
+    const arguments_: MCPPrompt['arguments'] = Array.from(params).map(param => ({
+      name: param,
+      description: `${param}参数`,
+      required: true
+    }));
+
+    return {
+      name,
+      description: `${name}提示词模板`,
+      template: content,
+      arguments: arguments_
+    };
+  }
+
+  /**
+   * 创建示例模板文件
+   */
+  async createExampleTemplate(): Promise<void> {
+    await this.ensureGlobalPromptsDirectory();
+
+    const exampleContent = `请分析以下{{language}}代码：
+
+\`\`\`{{language}}
+{{code}}
+\`\`\`
+
+请从以下方面进行分析：
+1. 代码功能和逻辑
+2. 代码质量评估
+3. 潜在问题识别
+4. 改进建议
+
+分析重点：{{focus}}
+详细程度：{{level}}`;
+
+    const examplePath = path.join(this.getGlobalPromptsDirectory(), 'example-prompt.md');
+
+    try {
+      await fs.promises.writeFile(examplePath, exampleContent, 'utf8');
+      console.log('✅ 创建示例模板文件: example-prompt.md');
+
+      // 加载刚创建的示例模板
+      await this.loadTemplateFromFile('example-prompt.md');
+    } catch (error) {
+      console.error(`无法创建示例模板文件: ${(error as Error).message}`);
+      throw error;
     }
   }
 
@@ -108,14 +188,23 @@ export class PromptTemplatesProvider {
   /**
    * 保存提示词模板到全局目录
    */
-  async saveTemplate(template: MCPPrompt): Promise<void> {
+  async saveTemplate(template: MCPPrompt, format: 'md' | 'json' = 'md'): Promise<void> {
     await this.ensureGlobalPromptsDirectory();
 
-    const filename = `${template.name}.json`;
+    const filename = `${template.name}.${format}`;
     const filePath = path.join(this.getGlobalPromptsDirectory(), filename);
 
     try {
-      const content = JSON.stringify(template, null, 2);
+      let content: string;
+
+      if (format === 'md') {
+        // 保存为Markdown格式
+        content = template.template;
+      } else {
+        // 保存为JSON格式（向后兼容）
+        content = JSON.stringify(template, null, 2);
+      }
+
       await fs.promises.writeFile(filePath, content, 'utf8');
       console.log(`✅ 保存提示词模板: ${template.name} -> ${filename}`);
     } catch (error) {
@@ -125,7 +214,7 @@ export class PromptTemplatesProvider {
   }
 
   /**
-   * 创建默认的提示词模板文件
+   * 创建默认的提示词模板文件（向后兼容）
    */
   async createDefaultTemplates(): Promise<void> {
     await this.ensureGlobalPromptsDirectory();
@@ -133,30 +222,16 @@ export class PromptTemplatesProvider {
     const defaultTemplates = this.getBuiltinTemplates();
 
     for (const template of defaultTemplates) {
-      const filename = `${template.name}.json`;
+      const filename = `${template.name}.md`;
       const filePath = path.join(this.getGlobalPromptsDirectory(), filename);
 
       // 只有文件不存在时才创建
       if (!fs.existsSync(filePath)) {
-        await this.saveTemplate(template);
+        await this.saveTemplate(template, 'md');
       }
     }
 
     console.log(`✅ 创建了 ${defaultTemplates.length} 个默认提示词模板`);
-  }
-
-  /**
-   * 注册内置模板（作为回退方案）
-   */
-  private registerBuiltinTemplates(): void {
-    console.log('🔄 使用内置提示词模板作为回退方案');
-    const templates = this.getBuiltinTemplates();
-
-    for (const template of templates) {
-      this.promptManager.registerPrompt(template);
-    }
-
-    console.log(`✅ 注册了 ${templates.length} 个内置提示词模板`);
   }
 
   /**

@@ -46,84 +46,92 @@ describe('全局提示词模板加载器', () => {
   });
 
   describe('模板文件加载', () => {
-    it('应该从JSON文件加载提示词模板', async () => {
-      // 创建测试模板文件
-      const testTemplate = {
-        name: 'test-template',
-        description: '测试模板',
-        template: 'Hello {{name}}!',
-        arguments: [
-          {
-            name: 'name',
-            description: '名称',
-            required: true
-          }
-        ]
-      };
+    it('应该从Markdown文件加载提示词模板', async () => {
+      // 创建测试Markdown模板文件
+      const templateContent = `请审查以下{{language}}代码：
+
+\`\`\`{{language}}
+{{code}}
+\`\`\`
+
+请从以下方面进行评估：
+1. 代码质量和可读性
+2. 性能优化建议
+3. 安全性考虑`;
 
       await fs.promises.mkdir(testPromptsDir, { recursive: true });
       await fs.promises.writeFile(
-        path.join(testPromptsDir, 'test-template.json'),
-        JSON.stringify(testTemplate, null, 2)
+        path.join(testPromptsDir, 'code-review.md'),
+        templateContent
       );
 
       const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
-      
-      // ❌ 这会失败，因为loadTemplateFromFile方法还没有正确实现
-      await testProvider.loadTemplateFromFile('test-template.json');
-      
-      const loadedTemplate = promptManager.getPrompt('test-template');
+
+      // ❌ 这会失败，因为需要重新实现Markdown文件加载
+      await testProvider.loadTemplateFromFile('code-review.md');
+
+      const loadedTemplate = promptManager.getPrompt('code-review');
       expect(loadedTemplate).toBeDefined();
-      expect(loadedTemplate?.name).toBe('test-template');
+      expect(loadedTemplate?.name).toBe('code-review');
+      expect(loadedTemplate?.template).toContain('请审查以下{{language}}代码');
     });
 
-    it('应该验证模板格式', async () => {
+    it('应该从Markdown内容解析模板参数', async () => {
+      const templateContent = `请分析{{language}}代码：
+
+\`\`\`{{language}}
+{{code}}
+\`\`\`
+
+分析重点：{{focus}}
+详细程度：{{level}}`;
+
+      await fs.promises.mkdir(testPromptsDir, { recursive: true });
+      await fs.promises.writeFile(
+        path.join(testPromptsDir, 'analyze-code.md'),
+        templateContent
+      );
+
       const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
-      
-      // 有效模板
-      const validTemplate = {
-        name: 'valid',
-        description: '有效模板',
-        template: 'Hello!',
-        arguments: []
-      };
-      
-      // 无效模板
-      const invalidTemplate = {
-        name: 'invalid',
-        // 缺少必需字段
-        template: 'Hello!'
-      };
-      
-      // ❌ 这会失败，因为validateTemplate方法是私有的，需要通过公共方法测试
-      expect(testProvider.testValidateTemplate(validTemplate)).toBe(true);
-      expect(testProvider.testValidateTemplate(invalidTemplate)).toBe(false);
+
+      // ❌ 这会失败，因为需要实现从Markdown解析参数的功能
+      await testProvider.loadTemplateFromFile('analyze-code.md');
+
+      const loadedTemplate = promptManager.getPrompt('analyze-code');
+      expect(loadedTemplate).toBeDefined();
+      expect(loadedTemplate?.arguments).toHaveLength(4);
+
+      const argNames = loadedTemplate?.arguments.map(arg => arg.name);
+      expect(argNames).toContain('language');
+      expect(argNames).toContain('code');
+      expect(argNames).toContain('focus');
+      expect(argNames).toContain('level');
     });
 
-    it('应该加载目录中的所有JSON模板文件', async () => {
-      // 创建多个测试模板文件
+    it('应该加载目录中的所有Markdown模板文件', async () => {
+      // 创建多个测试Markdown模板文件
       const templates = [
-        { name: 'template1', description: '模板1', template: 'Hello {{name}}!', arguments: [] },
-        { name: 'template2', description: '模板2', template: 'Hi {{user}}!', arguments: [] }
+        { name: 'code-review', content: '请审查以下代码：\n\n```{{language}}\n{{code}}\n```' },
+        { name: 'bug-fix', content: '请帮助修复这个bug：\n\n问题描述：{{description}}' }
       ];
 
       await fs.promises.mkdir(testPromptsDir, { recursive: true });
-      
+
       for (const template of templates) {
         await fs.promises.writeFile(
-          path.join(testPromptsDir, `${template.name}.json`),
-          JSON.stringify(template, null, 2)
+          path.join(testPromptsDir, `${template.name}.md`),
+          template.content
         );
       }
 
       const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
-      
-      // ❌ 这会失败，因为loadAllTemplates方法还没有正确实现
+
+      // ❌ 这会失败，因为需要重新实现Markdown文件加载
       await testProvider.loadAllTemplates();
-      
+
       expect(promptManager.getPrompts()).toHaveLength(2);
-      expect(promptManager.getPrompt('template1')).toBeDefined();
-      expect(promptManager.getPrompt('template2')).toBeDefined();
+      expect(promptManager.getPrompt('code-review')).toBeDefined();
+      expect(promptManager.getPrompt('bug-fix')).toBeDefined();
     });
   });
 
@@ -144,27 +152,27 @@ describe('全局提示词模板加载器', () => {
 
       const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
       
-      // ❌ 这会失败，因为saveTemplate方法还没有正确实现
-      await testProvider.saveTemplate(testTemplate);
-      
-      const savedFile = path.join(testPromptsDir, 'save-test.json');
+      // 测试保存为Markdown格式
+      await testProvider.saveTemplate(testTemplate, 'md');
+
+      const savedFile = path.join(testPromptsDir, 'save-test.md');
       expect(fs.existsSync(savedFile)).toBe(true);
-      
-      const savedContent = JSON.parse(await fs.promises.readFile(savedFile, 'utf8'));
-      expect(savedContent.name).toBe('save-test');
+
+      const savedContent = await fs.promises.readFile(savedFile, 'utf8');
+      expect(savedContent).toBe(testTemplate.template);
     });
 
-    it('应该创建默认模板文件', async () => {
+    it('应该创建示例模板文件', async () => {
       const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
-      
-      // ❌ 这会失败，因为createDefaultTemplates方法还没有正确实现
-      await testProvider.createDefaultTemplates();
-      
+
+      // ❌ 这会失败，因为需要重新实现创建示例文件的功能
+      await testProvider.createExampleTemplate();
+
       const files = await fs.promises.readdir(testPromptsDir);
-      const jsonFiles = files.filter(file => file.endsWith('.json'));
-      
-      expect(jsonFiles.length).toBeGreaterThan(0);
-      expect(jsonFiles).toContain('code-review.json');
+      const mdFiles = files.filter(file => file.endsWith('.md'));
+
+      expect(mdFiles.length).toBeGreaterThan(0);
+      expect(mdFiles).toContain('example-prompt.md');
     });
   });
 
@@ -185,17 +193,18 @@ describe('全局提示词模板加载器', () => {
       expect(promptManager.getPrompt('invalid')).toBeUndefined();
     });
 
-    it('应该在无法访问全局目录时回退到内置模板', async () => {
-      // 使用不存在的目录路径
-      const invalidPath = '/invalid/path/that/does/not/exist';
-      const testProvider = new TestablePromptTemplatesProvider(promptManager, invalidPath);
-      
-      // ❌ 这会失败，因为回退机制还没有实现
+    it('应该在没有模板文件时创建示例文件', async () => {
+      // 使用空目录
+      const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
+
+      // ❌ 这会失败，因为需要重新实现创建示例文件的逻辑
       await testProvider.loadAllTemplates();
-      
-      // 应该加载内置模板作为回退
-      const prompts = promptManager.getPrompts();
-      expect(prompts.length).toBeGreaterThan(0);
+
+      // 应该创建示例文件而不是回退到内置模板
+      const files = await fs.promises.readdir(testPromptsDir);
+      const mdFiles = files.filter(file => file.endsWith('.md'));
+      expect(mdFiles.length).toBeGreaterThan(0);
+      expect(mdFiles).toContain('example-prompt.md');
     });
   });
 });
@@ -216,8 +225,8 @@ class TestablePromptTemplatesProvider extends PromptTemplatesProvider {
     return this.customPromptsDir;
   }
 
-  // 暴露私有方法用于测试
-  testValidateTemplate(template: any): boolean {
-    return (this as any).validateTemplate(template);
+  // 暴露方法用于测试
+  override async createExampleTemplate(): Promise<void> {
+    return super.createExampleTemplate();
   }
 }
