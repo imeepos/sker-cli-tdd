@@ -632,6 +632,115 @@ export class FolderContext implements Context {
   isEmpty(): boolean {
     return this.children.length === 0;
   }
+
+  /**
+   * 获取所有子文件夹的Context（递归）
+   *
+   * 递归遍历当前文件夹及其所有子文件夹，返回所有文件夹类型的Context。
+   * 包括直接子文件夹和间接子文件夹。
+   *
+   * @returns 所有子文件夹的Context数组
+   * @example
+   * ```typescript
+   * const root = new FolderContext('/project');
+   * const src = new FolderContext('/project/src');
+   * const utils = new FolderContext('/project/src/utils');
+   *
+   * root.addChild(src);
+   * src.addChild(utils);
+   *
+   * const subfolders = root.getAllSubfolders();
+   * console.log(subfolders.length); // 2 (src, utils)
+   * ```
+   */
+  getAllSubfolders(): FolderContext[] {
+    const subfolders: FolderContext[] = [];
+
+    for (const child of this.children) {
+      if (child.type === 'folder') {
+        const folderChild = child as FolderContext;
+        subfolders.push(folderChild);
+        // 递归获取子文件夹的子文件夹
+        subfolders.push(...folderChild.getAllSubfolders());
+      }
+    }
+
+    return subfolders;
+  }
+
+  /**
+   * 获取所有子文件的Context（递归）
+   *
+   * 递归遍历当前文件夹及其所有子文件夹，返回所有文件类型的Context。
+   * 包括直接子文件和间接子文件。
+   *
+   * @returns 所有子文件的Context数组
+   * @example
+   * ```typescript
+   * const root = new FolderContext('/project');
+   * const src = new FolderContext('/project/src');
+   * const file1 = new FileContext('/project/index.ts');
+   * const file2 = new FileContext('/project/src/utils.ts');
+   *
+   * root.addChild(src);
+   * root.addChild(file1);
+   * src.addChild(file2);
+   *
+   * const allFiles = root.getAllFiles();
+   * console.log(allFiles.length); // 2 (index.ts, utils.ts)
+   * ```
+   */
+  getAllFiles(): FileContext[] {
+    const files: FileContext[] = [];
+
+    for (const child of this.children) {
+      if (child.type === 'file') {
+        files.push(child as FileContext);
+      } else if (child.type === 'folder') {
+        // 递归获取子文件夹中的文件
+        files.push(...(child as FolderContext).getAllFiles());
+      }
+    }
+
+    return files;
+  }
+
+  /**
+   * 获取所有后代Context（文件和文件夹，递归）
+   *
+   * 递归遍历当前文件夹及其所有子文件夹，返回所有后代Context。
+   * 包括文件和文件夹类型的Context。
+   *
+   * @returns 所有后代Context数组
+   * @example
+   * ```typescript
+   * const root = new FolderContext('/project');
+   * const src = new FolderContext('/project/src');
+   * const file1 = new FileContext('/project/index.ts');
+   * const file2 = new FileContext('/project/src/utils.ts');
+   *
+   * root.addChild(src);
+   * root.addChild(file1);
+   * src.addChild(file2);
+   *
+   * const descendants = root.getAllDescendants();
+   * console.log(descendants.length); // 3 (src, index.ts, utils.ts)
+   * ```
+   */
+  getAllDescendants(): Context[] {
+    const descendants: Context[] = [];
+
+    for (const child of this.children) {
+      descendants.push(child);
+
+      if (child.type === 'folder') {
+        // 递归获取子文件夹的后代
+        descendants.push(...(child as FolderContext).getAllDescendants());
+      }
+    }
+
+    return descendants;
+  }
 }
 
 /**

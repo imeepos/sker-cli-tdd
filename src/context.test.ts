@@ -416,13 +416,77 @@ custom-ignored/
       const rootContext = new FolderContext('/project');
       const subfolderContext = new FolderContext('/project/src');
       const fileContext = new FileContext('/project/src/index.ts');
-      
+
       rootContext.addChild(subfolderContext);
       subfolderContext.addChild(fileContext);
-      
+
       expect(fileContext.isDescendantOf(rootContext)).toBe(true);
       expect(fileContext.isDescendantOf(subfolderContext)).toBe(true);
       expect(rootContext.isDescendantOf(fileContext)).toBe(false);
+    });
+
+    it('应该获取所有子文件夹的Context', () => {
+      const root = new FolderContext('/project');
+      const src = new FolderContext('/project/src');
+      const tests = new FolderContext('/project/tests');
+      const utils = new FolderContext('/project/src/utils');
+      const file1 = new FileContext('/project/src/index.ts');
+      const file2 = new FileContext('/project/tests/test.ts');
+
+      root.addChild(src);
+      root.addChild(tests);
+      src.addChild(utils);
+      src.addChild(file1);
+      tests.addChild(file2);
+
+      // ❌ 这会失败，因为getAllSubfolders方法还没有实现
+      const subfolders = root.getAllSubfolders();
+      expect(subfolders).toHaveLength(3); // src, tests, utils
+      expect(subfolders.map(f => f.name)).toEqual(expect.arrayContaining(['src', 'tests', 'utils']));
+    });
+
+    it('应该获取所有子文件的Context', () => {
+      const root = new FolderContext('/project');
+      const src = new FolderContext('/project/src');
+      const tests = new FolderContext('/project/tests');
+      const file1 = new FileContext('/project/src/index.ts');
+      const file2 = new FileContext('/project/src/utils.ts');
+      const file3 = new FileContext('/project/tests/test.ts');
+      const file4 = new FileContext('/project/README.md');
+
+      root.addChild(src);
+      root.addChild(tests);
+      root.addChild(file4);
+      src.addChild(file1);
+      src.addChild(file2);
+      tests.addChild(file3);
+
+      // ❌ 这会失败，因为getAllFiles方法还没有实现
+      const allFiles = root.getAllFiles();
+      expect(allFiles).toHaveLength(4); // index.ts, utils.ts, test.ts, README.md
+      expect(allFiles.map(f => f.name)).toEqual(expect.arrayContaining(['index.ts', 'utils.ts', 'test.ts', 'README.md']));
+    });
+
+    it('应该获取所有后代Context（文件和文件夹）', () => {
+      const root = new FolderContext('/project');
+      const src = new FolderContext('/project/src');
+      const utils = new FolderContext('/project/src/utils');
+      const file1 = new FileContext('/project/src/index.ts');
+      const file2 = new FileContext('/project/src/utils/helper.ts');
+
+      root.addChild(src);
+      src.addChild(utils);
+      src.addChild(file1);
+      utils.addChild(file2);
+
+      // ❌ 这会失败，因为getAllDescendants方法还没有实现
+      const descendants = root.getAllDescendants();
+      expect(descendants).toHaveLength(4); // src, utils, index.ts, helper.ts
+
+      const folders = descendants.filter(d => d.type === 'folder');
+      const files = descendants.filter(d => d.type === 'file');
+      expect(folders).toHaveLength(2);
+      expect(files).toHaveLength(2);
     });
   });
 });
