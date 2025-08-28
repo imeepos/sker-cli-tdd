@@ -166,15 +166,107 @@ describe('Context上下文功能', () => {
 
     it('应该支持深度限制选项', async () => {
       const builder = new ContextBuilder();
-      
+
       const rootContext = await builder.buildFromDirectory(testDir, {
         maxDepth: 1
       });
-      
+
       expect(rootContext.children.length).toBe(3);
-      
+
       const subfolder = rootContext.findChild('subfolder') as FolderContext;
       expect(subfolder.children.length).toBe(0); // 深度限制，不扫描子目录内容
+    });
+
+    it('应该支持.gitignore文件忽略规则', async () => {
+      // 创建.gitignore文件
+      const gitignoreContent = `
+# 忽略日志文件
+*.log
+# 忽略临时文件
+*.tmp
+# 忽略特定目录
+ignored-folder/
+# 忽略特定文件
+ignored-file.txt
+`;
+      await fs.promises.writeFile(path.join(testDir, '.gitignore'), gitignoreContent);
+
+      // 创建应该被忽略的文件和目录
+      await fs.promises.writeFile(path.join(testDir, 'debug.log'), 'log content');
+      await fs.promises.writeFile(path.join(testDir, 'temp.tmp'), 'temp content');
+      await fs.promises.writeFile(path.join(testDir, 'ignored-file.txt'), 'ignored content');
+      await fs.promises.mkdir(path.join(testDir, 'ignored-folder'), { recursive: true });
+      await fs.promises.writeFile(path.join(testDir, 'ignored-folder', 'file.txt'), 'content');
+
+      const builder = new ContextBuilder();
+
+      // ❌ 这会失败，因为respectGitignore选项不存在
+      const rootContext = await builder.buildFromDirectory(testDir, {
+        respectGitignore: true
+      });
+
+      // 验证被忽略的文件不在结果中
+      expect(rootContext.findChild('debug.log')).toBeUndefined();
+      expect(rootContext.findChild('temp.tmp')).toBeUndefined();
+      expect(rootContext.findChild('ignored-file.txt')).toBeUndefined();
+      expect(rootContext.findChild('ignored-folder')).toBeUndefined();
+
+      // 验证正常文件仍然存在
+      expect(rootContext.findChild('file1.txt')).toBeDefined();
+      expect(rootContext.findChild('file2.md')).toBeDefined();
+      expect(rootContext.findChild('subfolder')).toBeDefined();
+    });
+
+    it('应该支持自定义ignore文件路径', async () => {
+      // 创建自定义ignore文件
+      const customIgnoreContent = `
+*.custom
+custom-ignored/
+`;
+      await fs.promises.writeFile(path.join(testDir, '.customignore'), customIgnoreContent);
+
+      // 创建应该被忽略的文件
+      await fs.promises.writeFile(path.join(testDir, 'test.custom'), 'custom content');
+      await fs.promises.mkdir(path.join(testDir, 'custom-ignored'), { recursive: true });
+
+      const builder = new ContextBuilder();
+
+      // ❌ 这会失败，因为ignoreFile选项不存在
+      const rootContext = await builder.buildFromDirectory(testDir, {
+        respectGitignore: true,
+        ignoreFile: '.customignore'
+      });
+
+      // 验证被忽略的文件不在结果中
+      expect(rootContext.findChild('test.custom')).toBeUndefined();
+      expect(rootContext.findChild('custom-ignored')).toBeUndefined();
+    });
+
+    it('应该在没有ignore文件时正常工作', async () => {
+      const builder = new ContextBuilder();
+
+      const rootContext = await builder.buildFromDirectory(testDir, {
+        respectGitignore: true
+      });
+
+      // 应该包含所有文件，因为没有ignore文件
+      expect(rootContext.children.length).toBe(3); // file1.txt, file2.md, subfolder
+    });
+
+    it('应该支持禁用gitignore功能', async () => {
+      // 创建.gitignore文件
+      const gitignoreContent = '*.txt';
+      await fs.promises.writeFile(path.join(testDir, '.gitignore'), gitignoreContent);
+
+      const builder = new ContextBuilder();
+
+      const rootContext = await builder.buildFromDirectory(testDir, {
+        respectGitignore: false // 明确禁用
+      });
+
+      // 应该包含所有文件，包括被gitignore的文件
+      expect(rootContext.findChild('file1.txt')).toBeDefined();
+      expect(rootContext.findChild('file2.md')).toBeDefined();
     });
   });
 

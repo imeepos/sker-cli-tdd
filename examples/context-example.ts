@@ -51,9 +51,19 @@ export async function runContextExample(): Promise<void> {
       excludeExtensions: ['.map', '.log', '.cache', '.tmp'],
       maxDepth: 2
     };
-    
+
     const cleanContext = await builder.buildFromDirectory(projectPath, cleanOptions);
     displayContextStats('清洁扫描', cleanContext);
+
+    // .gitignore扫描 - 遵循.gitignore规则
+    console.log('\n📊 .gitignore扫描 - 遵循.gitignore忽略规则:');
+    const gitignoreOptions: ContextBuilderOptions = {
+      respectGitignore: true,
+      maxDepth: 3
+    };
+
+    const gitignoreContext = await builder.buildFromDirectory(projectPath, gitignoreOptions);
+    displayContextStats('.gitignore扫描', gitignoreContext);
 
     // 3. 详细分析项目结构
     console.log('\n🔍 详细分析项目结构:');
@@ -63,7 +73,11 @@ export async function runContextExample(): Promise<void> {
     console.log('\n🌳 Context树遍历示例:');
     traverseContextTree(sourceContext, 0, 2); // 只显示前2层
 
-    // 5. 演示Context查找功能
+    // 5. 演示.gitignore功能
+    console.log('\n🚫 .gitignore功能演示:');
+    await demonstrateGitignoreFeature(builder, projectPath);
+
+    // 6. 演示Context查找功能
     console.log('\n🔎 Context查找功能演示:');
     demonstrateContextSearch(sourceContext);
 
@@ -201,6 +215,65 @@ function traverseContextTree(context: FolderContext, depth: number, maxDepth: nu
       const remainingIndent = '  '.repeat(depth + 1);
       console.log(`${remainingIndent}... 还有 ${remaining} 个项目`);
     }
+  }
+}
+
+/**
+ * 演示.gitignore功能
+ */
+async function demonstrateGitignoreFeature(builder: ContextBuilder, projectPath: string): Promise<void> {
+  console.log('🔍 检查.gitignore文件:');
+
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const gitignorePath = path.join(projectPath, '.gitignore');
+
+    if (fs.existsSync(gitignorePath)) {
+      const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
+      console.log('   ✅ 发现.gitignore文件');
+
+      // 显示部分.gitignore内容
+      const lines = gitignoreContent.split('\n').filter((line: string) => line.trim() && !line.startsWith('#'));
+      const sampleRules = lines.slice(0, 5);
+
+      if (sampleRules.length > 0) {
+        console.log('   📋 忽略规则示例:');
+        sampleRules.forEach((rule: string) => {
+          console.log(`      - ${rule}`);
+        });
+        if (lines.length > 5) {
+          console.log(`      ... 还有 ${lines.length - 5} 条规则`);
+        }
+      }
+
+      // 比较启用和禁用.gitignore的差异
+      console.log('\n   📊 .gitignore效果对比:');
+
+      const withGitignore = await builder.buildFromDirectory(projectPath, {
+        respectGitignore: true,
+        maxDepth: 2
+      });
+
+      const withoutGitignore = await builder.buildFromDirectory(projectPath, {
+        respectGitignore: false,
+        maxDepth: 2
+      });
+
+      const withStats = calculateContextStats(withGitignore);
+      const withoutStats = calculateContextStats(withoutGitignore);
+
+      console.log(`      启用.gitignore: ${withStats.totalCount} 个项目`);
+      console.log(`      禁用.gitignore: ${withoutStats.totalCount} 个项目`);
+      console.log(`      被忽略的项目: ${withoutStats.totalCount - withStats.totalCount} 个`);
+
+    } else {
+      console.log('   ℹ️  未发现.gitignore文件');
+      console.log('   💡 可以创建.gitignore文件来忽略不需要的文件');
+    }
+
+  } catch (error) {
+    console.log(`   ❌ 检查.gitignore时出错: ${(error as Error).message}`);
   }
 }
 

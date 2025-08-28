@@ -18,6 +18,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import ignore from 'ignore';
 
 /**
  * Context基础接口
@@ -373,7 +374,8 @@ export class FolderContext implements Context {
  * const options: ContextBuilderOptions = {
  *   includeExtensions: ['.ts', '.js', '.json'],
  *   excludeExtensions: ['.log', '.tmp'],
- *   maxDepth: 3
+ *   maxDepth: 3,
+ *   respectGitignore: true
  * };
  * ```
  */
@@ -394,10 +396,25 @@ export interface ContextBuilderOptions {
 
   /**
    * 最大扫描深度
-   * 限制目录树的扫描深度，0表示只扫描根目录
+   * 限制目录树的扫描深度，0表示只扫描子目录
    * @default undefined（无限制）
    */
   maxDepth?: number;
+
+  /**
+   * 是否遵循.gitignore文件的忽略规则
+   * 如果为true，将读取.gitignore文件并忽略匹配的文件和目录
+   * @default false
+   */
+  respectGitignore?: boolean;
+
+  /**
+   * 自定义ignore文件路径
+   * 指定要使用的ignore文件名，相对于扫描的根目录
+   * @default '.gitignore'
+   * @example '.dockerignore', '.eslintignore'
+   */
+  ignoreFile?: string;
 }
 
 /**
@@ -421,11 +438,14 @@ export interface ContextBuilderOptions {
  * ```
  */
 export class ContextBuilder {
+  /** ignore实例，用于处理.gitignore规则 */
+  private ignoreInstance: ReturnType<typeof ignore> | null = null;
+
   /**
    * 从指定目录构建完整的上下文树
    *
    * 扫描指定目录及其子目录，根据提供的选项过滤文件，
-   * 构建完整的Context树结构。
+   * 构建完整的Context树结构。支持.gitignore文件的忽略规则。
    *
    * @param directoryPath 要扫描的根目录路径
    * @param options 构建选项，用于控制扫描行为
@@ -439,10 +459,11 @@ export class ContextBuilder {
    * const projectContext = await builder.buildFromDirectory('/my-project');
    * console.log(`项目包含 ${projectContext.children.length} 个直接子项`);
    *
-   * // 只扫描TypeScript文件，限制深度为3层
-   * const tsContext = await builder.buildFromDirectory('/my-project', {
+   * // 扫描时遵循.gitignore规则
+   * const cleanContext = await builder.buildFromDirectory('/my-project', {
    *   includeExtensions: ['.ts', '.tsx'],
-   *   maxDepth: 3
+   *   maxDepth: 3,
+   *   respectGitignore: true
    * });
    * ```
    */
@@ -451,8 +472,37 @@ export class ContextBuilder {
     options: ContextBuilderOptions = {}
   ): Promise<FolderContext> {
     const rootContext = new FolderContext(directoryPath);
+
+    // 如果需要遵循gitignore规则，初始化ignore实例
+    if (options.respectGitignore) {
+      await this.initializeIgnore(directoryPath, options.ignoreFile || '.gitignore');
+    } else {
+      this.ignoreInstance = null;
+    }
+
     await this.scanDirectory(rootContext, options, 0);
     return rootContext;
+  }
+
+  /**
+   * 初始化ignore实例
+   *
+   * 读取指定的ignore文件（如.gitignore）并创建ignore实例用于文件过滤。
+   *
+   * @param rootPath 根目录路径
+   * @param ignoreFileName ignore文件名
+   * @private
+   */
+  private async initializeIgnore(rootPath: string, ignoreFileName: string): Promise<void> {
+    const ignoreFilePath = path.join(rootPath, ignoreFileName);
+
+    try {
+      const ignoreContent = await fs.promises.readFile(ignoreFilePath, 'utf8');
+      this.ignoreInstance = ignore().add(ignoreContent);
+    } catch (error) {
+      // 如果ignore文件不存在或无法读取，创建空的ignore实例
+      this.ignoreInstance = ignore();
+    }
   }
 
   /**
@@ -460,6 +510,7 @@ export class ContextBuilder {
    *
    * 深度优先遍历目录结构，根据选项过滤文件和控制扫描深度。
    * 对于每个发现的文件和子目录，创建相应的Context实例并建立关系。
+   * 支持.gitignore规则的文件过滤。
    *
    * @param folderContext 当前正在扫描的文件夹上下文
    * @param options 构建选项，包含过滤和深度限制
@@ -478,20 +529,25 @@ export class ContextBuilder {
 
     try {
       const entries = await fs.promises.readdir(folderContext.path, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(folderContext.path, entry.name);
-        
+
+        // 检查是否应该被ignore规则忽略
+        if (this.shouldIgnoreByGitignore(fullPath, entry.isDirectory())) {
+          continue;
+        }
+
         if (entry.isDirectory()) {
           const subfolderContext = new FolderContext(fullPath);
           folderContext.addChild(subfolderContext);
-          
+
           // 递归扫描子目录
           await this.scanDirectory(subfolderContext, options, currentDepth + 1);
         } else if (entry.isFile()) {
           // 检查文件扩展名过滤
           const ext = path.extname(entry.name);
-          
+
           if (this.shouldIncludeFile(ext, options)) {
             const fileContext = new FileContext(fullPath);
             folderContext.addChild(fileContext);
@@ -502,6 +558,32 @@ export class ContextBuilder {
       // 忽略无法访问的目录
       console.warn(`无法扫描目录 ${folderContext.path}: ${(error as Error).message}`);
     }
+  }
+
+  /**
+   * 检查文件或目录是否应该被.gitignore规则忽略
+   *
+   * 使用ignore实例检查指定路径是否匹配ignore规则。
+   *
+   * @param fullPath 文件或目录的完整路径
+   * @param isDirectory 是否为目录
+   * @returns 如果应该被忽略则返回true，否则返回false
+   * @private
+   */
+  private shouldIgnoreByGitignore(fullPath: string, isDirectory: boolean): boolean {
+    if (!this.ignoreInstance) {
+      return false; // 没有ignore实例，不忽略任何文件
+    }
+
+    // 获取相对路径用于ignore检查
+    // ignore库期望使用相对路径，并且目录路径应该以/结尾
+    const relativePath = path.relative(process.cwd(), fullPath);
+    const normalizedPath = relativePath.replace(/\\/g, '/'); // 统一使用正斜杠
+
+    // 对于目录，添加尾部斜杠以确保正确匹配
+    const pathToCheck = isDirectory ? `${normalizedPath}/` : normalizedPath;
+
+    return this.ignoreInstance.ignores(pathToCheck);
   }
 
   /**
