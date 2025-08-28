@@ -4,7 +4,7 @@
  * 演示如何使用Context功能来分析和管理文件系统结构
  */
 
-import { ContextBuilder, FolderContext, FileContext, ContextBuilderOptions } from '../src/context';
+import { ContextBuilder, FolderContext, FileContext, ContextBuilderOptions } from '../src/index.js';
 
 /**
  * Context功能使用示例
@@ -77,7 +77,11 @@ export async function runContextExample(): Promise<void> {
     console.log('\n🚫 .gitignore功能演示:');
     await demonstrateGitignoreFeature(builder, projectPath);
 
-    // 6. 演示Context查找功能
+    // 6. 演示文件信息功能
+    console.log('\n📄 文件信息功能演示:');
+    await demonstrateFileInfoFeature(builder, projectPath);
+
+    // 7. 演示Context查找功能
     console.log('\n🔎 Context查找功能演示:');
     demonstrateContextSearch(sourceContext);
 
@@ -275,6 +279,137 @@ async function demonstrateGitignoreFeature(builder: ContextBuilder, projectPath:
   } catch (error) {
     console.log(`   ❌ 检查.gitignore时出错: ${(error as Error).message}`);
   }
+}
+
+/**
+ * 演示文件信息功能
+ */
+async function demonstrateFileInfoFeature(builder: ContextBuilder, projectPath: string): Promise<void> {
+  console.log('🔍 扫描项目文件并加载详细信息:');
+
+  try {
+    // 扫描项目，只包含源代码文件
+    const context = await builder.buildFromDirectory(projectPath, {
+      includeExtensions: ['.ts', '.js', '.json', '.md'],
+      respectGitignore: true,
+      maxDepth: 2
+    });
+
+    // 收集所有文件
+    const allFiles = getAllFiles(context);
+    console.log(`   📊 发现 ${allFiles.length} 个源代码文件`);
+
+    if (allFiles.length > 0) {
+      // 选择几个有代表性的文件进行详细分析
+      const sampleFiles = allFiles.slice(0, 3);
+
+      console.log('\n   📋 文件详细信息:');
+      for (const file of sampleFiles) {
+        console.log(`\n   📄 ${file.name}:`);
+
+        // 加载文件统计信息
+        await file.loadFileInfo();
+
+        console.log(`      📏 大小: ${file.size} 字节`);
+        console.log(`      🕒 修改时间: ${file.modifiedTime?.toLocaleString()}`);
+        console.log(`      🔗 MIME类型: ${file.mimeType}`);
+        console.log(`      📝 文本文件: ${file.isTextFile ? '是' : '否'}`);
+        console.log(`      🔐 文件hash: ${file.hash?.substring(0, 16)}...`);
+
+        // 如果是文本文件，加载内容并生成简介
+        if (file.isTextFile && file.size && file.size < 10000) { // 只处理小于10KB的文件
+          await file.loadContent();
+          if (file.hasContent) {
+            const summary = file.generateSummary();
+            console.log(`      📖 文件简介: ${summary}`);
+
+            // 显示文件内容预览（前3行）
+            const lines = file.content!.split('\n');
+            const preview = lines.slice(0, 3).join('\n');
+            console.log(`      👀 内容预览:`);
+            console.log(`         ${preview.replace(/\n/g, '\n         ')}`);
+            if (lines.length > 3) {
+              console.log(`         ... 还有 ${lines.length - 3} 行`);
+            }
+          }
+        }
+      }
+
+      // 统计文件类型分布
+      console.log('\n   📊 文件类型统计:');
+      const typeStats = analyzeFileTypes(allFiles);
+      Object.entries(typeStats).forEach(([type, count]) => {
+        console.log(`      ${type}: ${count} 个文件`);
+      });
+
+      // 统计文件大小分布
+      console.log('\n   📏 文件大小分析:');
+      await analyzeFileSizes(allFiles);
+    }
+
+  } catch (error) {
+    console.log(`   ❌ 文件信息分析时出错: ${(error as Error).message}`);
+  }
+}
+
+/**
+ * 分析文件类型分布
+ */
+function analyzeFileTypes(files: FileContext[]): Record<string, number> {
+  const typeStats: Record<string, number> = {};
+
+  files.forEach(file => {
+    const ext = file.extension || '(无扩展名)';
+    typeStats[ext] = (typeStats[ext] || 0) + 1;
+  });
+
+  return typeStats;
+}
+
+/**
+ * 分析文件大小分布
+ */
+async function analyzeFileSizes(files: FileContext[]): Promise<void> {
+  // 为文件加载大小信息
+  const filesWithSize = [];
+  for (const file of files) {
+    if (!file.size) {
+      await file.loadFileInfo();
+    }
+    if (file.size !== undefined) {
+      filesWithSize.push({ name: file.name, size: file.size });
+    }
+  }
+
+  if (filesWithSize.length === 0) {
+    console.log('      无法获取文件大小信息');
+    return;
+  }
+
+  // 计算统计信息
+  const sizes = filesWithSize.map(f => f.size);
+  const totalSize = sizes.reduce((sum, size) => sum + size, 0);
+  const avgSize = totalSize / sizes.length;
+  const maxFile = filesWithSize.reduce((max, file) => file.size > max.size ? file : max);
+  const minFile = filesWithSize.reduce((min, file) => file.size < min.size ? file : min);
+
+  console.log(`      总大小: ${formatBytes(totalSize)}`);
+  console.log(`      平均大小: ${formatBytes(avgSize)}`);
+  console.log(`      最大文件: ${maxFile.name} (${formatBytes(maxFile.size)})`);
+  console.log(`      最小文件: ${minFile.name} (${formatBytes(minFile.size)})`);
+}
+
+/**
+ * 格式化字节数为可读格式
+ */
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 /**

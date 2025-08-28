@@ -44,10 +44,132 @@ describe('Context上下文功能', () => {
     it('应该设置父级文件夹上下文', () => {
       const folderContext = new FolderContext('/test');
       const fileContext = new FileContext('/test/file.txt');
-      
+
       fileContext.setParent(folderContext);
-      
+
       expect(fileContext.parent).toBe(folderContext);
+    });
+
+    it('应该包含文件统计信息', async () => {
+      // 创建测试文件
+      const testFile = path.join(__dirname, '../test-file-stats.txt');
+      const testContent = 'Hello, World!\nThis is a test file.';
+      await fs.promises.writeFile(testFile, testContent);
+
+      try {
+        // ❌ 这会失败，因为FileContext还没有统计信息功能
+        const fileContext = new FileContext(testFile);
+        await fileContext.loadFileInfo();
+
+        expect(fileContext.size).toBe(testContent.length);
+        expect(fileContext.modifiedTime).toBeDefined();
+        expect(typeof fileContext.modifiedTime?.getTime).toBe('function');
+        expect(fileContext.createdTime).toBeDefined();
+        expect(typeof fileContext.createdTime?.getTime).toBe('function');
+        expect(typeof fileContext.hash).toBe('string');
+        expect(fileContext.hash).toBeDefined();
+        expect(fileContext.hash!.length).toBeGreaterThan(0);
+        expect(fileContext.isTextFile).toBe(true);
+        expect(fileContext.mimeType).toBeDefined();
+      } finally {
+        // 清理测试文件
+        if (fs.existsSync(testFile)) {
+          await fs.promises.unlink(testFile);
+        }
+      }
+    });
+
+    it('应该支持加载文件内容', async () => {
+      const testFile = path.join(__dirname, '../test-file-content.txt');
+      const testContent = 'This is test content\nwith multiple lines.';
+      await fs.promises.writeFile(testFile, testContent);
+
+      try {
+        const fileContext = new FileContext(testFile);
+
+        // ❌ 这会失败，因为loadContent方法不存在
+        await fileContext.loadContent();
+
+        expect(fileContext.content).toBe(testContent);
+        expect(fileContext.hasContent).toBe(true);
+      } finally {
+        if (fs.existsSync(testFile)) {
+          await fs.promises.unlink(testFile);
+        }
+      }
+    });
+
+    it('应该支持生成文件简介', async () => {
+      const testFile = path.join(__dirname, '../test-file-summary.js');
+      const testContent = `// This is a JavaScript file
+function hello() {
+  console.log('Hello, World!');
+}
+
+module.exports = { hello };`;
+      await fs.promises.writeFile(testFile, testContent);
+
+      try {
+        const fileContext = new FileContext(testFile);
+        await fileContext.loadContent();
+
+        // ❌ 这会失败，因为generateSummary方法不存在
+        const summary = fileContext.generateSummary();
+
+        expect(typeof summary).toBe('string');
+        expect(summary.length).toBeGreaterThan(0);
+        expect(summary).toContain('JavaScript');
+      } finally {
+        if (fs.existsSync(testFile)) {
+          await fs.promises.unlink(testFile);
+        }
+      }
+    });
+
+    it('应该支持检查文件是否为文本文件', async () => {
+      const textFile = path.join(__dirname, '../test-text.txt');
+      const binaryFile = path.join(__dirname, '../test-binary.bin');
+
+      await fs.promises.writeFile(textFile, 'This is text content');
+      await fs.promises.writeFile(binaryFile, Buffer.from([0x00, 0x01, 0x02, 0x03]));
+
+      try {
+        const textContext = new FileContext(textFile);
+        const binaryContext = new FileContext(binaryFile);
+
+        await textContext.loadFileInfo();
+        await binaryContext.loadFileInfo();
+
+        // ❌ 这会失败，因为isTextFile属性不存在
+        expect(textContext.isTextFile).toBe(true);
+        expect(binaryContext.isTextFile).toBe(false);
+      } finally {
+        if (fs.existsSync(textFile)) await fs.promises.unlink(textFile);
+        if (fs.existsSync(binaryFile)) await fs.promises.unlink(binaryFile);
+      }
+    });
+
+    it('应该支持获取文件MIME类型', async () => {
+      const jsFile = path.join(__dirname, '../test-mime.js');
+      const jsonFile = path.join(__dirname, '../test-mime.json');
+
+      await fs.promises.writeFile(jsFile, 'console.log("test");');
+      await fs.promises.writeFile(jsonFile, '{"test": true}');
+
+      try {
+        const jsContext = new FileContext(jsFile);
+        const jsonContext = new FileContext(jsonFile);
+
+        await jsContext.loadFileInfo();
+        await jsonContext.loadFileInfo();
+
+        // ❌ 这会失败，因为mimeType属性不存在
+        expect(jsContext.mimeType).toContain('javascript');
+        expect(jsonContext.mimeType).toContain('json');
+      } finally {
+        if (fs.existsSync(jsFile)) await fs.promises.unlink(jsFile);
+        if (fs.existsSync(jsonFile)) await fs.promises.unlink(jsonFile);
+      }
     });
   });
 

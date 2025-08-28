@@ -18,7 +18,9 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import ignore from 'ignore';
+import * as mimeTypes from 'mime-types';
 
 /**
  * Context基础接口
@@ -55,14 +57,20 @@ export interface Context {
  * 文件上下文类
  *
  * 表示文件系统中单个文件的上下文信息。提供文件的基本属性
- * 和操作方法，包括路径解析、父子关系管理等功能。
+ * 和操作方法，包括路径解析、父子关系管理、文件统计信息、
+ * 内容加载、hash计算等丰富功能。
  *
  * @example
  * ```typescript
  * const fileContext = new FileContext('/project/src/index.ts');
+ * await fileContext.loadFileInfo();
+ * await fileContext.loadContent();
+ *
  * console.log(fileContext.name);      // 'index.ts'
  * console.log(fileContext.extension); // '.ts'
- * console.log(fileContext.type);      // 'file'
+ * console.log(fileContext.size);      // 文件大小（字节）
+ * console.log(fileContext.hash);      // 文件SHA256哈希
+ * console.log(fileContext.mimeType);  // 'application/javascript'
  * ```
  */
 export class FileContext implements Context {
@@ -81,6 +89,35 @@ export class FileContext implements Context {
   /** 文件扩展名（包含点号，如 '.ts'） */
   public readonly extension: string;
 
+  // 文件统计信息
+  /** 文件大小（字节） */
+  public size?: number;
+
+  /** 文件修改时间 */
+  public modifiedTime?: Date;
+
+  /** 文件创建时间 */
+  public createdTime?: Date;
+
+  /** 文件SHA256哈希值 */
+  public hash?: string;
+
+  /** 文件MIME类型 */
+  public mimeType?: string;
+
+  /** 是否为文本文件 */
+  public isTextFile?: boolean;
+
+  // 文件内容相关
+  /** 文件内容（需要调用loadContent加载） */
+  public content?: string;
+
+  /** 是否已加载内容 */
+  public hasContent: boolean = false;
+
+  /** 文件简介/摘要 */
+  public summary?: string;
+
   /**
    * 创建文件上下文实例
    * @param filePath 文件的完整路径
@@ -89,6 +126,44 @@ export class FileContext implements Context {
     this.path = filePath;
     this.name = path.basename(filePath);
     this.extension = path.extname(filePath);
+  }
+
+  /**
+   * 加载文件统计信息
+   *
+   * 异步加载文件的统计信息，包括大小、修改时间、创建时间、
+   * hash值、MIME类型等。
+   *
+   * @example
+   * ```typescript
+   * const file = new FileContext('/project/src/index.ts');
+   * await file.loadFileInfo();
+   * console.log(`文件大小: ${file.size} 字节`);
+   * console.log(`修改时间: ${file.modifiedTime}`);
+   * console.log(`文件hash: ${file.hash}`);
+   * ```
+   */
+  async loadFileInfo(): Promise<void> {
+    try {
+      const stats = await fs.promises.stat(this.path);
+
+      // 基本统计信息
+      this.size = stats.size;
+      this.modifiedTime = stats.mtime;
+      this.createdTime = stats.birthtime;
+
+      // 计算文件hash
+      this.hash = await this.calculateHash();
+
+      // 确定MIME类型
+      this.mimeType = mimeTypes.lookup(this.path) || 'application/octet-stream';
+
+      // 检查是否为文本文件
+      this.isTextFile = await this.checkIsTextFile();
+
+    } catch (error) {
+      console.warn(`无法加载文件信息 ${this.path}: ${(error as Error).message}`);
+    }
   }
 
   /**
@@ -142,6 +217,90 @@ export class FileContext implements Context {
   }
 
   /**
+   * 加载文件内容
+   *
+   * 异步加载文件的文本内容。只有文本文件才会加载内容，
+   * 二进制文件将跳过内容加载。
+   *
+   * @param encoding 文件编码，默认为'utf8'
+   * @example
+   * ```typescript
+   * const file = new FileContext('/project/src/index.ts');
+   * await file.loadContent();
+   * console.log(file.content); // 文件的文本内容
+   * console.log(file.hasContent); // true
+   * ```
+   */
+  async loadContent(encoding: BufferEncoding = 'utf8'): Promise<void> {
+    try {
+      // 如果还没有加载文件信息，先加载
+      if (this.isTextFile === undefined) {
+        await this.loadFileInfo();
+      }
+
+      // 只加载文本文件的内容
+      if (this.isTextFile) {
+        this.content = await fs.promises.readFile(this.path, encoding);
+        this.hasContent = true;
+      } else {
+        this.content = undefined;
+        this.hasContent = false;
+      }
+    } catch (error) {
+      console.warn(`无法加载文件内容 ${this.path}: ${(error as Error).message}`);
+      this.content = undefined;
+      this.hasContent = false;
+    }
+  }
+
+  /**
+   * 生成文件简介
+   *
+   * 基于文件内容和类型生成简洁的文件描述。
+   *
+   * @returns 文件简介字符串
+   * @example
+   * ```typescript
+   * const file = new FileContext('/project/src/index.ts');
+   * await file.loadContent();
+   * const summary = file.generateSummary();
+   * console.log(summary); // "TypeScript文件，包含主要的导出函数..."
+   * ```
+   */
+  generateSummary(): string {
+    if (!this.hasContent || !this.content) {
+      return `${this.getFileTypeDescription()}文件，大小: ${this.size || 0} 字节`;
+    }
+
+    const lines = this.content.split('\n');
+    const lineCount = lines.length;
+    const charCount = this.content.length;
+
+    let summary = `${this.getFileTypeDescription()}文件，${lineCount} 行，${charCount} 个字符`;
+
+    // 根据文件类型添加特定信息
+    if (this.extension === '.js' || this.extension === '.ts') {
+      const functions = this.content.match(/function\s+\w+|const\s+\w+\s*=\s*\(/g);
+      const classes = this.content.match(/class\s+\w+/g);
+      if (functions) summary += `，包含 ${functions.length} 个函数`;
+      if (classes) summary += `，包含 ${classes.length} 个类`;
+    } else if (this.extension === '.json') {
+      try {
+        const json = JSON.parse(this.content);
+        const keys = Object.keys(json);
+        summary += `，包含 ${keys.length} 个顶级属性`;
+      } catch {
+        summary += '，JSON格式';
+      }
+    } else if (this.extension === '.md') {
+      const headers = this.content.match(/^#+\s+.+$/gm);
+      if (headers) summary += `，包含 ${headers.length} 个标题`;
+    }
+
+    return summary;
+  }
+
+  /**
    * 检查当前文件是否为指定上下文的后代
    *
    * 通过遍历父级链来判断当前文件是否位于指定目录下。
@@ -171,6 +330,117 @@ export class FileContext implements Context {
       current = current.parent;
     }
     return false;
+  }
+
+  /**
+   * 计算文件的SHA256哈希值
+   *
+   * @returns Promise<string> 文件的SHA256哈希值
+   * @private
+   */
+  private async calculateHash(): Promise<string> {
+    try {
+      const buffer = await fs.promises.readFile(this.path);
+      return crypto.createHash('sha256').update(buffer).digest('hex');
+    } catch (error) {
+      console.warn(`无法计算文件hash ${this.path}: ${(error as Error).message}`);
+      return '';
+    }
+  }
+
+  /**
+   * 检查文件是否为文本文件
+   *
+   * 通过读取文件的前几个字节来判断是否包含二进制内容。
+   *
+   * @returns Promise<boolean> 如果是文本文件返回true
+   * @private
+   */
+  private async checkIsTextFile(): Promise<boolean> {
+    try {
+      // 先通过MIME类型快速判断
+      if (this.mimeType) {
+        if (this.mimeType.startsWith('text/') ||
+            this.mimeType.includes('json') ||
+            this.mimeType.includes('javascript') ||
+            this.mimeType.includes('xml')) {
+          return true;
+        }
+        if (this.mimeType.startsWith('image/') ||
+            this.mimeType.startsWith('video/') ||
+            this.mimeType.startsWith('audio/')) {
+          return false;
+        }
+      }
+
+      // 读取文件前512字节检查是否包含null字节
+      const buffer = await fs.promises.readFile(this.path, { encoding: null });
+      const sampleSize = Math.min(512, buffer.length);
+      const sample = buffer.subarray(0, sampleSize);
+
+      // 如果包含null字节，很可能是二进制文件
+      for (let i = 0; i < sample.length; i++) {
+        if (sample[i] === 0) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.warn(`无法检查文件类型 ${this.path}: ${(error as Error).message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 获取文件类型描述
+   *
+   * 根据文件扩展名返回友好的文件类型描述。
+   *
+   * @returns 文件类型描述字符串
+   * @private
+   */
+  private getFileTypeDescription(): string {
+    const ext = this.extension.toLowerCase();
+
+    const typeMap: Record<string, string> = {
+      '.js': 'JavaScript',
+      '.ts': 'TypeScript',
+      '.jsx': 'React JSX',
+      '.tsx': 'React TSX',
+      '.json': 'JSON',
+      '.md': 'Markdown',
+      '.txt': '文本',
+      '.html': 'HTML',
+      '.css': 'CSS',
+      '.scss': 'SCSS',
+      '.less': 'LESS',
+      '.py': 'Python',
+      '.java': 'Java',
+      '.cpp': 'C++',
+      '.c': 'C',
+      '.h': 'C头文件',
+      '.php': 'PHP',
+      '.rb': 'Ruby',
+      '.go': 'Go',
+      '.rs': 'Rust',
+      '.sh': 'Shell脚本',
+      '.bat': '批处理',
+      '.ps1': 'PowerShell',
+      '.xml': 'XML',
+      '.yaml': 'YAML',
+      '.yml': 'YAML',
+      '.toml': 'TOML',
+      '.ini': '配置文件',
+      '.conf': '配置文件',
+      '.log': '日志文件',
+      '.sql': 'SQL',
+      '.dockerfile': 'Dockerfile',
+      '.gitignore': 'Git忽略文件',
+      '.env': '环境变量文件'
+    };
+
+    return typeMap[ext] || '未知类型';
   }
 }
 
