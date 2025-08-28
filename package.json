@@ -1,0 +1,40 @@
+{
+  "name": "sker-ai",
+  "version": "1.0.0",
+  "description": "TypeScript project with TDD, tsup, and turbo",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest",
+    "test:unit:watch": "jest --watch",
+    "test:unit:coverage": "jest --coverage",
+    "build": "npm run test && tsup",
+    "build:tsup": "tsup",
+    "dev": "turbo run dev",
+    "dev:tsup": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "echo \"Add linting tool here\"",
+    "clean": "rimraf dist coverage",
+    "prepare": "npm run build"
+  },
+  "keywords": ["typescript", "tdd", "tsup", "turbo"],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "npm@10.0.0",
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.3.0",
+    "jest": "^30.1.1",
+    "ts-jest": "^29.4.1",
+    "tsup": "^8.5.0",
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2"
+  }
+}

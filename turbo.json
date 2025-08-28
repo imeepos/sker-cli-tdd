@@ -1,0 +1,41 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "test": {
+      "outputs": ["coverage/**"],
+      "dependsOn": [],
+      "inputs": ["src/**/*.ts", "tests/**/*.ts", "jest.config.js"]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true,
+      "inputs": ["src/**/*.ts", "tests/**/*.ts", "jest.config.js"]
+    },
+    "test:coverage": {
+      "outputs": ["coverage/**"],
+      "dependsOn": [],
+      "inputs": ["src/**/*.ts", "tests/**/*.ts", "jest.config.js"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "inputs": ["src/**/*.ts", "tsup.config.ts", "tsconfig.json"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "outputs": []
+    },
+    "type-check": {
+      "outputs": []
+    }
+  },
+  "globalDependencies": [
+    "package.json",
+    "tsconfig.json",
+    "jest.config.js",
+    "tsup.config.ts"
+  ]
+}
