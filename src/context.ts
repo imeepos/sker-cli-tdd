@@ -1,0 +1,548 @@
+/**
+ * � TDD 重构阶段：Context上下文功能实现
+ *
+ * Context上下文功能提供了文件系统的抽象表示，支持：
+ * 1. 每个文件一个Context (路径/简洁)
+ * 2. 上级是文件夹Context
+ * 3. 文件夹Context (children: Context[])
+ *
+ * 主要特性：
+ * - 文件和文件夹的统一抽象
+ * - 树形结构的父子关系管理
+ * - 灵活的文件系统扫描和过滤
+ * - 跨平台路径处理
+ *
+ * @author AI Coding Agent
+ * @version 1.0.0
+ */
+
+import * as path from 'path';
+import * as fs from 'fs';
+
+/**
+ * Context基础接口
+ *
+ * 定义所有上下文对象的基本属性和方法，为文件系统中的文件和文件夹
+ * 提供统一的抽象表示。每个Context实例代表文件系统中的一个节点，
+ * 可以是文件或文件夹。
+ *
+ * @example
+ * ```typescript
+ * const fileContext: Context = {
+ *   path: '/project/src/index.ts',
+ *   name: 'index.ts',
+ *   type: 'file',
+ *   parent: folderContext
+ * };
+ * ```
+ */
+export interface Context {
+  /** 上下文的完整绝对路径 */
+  path: string;
+
+  /** 上下文的名称（文件名或文件夹名，不包含路径） */
+  name: string;
+
+  /** 上下文类型：'file' 表示文件，'folder' 表示文件夹 */
+  type: 'file' | 'folder';
+
+  /** 父级上下文（根目录的parent为undefined） */
+  parent?: Context | undefined;
+}
+
+/**
+ * 文件上下文类
+ *
+ * 表示文件系统中单个文件的上下文信息。提供文件的基本属性
+ * 和操作方法，包括路径解析、父子关系管理等功能。
+ *
+ * @example
+ * ```typescript
+ * const fileContext = new FileContext('/project/src/index.ts');
+ * console.log(fileContext.name);      // 'index.ts'
+ * console.log(fileContext.extension); // '.ts'
+ * console.log(fileContext.type);      // 'file'
+ * ```
+ */
+export class FileContext implements Context {
+  /** 文件的完整绝对路径 */
+  public readonly path: string;
+
+  /** 文件名（包含扩展名） */
+  public readonly name: string;
+
+  /** 上下文类型，固定为 'file' */
+  public readonly type: 'file' = 'file';
+
+  /** 父级文件夹上下文 */
+  public parent?: Context | undefined;
+
+  /** 文件扩展名（包含点号，如 '.ts'） */
+  public readonly extension: string;
+
+  /**
+   * 创建文件上下文实例
+   * @param filePath 文件的完整路径
+   */
+  constructor(filePath: string) {
+    this.path = filePath;
+    this.name = path.basename(filePath);
+    this.extension = path.extname(filePath);
+  }
+
+  /**
+   * 设置父级上下文
+   *
+   * 建立与父级文件夹的关联关系。通常在构建文件树时自动调用。
+   *
+   * @param parent 父级文件夹上下文
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/project/src');
+   * const file = new FileContext('/project/src/index.ts');
+   * file.setParent(folder);
+   * ```
+   */
+  setParent(parent: Context): void {
+    this.parent = parent;
+  }
+
+  /**
+   * 获取文件的完整绝对路径
+   *
+   * @returns 文件的完整绝对路径
+   * @example
+   * ```typescript
+   * const file = new FileContext('/project/src/index.ts');
+   * console.log(file.getFullPath()); // '/project/src/index.ts'
+   * ```
+   */
+  getFullPath(): string {
+    return this.path;
+  }
+
+  /**
+   * 获取相对于指定祖先上下文的相对路径
+   *
+   * 计算当前文件相对于指定祖先目录的相对路径，常用于显示
+   * 项目内的文件路径。
+   *
+   * @param ancestor 祖先上下文（通常是项目根目录）
+   * @returns 相对路径
+   * @example
+   * ```typescript
+   * const root = new FolderContext('/project');
+   * const file = new FileContext('/project/src/index.ts');
+   * console.log(file.getRelativePath(root)); // 'src/index.ts'
+   * ```
+   */
+  getRelativePath(ancestor: Context): string {
+    return path.relative(ancestor.path, this.path);
+  }
+
+  /**
+   * 检查当前文件是否为指定上下文的后代
+   *
+   * 通过遍历父级链来判断当前文件是否位于指定目录下。
+   *
+   * @param ancestor 可能的祖先上下文
+   * @returns 如果是后代则返回true，否则返回false
+   * @example
+   * ```typescript
+   * const root = new FolderContext('/project');
+   * const src = new FolderContext('/project/src');
+   * const file = new FileContext('/project/src/index.ts');
+   *
+   * // 建立关系
+   * root.addChild(src);
+   * src.addChild(file);
+   *
+   * console.log(file.isDescendantOf(root)); // true
+   * console.log(file.isDescendantOf(src));  // true
+   * ```
+   */
+  isDescendantOf(ancestor: Context): boolean {
+    let current: Context | undefined = this.parent;
+    while (current) {
+      if (current === ancestor) {
+        return true;
+      }
+      current = current.parent;
+    }
+    return false;
+  }
+}
+
+/**
+ * 文件夹上下文类
+ *
+ * 表示文件系统中文件夹的上下文信息，包含子级上下文的管理功能。
+ * 文件夹可以包含其他文件夹和文件，形成树形结构。
+ *
+ * @example
+ * ```typescript
+ * const folder = new FolderContext('/project/src');
+ * const file = new FileContext('/project/src/index.ts');
+ *
+ * folder.addChild(file);
+ * console.log(folder.children.length); // 1
+ * console.log(folder.findChild('index.ts')); // FileContext实例
+ * ```
+ */
+export class FolderContext implements Context {
+  /** 文件夹的完整绝对路径 */
+  public readonly path: string;
+
+  /** 文件夹名称 */
+  public readonly name: string;
+
+  /** 上下文类型，固定为 'folder' */
+  public readonly type: 'folder' = 'folder';
+
+  /** 父级文件夹上下文 */
+  public parent?: Context | undefined;
+
+  /** 子级上下文列表（文件和子文件夹） */
+  public readonly children: Context[] = [];
+
+  /**
+   * 创建文件夹上下文实例
+   * @param folderPath 文件夹的完整路径
+   */
+  constructor(folderPath: string) {
+    this.path = folderPath;
+    this.name = path.basename(folderPath);
+  }
+
+  /**
+   * 设置父级上下文
+   *
+   * 建立与父级文件夹的关联关系。通常在构建文件树时自动调用。
+   *
+   * @param parent 父级文件夹上下文
+   */
+  setParent(parent: Context): void {
+    this.parent = parent;
+  }
+
+  /**
+   * 添加子级上下文
+   *
+   * 将文件或子文件夹添加到当前文件夹中，同时建立双向关联关系。
+   * 如果子级已存在则不会重复添加。
+   *
+   * @param child 要添加的子级上下文（文件或文件夹）
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/project/src');
+   * const file = new FileContext('/project/src/index.ts');
+   *
+   * folder.addChild(file);
+   * console.log(file.parent === folder); // true
+   * console.log(folder.children.includes(file)); // true
+   * ```
+   */
+  addChild(child: Context): void {
+    if (!this.children.includes(child)) {
+      this.children.push(child);
+      child.parent = this;
+    }
+  }
+
+  /**
+   * 移除子级上下文
+   *
+   * 从当前文件夹中移除指定的子级上下文，同时断开双向关联关系。
+   *
+   * @param child 要移除的子级上下文
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/project/src');
+   * const file = new FileContext('/project/src/index.ts');
+   *
+   * folder.addChild(file);
+   * folder.removeChild(file);
+   * console.log(file.parent); // undefined
+   * console.log(folder.children.length); // 0
+   * ```
+   */
+  removeChild(child: Context): void {
+    const index = this.children.indexOf(child);
+    if (index !== -1) {
+      this.children.splice(index, 1);
+      child.parent = undefined as Context | undefined;
+    }
+  }
+
+  /**
+   * 按名称查找子级上下文
+   *
+   * 在当前文件夹的直接子级中查找指定名称的上下文。
+   * 只查找直接子级，不进行递归搜索。
+   *
+   * @param name 要查找的子级名称（文件名或文件夹名）
+   * @returns 找到的子级上下文，如果不存在则返回undefined
+   * @example
+   * ```typescript
+   * const folder = new FolderContext('/project/src');
+   * const file = new FileContext('/project/src/index.ts');
+   *
+   * folder.addChild(file);
+   * const found = folder.findChild('index.ts');
+   * console.log(found === file); // true
+   *
+   * const notFound = folder.findChild('nonexistent.ts');
+   * console.log(notFound); // undefined
+   * ```
+   */
+  findChild(name: string): Context | undefined {
+    return this.children.find(child => child.name === name);
+  }
+
+  /**
+   * 获取文件夹的完整绝对路径
+   *
+   * @returns 文件夹的完整绝对路径
+   */
+  getFullPath(): string {
+    return this.path;
+  }
+
+  /**
+   * 获取相对于指定祖先上下文的相对路径
+   *
+   * @param ancestor 祖先上下文（通常是项目根目录）
+   * @returns 相对路径
+   */
+  getRelativePath(ancestor: Context): string {
+    return path.relative(ancestor.path, this.path);
+  }
+
+  /**
+   * 检查当前文件夹是否为指定上下文的后代
+   *
+   * @param ancestor 可能的祖先上下文
+   * @returns 如果是后代则返回true，否则返回false
+   */
+  isDescendantOf(ancestor: Context): boolean {
+    let current: Context | undefined = this.parent;
+    while (current) {
+      if (current === ancestor) {
+        return true;
+      }
+      current = current.parent;
+    }
+    return false;
+  }
+
+  /**
+   * 获取文件夹中的文件数量
+   *
+   * @returns 直接子文件的数量（不包括子文件夹）
+   */
+  getFileCount(): number {
+    return this.children.filter(child => child.type === 'file').length;
+  }
+
+  /**
+   * 获取文件夹中的子文件夹数量
+   *
+   * @returns 直接子文件夹的数量
+   */
+  getFolderCount(): number {
+    return this.children.filter(child => child.type === 'folder').length;
+  }
+
+  /**
+   * 检查文件夹是否为空
+   *
+   * @returns 如果文件夹不包含任何子项则返回true
+   */
+  isEmpty(): boolean {
+    return this.children.length === 0;
+  }
+}
+
+/**
+ * 上下文构建器选项接口
+ *
+ * 定义文件系统扫描时的过滤和限制选项，用于控制Context树的构建行为。
+ *
+ * @example
+ * ```typescript
+ * const options: ContextBuilderOptions = {
+ *   includeExtensions: ['.ts', '.js', '.json'],
+ *   excludeExtensions: ['.log', '.tmp'],
+ *   maxDepth: 3
+ * };
+ * ```
+ */
+export interface ContextBuilderOptions {
+  /**
+   * 包含的文件扩展名列表
+   * 如果指定，则只包含这些扩展名的文件
+   * @example ['.ts', '.js', '.json']
+   */
+  includeExtensions?: string[];
+
+  /**
+   * 排除的文件扩展名列表
+   * 指定的扩展名文件将被忽略
+   * @example ['.log', '.tmp', '.cache']
+   */
+  excludeExtensions?: string[];
+
+  /**
+   * 最大扫描深度
+   * 限制目录树的扫描深度，0表示只扫描根目录
+   * @default undefined（无限制）
+   */
+  maxDepth?: number;
+}
+
+/**
+ * 上下文构建器类
+ *
+ * 负责扫描文件系统并构建Context树结构。提供灵活的过滤选项
+ * 和深度控制，支持大型项目的高效扫描。
+ *
+ * @example
+ * ```typescript
+ * const builder = new ContextBuilder();
+ *
+ * // 基本用法
+ * const rootContext = await builder.buildFromDirectory('/project');
+ *
+ * // 带过滤选项
+ * const filteredContext = await builder.buildFromDirectory('/project', {
+ *   includeExtensions: ['.ts', '.js'],
+ *   maxDepth: 2
+ * });
+ * ```
+ */
+export class ContextBuilder {
+  /**
+   * 从指定目录构建完整的上下文树
+   *
+   * 扫描指定目录及其子目录，根据提供的选项过滤文件，
+   * 构建完整的Context树结构。
+   *
+   * @param directoryPath 要扫描的根目录路径
+   * @param options 构建选项，用于控制扫描行为
+   * @returns Promise，解析为根文件夹的FolderContext实例
+   *
+   * @example
+   * ```typescript
+   * const builder = new ContextBuilder();
+   *
+   * // 扫描整个项目
+   * const projectContext = await builder.buildFromDirectory('/my-project');
+   * console.log(`项目包含 ${projectContext.children.length} 个直接子项`);
+   *
+   * // 只扫描TypeScript文件，限制深度为3层
+   * const tsContext = await builder.buildFromDirectory('/my-project', {
+   *   includeExtensions: ['.ts', '.tsx'],
+   *   maxDepth: 3
+   * });
+   * ```
+   */
+  async buildFromDirectory(
+    directoryPath: string,
+    options: ContextBuilderOptions = {}
+  ): Promise<FolderContext> {
+    const rootContext = new FolderContext(directoryPath);
+    await this.scanDirectory(rootContext, options, 0);
+    return rootContext;
+  }
+
+  /**
+   * 递归扫描目录的私有方法
+   *
+   * 深度优先遍历目录结构，根据选项过滤文件和控制扫描深度。
+   * 对于每个发现的文件和子目录，创建相应的Context实例并建立关系。
+   *
+   * @param folderContext 当前正在扫描的文件夹上下文
+   * @param options 构建选项，包含过滤和深度限制
+   * @param currentDepth 当前扫描深度（从0开始）
+   * @private
+   */
+  private async scanDirectory(
+    folderContext: FolderContext,
+    options: ContextBuilderOptions,
+    currentDepth: number
+  ): Promise<void> {
+    // 检查深度限制
+    if (options.maxDepth !== undefined && currentDepth >= options.maxDepth) {
+      return;
+    }
+
+    try {
+      const entries = await fs.promises.readdir(folderContext.path, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = path.join(folderContext.path, entry.name);
+        
+        if (entry.isDirectory()) {
+          const subfolderContext = new FolderContext(fullPath);
+          folderContext.addChild(subfolderContext);
+          
+          // 递归扫描子目录
+          await this.scanDirectory(subfolderContext, options, currentDepth + 1);
+        } else if (entry.isFile()) {
+          // 检查文件扩展名过滤
+          const ext = path.extname(entry.name);
+          
+          if (this.shouldIncludeFile(ext, options)) {
+            const fileContext = new FileContext(fullPath);
+            folderContext.addChild(fileContext);
+          }
+        }
+      }
+    } catch (error) {
+      // 忽略无法访问的目录
+      console.warn(`无法扫描目录 ${folderContext.path}: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * 检查文件是否应该被包含在Context树中
+   *
+   * 根据构建选项中的扩展名过滤规则，判断指定扩展名的文件
+   * 是否应该被包含。优先级：includeExtensions > excludeExtensions > 默认包含。
+   *
+   * @param extension 文件扩展名（包含点号，如 '.ts'）
+   * @param options 构建选项，包含过滤规则
+   * @returns 如果文件应该被包含则返回true，否则返回false
+   *
+   * @example
+   * ```typescript
+   * const builder = new ContextBuilder();
+   *
+   * // 只包含TypeScript文件
+   * const options1 = { includeExtensions: ['.ts', '.tsx'] };
+   * console.log(builder.shouldIncludeFile('.ts', options1));  // true
+   * console.log(builder.shouldIncludeFile('.js', options1));  // false
+   *
+   * // 排除日志文件
+   * const options2 = { excludeExtensions: ['.log', '.tmp'] };
+   * console.log(builder.shouldIncludeFile('.ts', options2));  // true
+   * console.log(builder.shouldIncludeFile('.log', options2)); // false
+   * ```
+   *
+   * @private
+   */
+  private shouldIncludeFile(extension: string, options: ContextBuilderOptions): boolean {
+    // 如果指定了包含扩展名列表，只包含列表中的扩展名
+    if (options.includeExtensions && options.includeExtensions.length > 0) {
+      return options.includeExtensions.includes(extension);
+    }
+
+    // 如果指定了排除扩展名列表，排除列表中的扩展名
+    if (options.excludeExtensions && options.excludeExtensions.length > 0) {
+      return !options.excludeExtensions.includes(extension);
+    }
+
+    // 默认情况下包含所有文件
+    return true;
+  }
+}

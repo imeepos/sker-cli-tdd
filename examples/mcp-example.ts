@@ -4,8 +4,8 @@
  * 遵循 TDD 原则：基于已测试功能的示例
  */
 
-import { MCPServer } from './mcp-server';
-import { CalculatorToolsProvider } from './calculator-tools';
+import { MCPServer } from '../src/mcp-server';
+import { CalculatorToolsProvider } from '../src/calculator-tools';
 
 /**
  * MCP 服务器的使用示例

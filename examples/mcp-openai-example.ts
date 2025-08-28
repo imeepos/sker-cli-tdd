@@ -3,12 +3,12 @@
  * 展示如何将 MCP 服务器与 OpenAI API 集成
  */
 
-import { MCPServer } from './mcp-server';
-import { MCPWorkspaceManager } from './mcp-workspace';
-import { MCPPromptManager } from './mcp-prompts';
-import { PromptTemplatesProvider } from './prompt-templates';
-import { MCPOpenAIClient, MCPOpenAIConfig } from './mcp-openai';
-import { CalculatorToolsProvider } from './calculator-tools';
+import { MCPServer } from '../src/mcp-server';
+import { MCPWorkspaceManager } from '../src/mcp-workspace';
+import { MCPPromptManager } from '../src/mcp-prompts';
+import { PromptTemplatesProvider } from '../src/prompt-templates';
+import { MCPOpenAIClient, MCPOpenAIConfig } from '../src/mcp-openai';
+import { CalculatorToolsProvider } from '../src/calculator-tools';
 
 /**
  * 运行 MCP OpenAI 集成示例

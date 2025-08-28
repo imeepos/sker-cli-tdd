@@ -4,9 +4,9 @@
  * 遵循 TDD 原则：基于已测试功能的示例
  */
 
-import { MCPServer } from './mcp-server';
-import { MCPPromptManager } from './mcp-prompts';
-import { PromptTemplatesProvider } from './prompt-templates';
+import { MCPServer } from '../src/mcp-server';
+import { MCPPromptManager } from '../src/mcp-prompts';
+import { PromptTemplatesProvider } from '../src/prompt-templates';
 
 /**
  * MCP Prompt 功能的使用示例

@@ -4,10 +4,10 @@
  * 遵循 TDD 原则：基于已测试功能的示例
  */
 
-import { MCPServer } from './mcp-server';
-import { MCPWorkspaceManager } from './mcp-workspace';
-import { MCPPromptManager } from './mcp-prompts';
-import { CalculatorToolsProvider } from './calculator-tools';
+import { MCPServer } from '../src/mcp-server';
+import { MCPWorkspaceManager } from '../src/mcp-workspace';
+import { MCPPromptManager } from '../src/mcp-prompts';
+import { CalculatorToolsProvider } from '../src/calculator-tools';
 
 /**
  * MCP 工作空间功能的使用示例
