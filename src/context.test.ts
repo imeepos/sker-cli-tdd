@@ -638,5 +638,83 @@ custom-ignored/
         if (fs.existsSync(workspaceDir)) await fs.promises.rmdir(workspaceDir);
       }
     });
+
+    it('应该在扫描时读取并缓存sker.json内容', async () => {
+      const testDir = path.join(os.tmpdir(), 'sker-test-cache-' + Date.now());
+      const projectDir = path.join(testDir, 'my-project');
+      const skerJsonPath = path.join(projectDir, 'sker.json');
+
+      // 创建一个包含注释和尾随逗号的JSON5格式配置
+      const json5Content = `{
+        // 项目基本信息
+        "name": "my-awesome-project",
+        "version": "1.2.3",
+        "description": "A test project with JSON5 config",
+        "author": "Test Developer",
+
+        // 脚本配置
+        "scripts": {
+          "build": "npm run compile",
+          "test": "jest", // 尾随逗号
+        }, // 尾随逗号
+      }`;
+
+      try {
+        await fs.promises.mkdir(projectDir, { recursive: true });
+        await fs.promises.writeFile(skerJsonPath, json5Content);
+
+        const builder = new ContextBuilder();
+        const rootContext = await builder.buildFromDirectory(testDir);
+        const projectContext = rootContext.findChild('my-project') as FolderContext;
+
+        expect(projectContext).toBeDefined();
+        expect(projectContext.isProjectRoot).toBe(true);
+
+        // ❌ 这会失败，因为projectInfo属性还没有实现
+        expect(projectContext.projectInfo).toBeDefined();
+        expect(projectContext.projectInfo?.name).toBe('my-awesome-project');
+        expect(projectContext.projectInfo?.version).toBe('1.2.3');
+        expect(projectContext.projectInfo?.description).toBe('A test project with JSON5 config');
+        expect(projectContext.projectInfo?.['author']).toBe('Test Developer');
+        expect(projectContext.projectInfo?.['scripts']?.['build']).toBe('npm run compile');
+        expect(projectContext.projectInfo?.['scripts']?.['test']).toBe('jest');
+
+        // getProjectInfo应该直接返回缓存的内容，不需要文件系统访问
+        const cachedInfo = await projectContext.getProjectInfo();
+        expect(cachedInfo).toBe(projectContext.projectInfo); // 应该是同一个对象引用
+      } finally {
+        if (fs.existsSync(skerJsonPath)) await fs.promises.unlink(skerJsonPath);
+        if (fs.existsSync(projectDir)) await fs.promises.rmdir(projectDir);
+        if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
+      }
+    });
+
+    it('应该处理无效的sker.json文件', async () => {
+      const testDir = path.join(os.tmpdir(), 'sker-test-invalid-' + Date.now());
+      const projectDir = path.join(testDir, 'invalid-project');
+      const skerJsonPath = path.join(projectDir, 'sker.json');
+
+      try {
+        await fs.promises.mkdir(projectDir, { recursive: true });
+        // 写入无效的JSON内容
+        await fs.promises.writeFile(skerJsonPath, '{ invalid json content }');
+
+        const builder = new ContextBuilder();
+        const rootContext = await builder.buildFromDirectory(testDir);
+        const projectContext = rootContext.findChild('invalid-project') as FolderContext;
+
+        expect(projectContext).toBeDefined();
+        expect(projectContext.isProjectRoot).toBe(true);
+
+        // ❌ 这会失败，因为错误处理还没有实现
+        // 即使JSON无效，也应该有一个基本的项目信息
+        expect(projectContext.projectInfo).toBeDefined();
+        expect(projectContext.projectInfo?.name).toBe('invalid-project'); // 使用文件夹名作为回退
+      } finally {
+        if (fs.existsSync(skerJsonPath)) await fs.promises.unlink(skerJsonPath);
+        if (fs.existsSync(projectDir)) await fs.promises.rmdir(projectDir);
+        if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
+      }
+    });
   });
 });

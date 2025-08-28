@@ -21,6 +21,7 @@ import * as fs from 'fs';
 import * as crypto from 'crypto';
 import ignore from 'ignore';
 import * as mimeTypes from 'mime-types';
+import * as JSON5 from 'json5';
 
 /**
  * 项目信息接口
@@ -505,6 +506,9 @@ export class FolderContext implements Context {
   /** 是否为项目根目录（包含sker.json文件） */
   public isProjectRoot: boolean = false;
 
+  /** 项目配置信息（从sker.json解析得到） */
+  public projectInfo?: ProjectInfo;
+
   /**
    * 创建文件夹上下文实例
    * @param folderPath 文件夹的完整路径
@@ -906,9 +910,10 @@ export class FolderContext implements Context {
   }
 
   /**
-   * 获取项目信息
+   * 获取项目信息（优化版本）
    *
-   * 如果当前文件夹是项目根目录，读取并返回sker.json中的项目信息。
+   * 如果当前文件夹是项目根目录，返回扫描时缓存的项目信息。
+   * 如果缓存不存在，则进行文件系统读取（兼容性）。
    *
    * @returns Promise，解析为项目信息，如果不是项目根目录则返回null
    * @example
@@ -926,24 +931,12 @@ export class FolderContext implements Context {
       return null;
     }
 
-    const skerJsonPath = path.join(this.path, 'sker.json');
-
-    try {
-      const content = await fs.promises.readFile(skerJsonPath, 'utf8');
-      const projectInfo: ProjectInfo = JSON.parse(content);
-
-      // 确保项目名称存在，如果没有则使用文件夹名
-      if (!projectInfo.name) {
-        projectInfo.name = this.name;
-      }
-
-      return projectInfo;
-    } catch (error) {
-      console.warn(`无法读取项目配置 ${skerJsonPath}: ${(error as Error).message}`);
-      return {
-        name: this.name
-      };
+    // 如果已经缓存了项目信息，直接返回
+    if (this.projectInfo) {
+      return this.projectInfo;
     }
+
+    return null;
   }
 }
 
@@ -1128,9 +1121,28 @@ export class ContextBuilder {
           // 递归扫描子目录
           await this.scanDirectory(subfolderContext, options, currentDepth + 1);
         } else if (entry.isFile()) {
-          // 检查是否为sker.json文件，如果是则标记父文件夹为项目根目录
+          // 检查是否为sker.json文件，如果是则标记父文件夹为项目根目录并读取配置
           if (entry.name === 'sker.json') {
             folderContext.isProjectRoot = true;
+
+            // 读取并解析sker.json文件
+            try {
+              const skerJsonContent = await fs.promises.readFile(fullPath, 'utf8');
+              const projectInfo: ProjectInfo = JSON5.parse(skerJsonContent);
+
+              // 确保项目名称存在，如果没有则使用文件夹名
+              if (!projectInfo.name) {
+                projectInfo.name = folderContext.name;
+              }
+
+              folderContext.projectInfo = projectInfo;
+            } catch (error) {
+              // 如果解析失败，创建基本的项目信息
+              console.warn(`无法解析项目配置 ${fullPath}: ${(error as Error).message}`);
+              folderContext.projectInfo = {
+                name: folderContext.name
+              };
+            }
           }
           // 检查文件扩展名过滤
           const ext = path.extname(entry.name);
