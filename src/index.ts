@@ -29,3 +29,10 @@ export * from './mcp-example';
 export * from './mcp-config-example';
 export * from './mcp-prompts-example';
 export * from './mcp-workspace-example';
+
+// 导出 OpenAI 集成功能
+export * from './mcp-openai';
+export * from './mcp-openai-example';
+
+// 导出流式输出示例
+export { runMCPOpenAIStreamExample } from './mcp-openai-example';

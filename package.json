@@ -24,7 +24,12 @@
     "clean": "rimraf dist coverage",
     "prepare": "npm run build"
   },
-  "keywords": ["typescript", "tdd", "tsup", "turbo"],
+  "keywords": [
+    "typescript",
+    "tdd",
+    "tsup",
+    "turbo"
+  ],
   "author": "",
   "license": "ISC",
   "packageManager": "npm@10.0.0",
@@ -36,5 +41,9 @@
     "tsup": "^8.5.0",
     "turbo": "^2.5.6",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "openai": "^5.16.0"
   }
 }
