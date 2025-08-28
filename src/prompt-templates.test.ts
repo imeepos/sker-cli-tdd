@@ -162,17 +162,16 @@ describe('全局提示词模板加载器', () => {
       expect(savedContent).toBe(testTemplate.template);
     });
 
-    it('应该创建示例模板文件', async () => {
+    it('应该创建默认模板文件', async () => {
       const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
 
-      // ❌ 这会失败，因为需要重新实现创建示例文件的功能
-      await testProvider.createExampleTemplate();
+      await testProvider.createDefaultTemplates();
 
       const files = await fs.promises.readdir(testPromptsDir);
       const mdFiles = files.filter(file => file.endsWith('.md'));
 
       expect(mdFiles.length).toBeGreaterThan(0);
-      expect(mdFiles).toContain('example-prompt.md');
+      expect(mdFiles).toContain('default.md');
     });
   });
 
