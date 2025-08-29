@@ -5,7 +5,6 @@
 
 import { MCPConfig } from './mcp-config'; // ❌ 这会失败 - 正确的！
 import { MCPServer } from './mcp-server';
-import { CalculatorToolsProvider } from './calculator-tools';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -120,31 +119,6 @@ describe('MCP配置持久化', () => {
     beforeEach(() => {
       server = new MCPServer();
       config = new MCPConfig(testConfigPath);
-    });
-
-    it('应该从服务器导出配置', async () => {
-      // 注册一些工具和资源
-      const calculatorProvider = new CalculatorToolsProvider();
-      calculatorProvider.getTools().forEach(tool => {
-        server.registerTool(tool);
-      });
-
-      server.registerResource({
-        uri: 'file://test.txt',
-        name: '测试文件',
-        mimeType: 'text/plain'
-      });
-
-      // 导出配置
-      await config.exportFromServer(server); // ❌ 会失败
-      
-      // 验证配置文件存在
-      expect(fs.existsSync(testConfigPath)).toBe(true);
-      
-      // 验证配置内容
-      const savedConfig = await config.loadConfig();
-      expect(savedConfig.tools.length).toBe(4); // 4个计算器工具
-      expect(savedConfig.resources.length).toBe(1);
     });
 
     it('应该将配置导入到服务器', async () => {

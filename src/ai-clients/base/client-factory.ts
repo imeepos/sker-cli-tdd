@@ -3,10 +3,10 @@
  * 根据配置自动创建合适的AI客户端实例
  */
 
-import { UnifiedAIClient } from './unified-client.interface.js';
-import { UnifiedAIConfig, AIProvider } from './unified-types.js';
-import { OpenAIAdapter } from '../openai/openai-adapter.js';
-import { AnthropicAdapter } from '../anthropic/anthropic-adapter.js';
+import { UnifiedAIClient } from './unified-client.interface';
+import { UnifiedAIConfig, AIProvider } from './unified-types';
+import { OpenAIAdapter } from '../openai/openai-adapter';
+import { AnthropicAdapter } from '../anthropic/anthropic-adapter';
 
 /**
  * AI客户端工厂类

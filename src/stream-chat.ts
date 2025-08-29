@@ -3,10 +3,10 @@
  * 实现流式输出和实时聊天功能
  */
 
-import { MCPAIClient } from './mcp-ai-client.js';
-import { MCPServer } from './mcp-server.js';
-import { UnifiedMessage } from './ai-clients/base/unified-types.js';
-import { ChatStorage } from './chat-storage.js';
+import { MCPAIClient } from './mcp-ai-client';
+import { MCPServer } from './mcp-server';
+import { UnifiedMessage } from './ai-clients/base/unified-types';
+import { ChatStorage } from './chat-storage';
 
 /**
  * 聊天结果接口

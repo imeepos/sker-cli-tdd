@@ -3,8 +3,8 @@
  * 命令行工具核心功能
  */
 
-import { MCPAIClient, MCPAIConfig } from './mcp-ai-client.js';
-import { AIProvider } from './ai-clients/base/unified-types.js';
+import { MCPAIClient, MCPAIConfig } from './mcp-ai-client';
+import { AIProvider } from './ai-clients/base/unified-types';
 
 /**
  * CLI 配置接口

@@ -3,16 +3,16 @@
  * 替换原有的MCPOpenAIClient，支持多种AI提供商
  */
 
-import { MCPServer } from './mcp-server.js';
-import { UnifiedAIClient } from './ai-clients/base/unified-client.interface.js';
-import { AIClientFactory } from './ai-clients/base/client-factory.js';
+import { MCPServer } from './mcp-server';
+import { UnifiedAIClient } from './ai-clients/base/unified-client.interface';
+import { AIClientFactory } from './ai-clients/base/client-factory';
 import {
   UnifiedAIConfig,
   UnifiedMessage,
   UnifiedResponse,
   UnifiedChunk,
   AIProvider
-} from './ai-clients/base/unified-types.js';
+} from './ai-clients/base/unified-types';
 
 /**
  * MCP AI客户端配置接口
@@ -92,12 +92,12 @@ export class MCPAIClient {
    * 带工具调用的聊天完成
    */
   async chatCompletionWithTools(messages: UnifiedMessage[]): Promise<UnifiedResponse> {
-    const tools = this.mcpServer.getAvailableTools().map(tool => ({
+    const tools = this.mcpServer.getTools().map((tool: any) => ({
       type: 'function' as const,
       function: {
         name: tool.name,
         description: tool.description,
-        parameters: tool.schema,
+        parameters: tool.schema || {},
       },
     }));
 
@@ -108,14 +108,14 @@ export class MCPAIClient {
    * 执行工具调用
    */
   async executeToolCall(toolName: string, parameters: Record<string, unknown>): Promise<any> {
-    return this.mcpServer.callTool(toolName, parameters);
+    return this.mcpServer.executeTool(toolName, parameters);
   }
 
   /**
    * 获取可用工具列表
    */
   getAvailableTools() {
-    return this.mcpServer.getAvailableTools();
+    return this.mcpServer.getTools();
   }
 
   /**
@@ -192,14 +192,14 @@ export class MCPAIClientWithFailover extends MCPAIClient {
   /**
    * 带故障转移的聊天完成
    */
-  async chatCompletion(messages: UnifiedMessage[]): Promise<UnifiedResponse> {
+  override async chatCompletion(messages: UnifiedMessage[]): Promise<UnifiedResponse> {
     return this.executeWithFailover(client => client.chatCompletion(messages));
   }
 
   /**
    * 带故障转移的流式聊天完成
    */
-  async* chatCompletionStream(messages: UnifiedMessage[]): AsyncIterable<UnifiedChunk> {
+  override async* chatCompletionStream(messages: UnifiedMessage[]): AsyncIterable<UnifiedChunk> {
     const currentClient = this.getCurrentClient();
     try {
       const stream = currentClient.chatCompletionStream(messages);
@@ -222,7 +222,7 @@ export class MCPAIClientWithFailover extends MCPAIClient {
   /**
    * 带故障转移的工具调用聊天完成
    */
-  async chatCompletionWithTools(messages: UnifiedMessage[]): Promise<UnifiedResponse> {
+  override async chatCompletionWithTools(messages: UnifiedMessage[]): Promise<UnifiedResponse> {
     return this.executeWithFailover(client => client.chatCompletionWithTools(messages));
   }
 
@@ -233,7 +233,7 @@ export class MCPAIClientWithFailover extends MCPAIClient {
     let lastError: Error | null = null;
 
     for (let i = 0; i < this.fallbackClients.length; i++) {
-      const client = this.fallbackClients[(this.currentClientIndex + i) % this.fallbackClients.length];
+      const client = this.fallbackClients[(this.currentClientIndex + i) % this.fallbackClients.length]!;
       
       try {
         const result = await operation(client);
@@ -253,7 +253,7 @@ export class MCPAIClientWithFailover extends MCPAIClient {
    * 获取当前客户端
    */
   private getCurrentClient(): MCPAIClient {
-    return this.fallbackClients[this.currentClientIndex];
+    return this.fallbackClients[this.currentClientIndex]!;
   }
 
   /**
@@ -277,7 +277,7 @@ export class MCPAIClientWithFailover extends MCPAIClient {
 
     return this.fallbackClients.map((client, index) => ({
       provider: client.provider,
-      available: results[index].status === 'fulfilled' && (results[index] as PromiseFulfilledResult<boolean>).value,
+      available: results[index]!.status === 'fulfilled' && (results[index] as PromiseFulfilledResult<boolean>).value,
     }));
   }
 }

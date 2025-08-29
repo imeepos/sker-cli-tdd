@@ -31,7 +31,11 @@ describe('CLI 工具', () => {
       },
       client: {} as any,
       chatCompletion: jest.fn(),
-      chatCompletionStream: jest.fn(),
+      chatCompletionStream: jest.fn().mockReturnValue(Promise.resolve({
+        [Symbol.asyncIterator]: async function* () {
+          yield { choices: [{ delta: { content: 'test' } }] };
+        }
+      })),
       chatCompletionWithTools: jest.fn(),
       executeToolCall: jest.fn(),
       getAvailableTools: jest.fn().mockReturnValue([]),
@@ -116,20 +120,23 @@ describe('CLI 工具', () => {
         }
       };
 
-      mockOpenAIClient.chatCompletionStream.mockResolvedValue(mockStream as any);
-      cli.setOpenAIClient(mockOpenAIClient);
+      (mockAIClient.chatCompletionStream as jest.Mock).mockReturnValue(mockStream);
+      cli.setAIClient(mockAIClient);
 
       const result = await cli.streamChat('Hello');
       
-      expect(mockOpenAIClient.chatCompletionStream).toHaveBeenCalledWith([
+      expect(mockAIClient.chatCompletionStream).toHaveBeenCalledWith([
         { role: 'user', content: 'Hello' }
       ]);
       expect(result).toContain('Hello World');
     });
 
     it('应该能够处理流式聊天错误', async () => {
-      mockOpenAIClient.chatCompletionStream.mockRejectedValue(new Error('API 错误'));
-      cli.setOpenAIClient(mockOpenAIClient);
+      const mockError = new Error('API 错误');
+      (mockAIClient.chatCompletionStream as jest.Mock).mockImplementation(() => {
+        throw mockError;
+      });
+      cli.setAIClient(mockAIClient);
 
       await expect(cli.streamChat('Hello')).rejects.toThrow('API 错误');
     });
@@ -139,29 +146,33 @@ describe('CLI 工具', () => {
     it('应该能够获取可用工具列表', () => {
       const mockTools = [
         {
-          type: 'function' as const,
-          function: {
-            name: 'calculator',
-            description: '计算器工具',
-            parameters: {}
-          }
+          name: 'calculator',
+          description: '计算器工具',
+          handler: jest.fn(),
+          schema: {}
         }
       ];
 
-      mockOpenAIClient.getOpenAITools.mockReturnValue(mockTools);
-      cli.setOpenAIClient(mockOpenAIClient);
+      mockAIClient.getAvailableTools.mockReturnValue(mockTools);
+      cli.setAIClient(mockAIClient);
 
       const tools = cli.getAvailableTools();
       expect(tools).toEqual(mockTools);
-      expect(mockOpenAIClient.getOpenAITools).toHaveBeenCalled();
+      expect(mockAIClient.getAvailableTools).toHaveBeenCalled();
     });
 
     it('应该能够执行带工具调用的对话', async () => {
       const mockResponse = {
+        id: 'test-response',
+        object: 'chat.completion',
+        created: Date.now(),
+        model: 'gpt-4',
         choices: [{
+          index: 0,
           message: {
+            role: 'assistant' as const,
             content: '我来帮你计算',
-            tool_calls: [{
+            toolCalls: [{
               id: 'call_123',
               type: 'function' as const,
               function: {
@@ -169,7 +180,8 @@ describe('CLI 工具', () => {
                 arguments: '{"a": 2, "b": 3}'
               }
             }]
-          }
+          },
+          finishReason: 'tool_calls' as const
         }]
       };
 
@@ -179,14 +191,14 @@ describe('CLI 工具', () => {
         content: '5'
       };
 
-      mockOpenAIClient.chatCompletionWithTools.mockResolvedValue(mockResponse as any);
-      mockOpenAIClient.executeToolCall.mockResolvedValue(mockToolResult);
-      cli.setOpenAIClient(mockOpenAIClient);
+      mockAIClient.chatCompletionWithTools.mockResolvedValue(mockResponse as any);
+      mockAIClient.executeToolCall.mockResolvedValue(mockToolResult);
+      cli.setAIClient(mockAIClient);
 
       const result = await cli.chatWithTools('计算 2 + 3');
       
-      expect(mockOpenAIClient.chatCompletionWithTools).toHaveBeenCalled();
-      expect(mockOpenAIClient.executeToolCall).toHaveBeenCalled();
+      expect(mockAIClient.chatCompletionWithTools).toHaveBeenCalled();
+      expect(mockAIClient.executeToolCall).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
   });
@@ -199,13 +211,13 @@ describe('CLI 工具', () => {
         .mockResolvedValueOnce({ message: 'Hello' })
         .mockResolvedValueOnce({ message: '/exit' });
 
-      mockOpenAIClient.chatCompletionStream.mockResolvedValue({
+      (mockAIClient.chatCompletionStream as jest.Mock).mockReturnValue({
         [Symbol.asyncIterator]: async function* () {
           yield { choices: [{ delta: { content: 'Hi there!' } }] };
         }
-      } as any);
+      });
 
-      cli.setOpenAIClient(mockOpenAIClient);
+      cli.setAIClient(mockAIClient);
 
       await cli.startInteractiveMode();
       
@@ -236,8 +248,10 @@ describe('CLI 工具', () => {
     });
 
     it('应该能够处理网络错误', async () => {
-      mockOpenAIClient.chatCompletionStream.mockRejectedValue(new Error('网络错误'));
-      cli.setOpenAIClient(mockOpenAIClient);
+      (mockAIClient.chatCompletionStream as jest.Mock).mockImplementation(() => {
+        throw new Error('网络错误');
+      });
+      cli.setOpenAIClient(mockAIClient);
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       

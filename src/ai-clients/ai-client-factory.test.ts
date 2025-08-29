@@ -3,8 +3,8 @@
  * 测试统一AI客户端工厂的功能
  */
 
-import { AIClientFactory } from './base/client-factory.js';
-import { UnifiedAIConfig } from './base/unified-types.js';
+import { AIClientFactory } from './base/client-factory';
+import { UnifiedAIConfig } from './base/unified-types';
 
 describe('AIClientFactory', () => {
   describe('创建客户端', () => {

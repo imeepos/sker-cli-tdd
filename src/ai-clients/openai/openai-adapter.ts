@@ -4,7 +4,7 @@
  */
 
 import OpenAI from 'openai';
-import { BaseAIClientAdapter } from '../base/unified-client.interface.js';
+import { BaseAIClientAdapter } from '../base/unified-client.interface';
 import {
   UnifiedMessage,
   UnifiedResponse,
@@ -13,7 +13,7 @@ import {
   UnifiedChatCompletionParams,
   UnifiedAIConfig,
   AIProvider
-} from '../base/unified-types.js';
+} from '../base/unified-types';
 
 /**
  * OpenAI客户端适配器

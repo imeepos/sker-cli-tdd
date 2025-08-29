@@ -3,7 +3,7 @@
  * 将Anthropic API适配为统一接口
  */
 
-import { BaseAIClientAdapter } from '../base/unified-client.interface.js';
+import { BaseAIClientAdapter } from '../base/unified-client.interface';
 import {
   UnifiedMessage,
   UnifiedResponse,
@@ -12,7 +12,7 @@ import {
   UnifiedChatCompletionParams,
   UnifiedAIConfig,
   AIProvider
-} from '../base/unified-types.js';
+} from '../base/unified-types';
 
 /**
  * Anthropic客户端适配器
@@ -187,7 +187,7 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(`Anthropic API Error ${response.status}: ${error.message || error.error?.message}`);
+      throw new Error(`Anthropic API Error ${response.status}: ${(error as any).message || (error as any).error?.message}`);
     }
 
     const reader = response.body?.getReader();
