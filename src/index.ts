@@ -12,7 +12,9 @@ import { MCPWorkspaceManager } from './mcp-workspace.js';
 import { StreamChat } from './stream-chat.js';
 import { ToolManager } from './tool-manager.js';
 import { InteractiveMode } from './interactive-mode.js';
-import { CalculatorToolsProvider } from './calculator-tools.js';
+import { FileToolsProvider } from './file-tools.js';
+import { CommandToolsProvider } from './command-tools.js';
+import { FetchToolsProvider } from './fetch-tools.js';
 
 /**
  * 主程序入口
@@ -58,9 +60,13 @@ async function main() {
     mcpServer.setWorkspaceManager(workspaceManager);
 
     // 注册内置工具
-    const calculatorProvider = new CalculatorToolsProvider();
+    const fileToolsProvider = new FileToolsProvider();
+    const commandToolsProvider = new CommandToolsProvider();
+    const fetchToolsProvider = new FetchToolsProvider();
     const toolManager = new ToolManager(mcpServer, workspaceManager);
-    toolManager.registerToolProvider(calculatorProvider);
+    toolManager.registerToolProvider(fileToolsProvider);
+    toolManager.registerToolProvider(commandToolsProvider);
+    toolManager.registerToolProvider(fetchToolsProvider);
 
     // 创建流式聊天
     const streamChat = new StreamChat(openaiClient, mcpServer);
