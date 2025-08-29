@@ -198,6 +198,11 @@ export class StreamChat {
         const content = assistantMessage.content || '';
         this.stats.totalTokens += content.length;
 
+        // 显示助手回复
+        if (this.realTimeOutput && content) {
+          process.stdout.write(content);
+        }
+
         return {
           content,
           tokens: content.length,
