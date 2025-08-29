@@ -15,7 +15,7 @@ describe('ChatStorage', () => {
   beforeEach(async () => {
     // 创建临时测试数据库路径
     testDbPath = path.join(__dirname, '..', 'test-db', `test-${Date.now()}`);
-    chatStorage = new ChatStorage(testDbPath);
+    chatStorage = new ChatStorage();
     await chatStorage.initialize();
   });
 
