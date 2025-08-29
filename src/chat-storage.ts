@@ -1,12 +1,10 @@
 /**
- * 🔴 TDD 红阶段：聊天记录存储功能
- * 使用 LevelDB 存储聊天记录
+ * 聊天记录存储功能
+ * 基于通用数据库服务实现聊天记录的存储和检索
  */
 
-import { Level } from 'level';
+import { DatabaseService, DatabaseConfig } from './database-service';
 import { OpenAI } from 'openai';
-import path from 'path';
-import os from 'os';
 
 /**
  * 聊天消息接口
@@ -50,48 +48,38 @@ export interface QueryOptions {
 
 /**
  * 聊天存储类
- * 负责管理聊天记录的存储和检索
+ * 继承通用数据库服务，专门处理聊天记录相关操作
  */
-export class ChatStorage {
-  private db: Level<string, string>;
+export class ChatStorage extends DatabaseService {
   private messagesDb: any;
   private sessionsDb: any;
   
-  constructor(dbPath?: string) {
-    const defaultPath = path.join(os.homedir(), '.sker-ai', 'chat-db');
-    const actualPath = dbPath || defaultPath;
+  constructor(config: DatabaseConfig = {}) {
+    // 设置默认路径和子级数据库
+    const chatConfig = {
+      ...config,
+      dbPath: config.dbPath || require('path').join(require('os').homedir(), '.sker-ai', 'chat-db'),
+      sublevels: ['messages', 'sessions']
+    };
     
-    this.db = new Level(actualPath);
-    this.messagesDb = this.db.sublevel('messages', { valueEncoding: 'json' });
-    this.sessionsDb = this.db.sublevel('sessions', { valueEncoding: 'json' });
-  }
-
-  /**
-   * 初始化数据库
-   */
-  async initialize(): Promise<void> {
-    await this.db.open();
-  }
-
-  /**
-   * 关闭数据库连接
-   */
-  async close(): Promise<void> {
-    await this.db.close();
+    super(chatConfig);
+    
+    this.messagesDb = this.getSublevel('messages');
+    this.sessionsDb = this.getSublevel('sessions');
   }
 
   /**
    * 生成消息ID
    */
   private generateMessageId(): string {
-    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return this.generateId('msg');
   }
 
   /**
    * 生成会话ID
    */
   private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return this.generateId('session');
   }
 
   /**
@@ -287,38 +275,23 @@ export class ChatStorage {
   }
 
   /**
-   * 清空所有数据
+   * 清空所有聊天数据
    */
   async clear(): Promise<void> {
-    await this.messagesDb.clear();
-    await this.sessionsDb.clear();
+    await this.clearAll();
   }
 
   /**
-   * 获取数据库统计信息
+   * 获取聊天数据统计信息
    */
-  async getStats(): Promise<{
+  async getChatStats(): Promise<{
     totalMessages: number;
     totalSessions: number;
-    dbSize: number;
   }> {
-    let messageCount = 0;
-    let sessionCount = 0;
-
-    // 统计消息数量
-    for await (const [] of this.messagesDb.iterator({ values: false })) {
-      messageCount++;
-    }
-
-    // 统计会话数量
-    for await (const [] of this.sessionsDb.iterator({ values: false })) {
-      sessionCount++;
-    }
-
+    const stats = await this.getStats();
     return {
-      totalMessages: messageCount,
-      totalSessions: sessionCount,
-      dbSize: 0 // LevelDB 不直接提供大小信息
+      totalMessages: stats['messages'] || 0,
+      totalSessions: stats['sessions'] || 0
     };
   }
 }
