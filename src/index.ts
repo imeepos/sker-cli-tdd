@@ -16,6 +16,7 @@ import { FileToolsProvider } from './file-tools.js';
 import { CommandToolsProvider } from './command-tools.js';
 import { FetchToolsProvider } from './fetch-tools.js';
 import { SystemContextToolsProvider } from './system-context-tools.js';
+import { AgentToolsProvider } from './agent-tools.js';
 
 /**
  * 主程序入口
@@ -65,11 +66,13 @@ async function main() {
     const commandToolsProvider = new CommandToolsProvider();
     const fetchToolsProvider = new FetchToolsProvider();
     const systemContextToolsProvider = new SystemContextToolsProvider();
+    const agentToolsProvider = new AgentToolsProvider();
     const toolManager = new ToolManager(mcpServer, workspaceManager);
     toolManager.registerToolProvider(fileToolsProvider);
     toolManager.registerToolProvider(commandToolsProvider);
     toolManager.registerToolProvider(fetchToolsProvider);
     toolManager.registerToolProvider(systemContextToolsProvider);
+    toolManager.registerToolProvider(agentToolsProvider);
 
     // 创建流式聊天
     const streamChat = new StreamChat(openaiClient, mcpServer);
