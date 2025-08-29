@@ -6,6 +6,7 @@
 import { MCPOpenAIClient } from './mcp-openai';
 import { MCPServer } from './mcp-server';
 import { OpenAI } from 'openai';
+import { ChatStorage } from './chat-storage';
 
 /**
  * 聊天结果接口
@@ -42,15 +43,18 @@ export class StreamChat {
   private mcpServer: MCPServer;
   private conversationHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
   private realTimeOutput: boolean = true;
+  private chatStorage: ChatStorage;
+  private currentSessionId: string | null = null;
   private stats: ChatStats = {
     totalMessages: 0,
     totalTokens: 0,
     totalToolCalls: 0
   };
 
-  constructor(openaiClient: MCPOpenAIClient, mcpServer: MCPServer) {
+  constructor(openaiClient: MCPOpenAIClient, mcpServer: MCPServer, chatStorage?: ChatStorage) {
     this.openaiClient = openaiClient;
     this.mcpServer = mcpServer;
+    this.chatStorage = chatStorage || new ChatStorage();
   }
 
   /**
@@ -68,9 +72,72 @@ export class StreamChat {
   }
 
   /**
+   * 获取聊天存储实例
+   */
+  getChatStorage(): ChatStorage {
+    return this.chatStorage;
+  }
+
+  /**
+   * 初始化聊天存储
+   */
+  async initializeStorage(): Promise<void> {
+    await this.chatStorage.initialize();
+  }
+
+  /**
+   * 关闭聊天存储
+   */
+  async closeStorage(): Promise<void> {
+    await this.chatStorage.close();
+  }
+
+  /**
+   * 创建新会话
+   */
+  async createSession(name?: string): Promise<string> {
+    const sessionId = await this.chatStorage.createSession(name);
+    this.currentSessionId = sessionId;
+    return sessionId;
+  }
+
+  /**
+   * 设置当前会话
+   */
+  setCurrentSession(sessionId: string): void {
+    this.currentSessionId = sessionId;
+  }
+
+  /**
+   * 获取当前会话ID
+   */
+  getCurrentSessionId(): string | null {
+    return this.currentSessionId;
+  }
+
+  /**
+   * 从存储中加载会话历史
+   */
+  async loadSessionHistory(sessionId?: string): Promise<void> {
+    const targetSessionId = sessionId || this.currentSessionId;
+    if (!targetSessionId) {
+      throw new Error('没有指定会话ID');
+    }
+
+    const history = await this.chatStorage.getConversationHistory(targetSessionId);
+    this.conversationHistory = history;
+    this.currentSessionId = targetSessionId;
+  }
+
+  /**
    * 基础流式聊天
    */
   async chat(message: string): Promise<ChatResult> {
+    // 确保有当前会话
+    if (!this.currentSessionId) {
+      this.currentSessionId = await this.chatStorage.createSession();
+    }
+
     const userMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
       role: 'user',
       content: message
@@ -79,6 +146,9 @@ export class StreamChat {
     // 添加到对话历史
     this.conversationHistory.push(userMessage);
     this.stats.totalMessages++;
+
+    // 保存用户消息到数据库
+    await this.chatStorage.saveMessage('user', message, this.currentSessionId);
 
     try {
       const stream = await this.openaiClient.chatCompletionStream([...this.conversationHistory]);
@@ -108,6 +178,11 @@ export class StreamChat {
       this.stats.totalMessages++;
       this.stats.totalTokens += tokenCount;
 
+      // 保存助手消息到数据库
+      await this.chatStorage.saveMessage('assistant', fullContent, this.currentSessionId, {
+        tokens: tokenCount
+      });
+
       return {
         content: fullContent,
         tokens: tokenCount
@@ -121,6 +196,11 @@ export class StreamChat {
    * 带工具调用的流式聊天
    */
   async chatWithTools(message: string): Promise<ChatResult> {
+    // 确保有当前会话
+    if (!this.currentSessionId) {
+      this.currentSessionId = await this.chatStorage.createSession();
+    }
+
     const userMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
       role: 'user',
       content: message
@@ -129,6 +209,9 @@ export class StreamChat {
     // 添加到对话历史
     this.conversationHistory.push(userMessage);
     this.stats.totalMessages++;
+
+    // 保存用户消息到数据库
+    await this.chatStorage.saveMessage('user', message, this.currentSessionId);
 
     try {
       // 首先进行带工具调用的聊天完成
@@ -188,6 +271,12 @@ export class StreamChat {
         this.stats.totalMessages++;
         this.stats.totalTokens += tokenCount;
 
+        // 保存最终助手消息到数据库
+        await this.chatStorage.saveMessage('assistant', finalContent, this.currentSessionId, {
+          tokens: tokenCount,
+          toolCalls
+        });
+
         return {
           content: finalContent,
           tokens: tokenCount,
@@ -202,6 +291,11 @@ export class StreamChat {
         if (this.realTimeOutput && content) {
           process.stdout.write(content);
         }
+
+        // 保存助手消息到数据库
+        await this.chatStorage.saveMessage('assistant', content, this.currentSessionId, {
+          tokens: content.length
+        });
 
         return {
           content,
@@ -226,6 +320,38 @@ export class StreamChat {
    */
   clearHistory(): void {
     this.conversationHistory = [];
+  }
+
+  /**
+   * 列出所有会话
+   */
+  async listSessions(limit?: number): Promise<any[]> {
+    return await this.chatStorage.listSessions(limit);
+  }
+
+  /**
+   * 获取会话信息
+   */
+  async getSessionInfo(sessionId: string): Promise<any> {
+    return await this.chatStorage.getSession(sessionId);
+  }
+
+  /**
+   * 删除会话
+   */
+  async deleteSession(sessionId: string): Promise<void> {
+    await this.chatStorage.deleteSession(sessionId);
+    if (this.currentSessionId === sessionId) {
+      this.currentSessionId = null;
+      this.conversationHistory = [];
+    }
+  }
+
+  /**
+   * 获取数据库统计信息
+   */
+  async getStorageStats(): Promise<any> {
+    return await this.chatStorage.getStats();
   }
 
   /**

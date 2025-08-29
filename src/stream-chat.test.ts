@@ -6,15 +6,18 @@
 import { StreamChat } from './stream-chat';
 import { MCPOpenAIClient } from './mcp-openai';
 import { MCPServer } from './mcp-server';
+import { ChatStorage } from './chat-storage';
 
 // Mock 依赖
 jest.mock('./mcp-openai');
 jest.mock('./mcp-server');
+jest.mock('./chat-storage');
 
 describe('流式聊天功能', () => {
   let streamChat: StreamChat;
   let mockOpenAIClient: jest.Mocked<MCPOpenAIClient>;
   let mockMCPServer: jest.Mocked<MCPServer>;
+  let mockChatStorage: jest.Mocked<ChatStorage>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -26,6 +29,26 @@ describe('流式聊天功能', () => {
       registerTool: jest.fn(),
       setWorkspaceManager: jest.fn(),
       setPromptManager: jest.fn()
+    } as any;
+
+    mockChatStorage = {
+      initialize: jest.fn().mockResolvedValue(undefined),
+      close: jest.fn().mockResolvedValue(undefined),
+      createSession: jest.fn().mockResolvedValue('test-session-123'),
+      saveMessage: jest.fn().mockResolvedValue('test-message-123'),
+      getSession: jest.fn().mockResolvedValue({
+        id: 'test-session-123',
+        name: 'Test Session',
+        messageCount: 0,
+        totalTokens: 0
+      }),
+      getConversationHistory: jest.fn().mockResolvedValue([]),
+      listSessions: jest.fn().mockResolvedValue([]),
+      getStats: jest.fn().mockResolvedValue({
+        totalMessages: 0,
+        totalSessions: 0,
+        dbSize: 0
+      })
     } as any;
 
     mockOpenAIClient = {
@@ -40,7 +63,7 @@ describe('流式聊天功能', () => {
       })
     } as any;
 
-    streamChat = new StreamChat(mockOpenAIClient, mockMCPServer);
+    streamChat = new StreamChat(mockOpenAIClient, mockMCPServer, mockChatStorage);
   });
 
   describe('初始化', () => {
