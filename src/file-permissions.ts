@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { FileContext, FolderContext } from './context';
+import { ConfigManager } from './config-manager';
 
 /**
  * 文件权限信息接口
@@ -420,7 +421,8 @@ export class FilePermissionsManager {
    */
   private getUsername(uid: number): string | undefined {
     // 在实际实现中，可以通过系统调用获取用户名
-    return process.getuid && process.getuid() === uid ? process.env['USER'] : undefined;
+    const configManager = ConfigManager.getInstance();
+    return process.getuid && process.getuid() === uid ? configManager.getCurrentUser() : undefined;
   }
 
   /**

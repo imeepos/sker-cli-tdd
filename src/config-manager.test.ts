@@ -72,7 +72,8 @@ describe('ConfigManager', () => {
         model: 'gpt-3.5-turbo',
         temperature: 0.5,
         maxTokens: 1500,
-        baseURL: undefined
+        baseURL: undefined,
+        provider: 'openai'
       });
     });
 
@@ -298,7 +299,7 @@ describe('ConfigManager', () => {
       const manager = ConfigManager.getInstance();
       const systemConfig = manager.getSystemConfig();
 
-      expect(systemConfig).toHaveProperty('openai');
+      expect(systemConfig).toHaveProperty('aiConfig');
       expect(systemConfig).toHaveProperty('database');
       expect(systemConfig).toHaveProperty('mq');
       expect(systemConfig).toHaveProperty('cli');
@@ -336,10 +337,10 @@ describe('ConfigManager', () => {
       
       const summary = manager.getConfigSummary();
 
-      expect(summary['openai']).toBeDefined();
-      expect(summary['openai']['hasApiKey']).toBe(true);
-      expect(summary['openai']['apiKey']).toBeUndefined(); // 不应该包含敏感信息
-      expect(summary['openai']['model']).toBe('gpt-3.5-turbo');
+      expect(summary['aiConfig']).toBeDefined();
+      expect(summary['aiConfig']['hasApiKey']).toBe(true);
+      expect(summary['aiConfig']['apiKey']).toBeUndefined(); // 不应该包含敏感信息
+      expect(summary['aiConfig']['model']).toBe('gpt-3.5-turbo');
       
       expect(summary['mq']).toBeDefined();
       expect(summary['mq']['host']).toBe('test-host');

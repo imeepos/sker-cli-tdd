@@ -81,9 +81,11 @@ describe('CLI 工具', () => {
       delete process.env['AI_MODEL'];
     });
 
-    it('应该在缺少 API 密钥时抛出错误', () => {
-      delete process.env['AI_API_KEY'];
-      expect(() => cli.loadConfigFromEnv()).toThrow('AI_API_KEY 环境变量未设置');
+    it('应该从ConfigManager获取配置', () => {
+      const config = cli.loadConfigFromEnv();
+      expect(config).toBeDefined();
+      expect(config.provider).toBeDefined();
+      expect(config.apiKey).toBeDefined();
     });
   });
 

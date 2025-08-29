@@ -8,12 +8,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { MCPPromptManager, MCPPrompt } from './mcp-prompts';
+import { ConfigManager } from './config-manager';
 
 /**
  * 条件性地输出日志，测试环境下不输出
  */
 function logInfo(message: string, ...args: any[]): void {
-  if (process.env['NODE_ENV'] !== 'test') {
+  const configManager = ConfigManager.getInstance();
+  if (!configManager.isTestEnvironment()) {
     console.log(message, ...args);
   }
 }
@@ -110,7 +112,8 @@ export class PromptTemplatesProvider {
       }
     } catch (error) {
       // 在测试环境下不输出警告，避免测试噪音
-      if (process.env['NODE_ENV'] !== 'test') {
+      const configManager = ConfigManager.getInstance();
+      if (!configManager.isTestEnvironment()) {
         console.warn(`无法加载提示词模板 ${filename}: ${(error as Error).message}`);
       }
     }

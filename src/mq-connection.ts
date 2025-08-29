@@ -4,12 +4,14 @@
  */
 
 import { MQConnection, MQConfig } from './agent';
+import { ConfigManager } from './config-manager';
 
 /**
  * 条件性地输出日志，测试环境下不输出
  */
 function logInfo(message: string, ...args: any[]): void {
-  if (process.env['NODE_ENV'] !== 'test') {
+  const configManager = ConfigManager.getInstance();
+  if (!configManager.isTestEnvironment()) {
     console.log(message, ...args);
   }
 }

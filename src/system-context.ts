@@ -6,6 +6,7 @@
 import * as os from 'os';
 import { spawn } from 'child_process';
 import { networkInterfaces } from 'os';
+import { ConfigManager } from './config-manager';
 
 /**
  * 操作系统信息接口
@@ -266,7 +267,9 @@ export class SystemContextCollector {
    * 检测当前Shell
    */
   private async detectCurrentShell(): Promise<ShellInfo> {
-    const shellEnv = process.env['SHELL'] || process.env['ComSpec'] || 'unknown';
+    const configManager = ConfigManager.getInstance();
+    const shellInfo = configManager.getShellInfo();
+    const shellEnv = shellInfo.shell || shellInfo.comSpec || 'unknown';
     const shellName = shellEnv.split(/[/\\]/).pop() || 'unknown';
 
     return {
@@ -281,6 +284,8 @@ export class SystemContextCollector {
    * 收集环境变量（过滤敏感信息）
    */
   private async collectEnvironment(): Promise<Record<string, string>> {
+    // 注意：这里仍然需要访问完整的环境变量来进行过滤
+    // 但这是在 SystemContext 内部，用于系统信息收集的特殊用途
     const env = { ...process.env };
     const sensitiveKeys = ['PASSWORD', 'SECRET', 'TOKEN', 'KEY', 'PRIVATE'];
     

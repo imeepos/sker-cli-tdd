@@ -7,6 +7,7 @@ import { UnifiedAIClient } from './unified-client.interface';
 import { UnifiedAIConfig, AIProvider } from './unified-types';
 import { OpenAIAdapter } from '../openai/openai-adapter';
 import { AnthropicAdapter } from '../anthropic/anthropic-adapter';
+import { ConfigManager } from '../../config-manager';
 
 /**
  * AI客户端工厂类
@@ -52,55 +53,17 @@ export class AIClientFactory {
    * @param provider 可选的提供商类型，如果不提供则从环境变量读取
    * @returns AI客户端实例
    */
-  static createFromEnv(provider?: AIProvider): UnifiedAIClient {
-    const selectedProvider = provider || this.detectProviderFromEnv();
-    const config = this.loadConfigFromEnv(selectedProvider);
+  static createFromEnv(): UnifiedAIClient {
+    const config = this.loadConfigFromEnv();
     return this.create(config);
   }
 
   /**
-   * 检测环境变量中的提供商
+   * 从ConfigManager加载配置
    */
-  private static detectProviderFromEnv(): AIProvider {
-    // 优先级：AI_PROVIDER > 检测API密钥
-    const envProvider = process.env['AI_PROVIDER'] as AIProvider;
-    if (envProvider && this.registeredAdapters.has(envProvider)) {
-      return envProvider;
-    }
-
-    throw new Error('No AI provider detected. Please set AI_PROVIDER or provide API keys.');
-  }
-
-  /**
-   * 从环境变量加载配置
-   */
-  private static loadConfigFromEnv(provider: AIProvider): UnifiedAIConfig {
-    switch (provider) {
-      case 'openai':
-        return {
-          provider: 'openai',
-          apiKey: process.env['AI_API_KEY'] || '',
-          model: process.env['AI_MODEL'] || 'gpt-3.5-turbo',
-          baseURL: process.env['AI_BASE_URL'],
-          maxTokens: process.env['AI_MAX_TOKENS'] ? parseInt(process.env['AI_MAX_TOKENS']) : undefined,
-          temperature: process.env['AI_TEMPERATURE'] ? parseFloat(process.env['AI_TEMPERATURE']) : undefined,
-          timeout: process.env['AI_TIMEOUT'] ? parseInt(process.env['AI_TIMEOUT']) : undefined,
-        };
-
-      case 'anthropic':
-        return {
-          provider: 'anthropic',
-          apiKey: process.env['AI_API_KEY'] || '',
-          model: process.env['AI_MODEL'] || 'claude-3-sonnet-20240229',
-          baseURL: process.env['AI_BASE_URL'],
-          maxTokens: process.env['AI_MAX_TOKENS'] ? parseInt(process.env['AI_MAX_TOKENS']) : undefined,
-          temperature: process.env['AI_TEMPERATURE'] ? parseFloat(process.env['AI_TEMPERATURE']) : undefined,
-          timeout: process.env['AI_TIMEOUT'] ? parseInt(process.env['AI_TIMEOUT']) : undefined,
-        };
-
-      default:
-        throw new Error(`Unsupported provider: ${provider}`);
-    }
+  private static loadConfigFromEnv(): UnifiedAIConfig {
+    const configManager = ConfigManager.getInstance();
+    return configManager.getAIConfig();
   }
 
   /**

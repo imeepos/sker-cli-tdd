@@ -18,12 +18,15 @@ import { FetchToolsProvider } from './fetch-tools.js';
 import { SystemContextToolsProvider } from './system-context-tools.js';
 import { AgentToolsProvider } from './agent-tools.js';
 import { TodoToolsProvider } from './todo-tools.js';
+import * as dotenv from 'dotenv';
 
 /**
  * 主程序入口
  */
 async function main() {
   try {
+    // 加载环境变量
+    dotenv.config({ debug: false, quiet: true });
     // 创建 CLI 实例
     const cli = new CLI();
 

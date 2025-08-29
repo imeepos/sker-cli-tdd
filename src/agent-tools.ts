@@ -44,13 +44,8 @@ export class AgentToolsProvider {
         try {
           const { agentId, mqType = 'memory' } = params;
           
-          // 设置Agent ID
-          if (agentId) {
-            process.env['AGENT_ID'] = agentId;
-          }
-          
-          // 创建Agent
-          const agent = new MQAgent();
+          // 创建Agent，传入自定义Agent ID
+          const agent = new MQAgent(agentId);
           const config = agent.loadConfig();
           
           // 创建MQ连接

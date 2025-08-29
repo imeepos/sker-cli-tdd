@@ -9,6 +9,7 @@ import ignore from 'ignore';
 import * as JSON5 from 'json5';
 import { FolderContext } from './folder-context';
 import { FileContext } from './file-context';
+import { ConfigManager } from './config-manager';
 
 /**
  * 上下文构建器选项接口
@@ -194,7 +195,8 @@ export class ContextBuilder {
             } catch (error) {
               // 如果解析失败，创建基本的项目信息
               // 在测试环境下不输出警告，避免测试噪音
-              if (!process.env['NODE_ENV'] || process.env['NODE_ENV'] !== 'test') {
+              const configManager = ConfigManager.getInstance();
+              if (!configManager.isTestEnvironment()) {
                 console.warn(`无法解析项目配置 ${fullPath}: ${(error as Error).message}`);
               }
               folderContext.projectInfo = {
@@ -215,7 +217,8 @@ export class ContextBuilder {
     } catch (error) {
       // 忽略无法访问的目录
       // 在测试环境下不输出警告，避免测试噪音
-      if (!process.env['NODE_ENV'] || process.env['NODE_ENV'] !== 'test') {
+      const configManager = ConfigManager.getInstance();
+      if (!configManager.isTestEnvironment()) {
         console.warn(`无法扫描目录 ${folderContext.path}: ${(error as Error).message}`);
       }
     }

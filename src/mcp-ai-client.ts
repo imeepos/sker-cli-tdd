@@ -34,7 +34,7 @@ export class MCPAIClient {
   constructor(config: MCPAIConfig, mcpServer: MCPServer) {
     this.config = config;
     this.mcpServer = mcpServer;
-    
+
     // 使用工厂创建AI客户端
     this.aiClient = AIClientFactory.create(config);
   }
@@ -162,8 +162,8 @@ export class MCPAIClient {
   /**
    * 从环境变量创建客户端
    */
-  static createFromEnv(mcpServer: MCPServer, provider?: AIProvider): MCPAIClient {
-    const aiClient = AIClientFactory.createFromEnv(provider);
+  static createFromEnv(mcpServer: MCPServer): MCPAIClient {
+    const aiClient = AIClientFactory.createFromEnv();
     return new MCPAIClient(aiClient.config as MCPAIConfig, mcpServer);
   }
 }
@@ -181,7 +181,7 @@ export class MCPAIClientWithFailover extends MCPAIClient {
     mcpServer: MCPServer
   ) {
     super(primaryConfig, mcpServer);
-    
+
     // 创建故障转移客户端
     this.fallbackClients = [
       this,
@@ -234,7 +234,7 @@ export class MCPAIClientWithFailover extends MCPAIClient {
 
     for (let i = 0; i < this.fallbackClients.length; i++) {
       const client = this.fallbackClients[(this.currentClientIndex + i) % this.fallbackClients.length]!;
-      
+
       try {
         const result = await operation(client);
         // 成功后更新当前客户端索引

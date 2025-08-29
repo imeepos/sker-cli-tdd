@@ -4,7 +4,7 @@
  */
 
 import { MCPAIClient, MCPAIConfig } from './mcp-ai-client';
-import { AIProvider } from './ai-clients/base/unified-types';
+import { ConfigManager } from './config-manager';
 
 /**
  * CLI 配置接口
@@ -63,27 +63,20 @@ export class CLI {
   }
 
   /**
-   * 从环境变量加载配置
+   * 从ConfigManager加载配置
    */
   loadConfigFromEnv(): CLIConfig {
-    const apiKey = process.env['AI_API_KEY'];
-    if (!apiKey) {
-      throw new Error('AI_API_KEY 环境变量未设置');
-    }
+    const configManager = ConfigManager.getInstance();
+    const aiConfig = configManager.getAIConfig();
 
-    const config: CLIConfig = {
-      provider: (process.env['AI_PROVIDER'] as AIProvider) || 'openai',
-      apiKey,
-      model: process.env['AI_MODEL'] || 'gpt-4',
-      temperature: process.env['AI_TEMPERATURE'] ? parseFloat(process.env['AI_TEMPERATURE']) : 0.7,
-      maxTokens: process.env['AI_MAX_TOKENS'] ? parseInt(process.env['AI_MAX_TOKENS']) : 2000
+    return {
+      provider: aiConfig.provider,
+      apiKey: aiConfig.apiKey,
+      model: aiConfig.model,
+      temperature: aiConfig.temperature,
+      maxTokens: aiConfig.maxTokens,
+      baseURL: aiConfig.baseURL
     };
-
-    if (process.env['AI_BASE_URL']) {
-      config.baseURL = process.env['AI_BASE_URL'];
-    }
-
-    return config;
   }
 
   /**

@@ -10,11 +10,9 @@ import { FileToolsProvider } from './file-tools';
 import { CommandToolsProvider } from './command-tools';
 import { FetchToolsProvider } from './fetch-tools';
 import { SystemContextToolsProvider } from './system-context-tools';
-import * as dotenv from 'dotenv';
 import { MCPAIClient } from './mcp-ai-client';
-
-// 加载环境变量
-dotenv.config({ debug: false, quiet: true });
+import { UnifiedMessage } from './ai-clients/base/unified-types';
+import { ConfigManager } from './config-manager';
 
 /**
  * MQ配置接口
@@ -77,54 +75,24 @@ export class MQAgent {
   private toolManager!: ToolManager;
   private aiClient: MCPAIClient | null = null;
   private isListening = false;
+  private configManager: ConfigManager;
 
-  constructor() {
-    this.config = this.loadConfig();
+  constructor(customAgentId?: string) {
+    this.configManager = ConfigManager.getInstance();
+    this.config = this.loadConfig(customAgentId);
     this.initializeToolManager();
   }
 
   /**
-   * 从环境变量加载MQ配置
+   * 加载MQ配置
+   * 从ConfigManager获取MQ连接配置
    */
-  loadConfig(): MQConfig {
-    // 优先使用 MQ_URL，如果没有则使用分离的配置
-    const mqUrl = process.env['MQ_URL'];
-    let host = 'localhost';
-    let port = 5672;
-    let username = 'guest';
-    let password = 'guest';
-
-    if (mqUrl) {
-      // 解析 MQ_URL (格式: amqp://username:password@host:port)
-      try {
-        const url = new URL(mqUrl);
-        host = url.hostname;
-        port = parseInt(url.port) || 5672;
-        username = url.username || 'guest';
-        password = url.password || 'guest';
-      } catch (error) {
-        console.warn('Invalid MQ_URL format, using default values');
-      }
-    } else {
-      // 使用分离的环境变量
-      host = process.env['MQ_HOST'] || 'localhost';
-      port = parseInt(process.env['MQ_PORT'] || '5672');
-      username = process.env['MQ_USERNAME'] || 'guest';
-      password = process.env['MQ_PASSWORD'] || 'guest';
+  loadConfig(customAgentId?: string): MQConfig {
+    const config = this.configManager.getMQConfig();
+    if (customAgentId) {
+      config.agentId = customAgentId;
     }
-
-    const finalUrl = mqUrl || `amqp://${username}:${password}@${host}:${port}`;
-
-    return {
-      url: finalUrl,
-      host,
-      port,
-      username,
-      password,
-      taskQueue: process.env['MQ_TASK_QUEUE'] || 'task_queue',
-      resultQueue: process.env['MQ_RESULT_QUEUE'] || 'result_queue',
-      agentId: process.env['AGENT_ID'] || `agent-${Date.now()}`
-    };
+    return config;
   }
 
   /**
@@ -281,26 +249,88 @@ export class MQAgent {
     const { instruction, context } = taskMessage.payload;
 
     // 构建AI对话消息
-    const messages = [
+    const messages: UnifiedMessage[] = [
       {
-        role: 'system' as const,
+        role: 'system',
         content: `你是一个智能Agent，可以调用各种工具来完成任务。
 当前可用的工具包括：文件操作、命令执行、网络请求、系统信息查询等。
 请根据用户的指令，智能选择合适的工具来完成任务。`
       },
       {
-        role: 'user' as const,
+        role: 'user',
         content: `任务指令：${instruction}${context ? `\n上下文：${context}` : ''}`
       }
     ];
 
     // 使用AI处理对话并执行工具调用
-    const conversation = await this.aiClient.processConversation(messages);
+    const response = await this.aiClient.chatCompletionWithTools(messages);
+    const assistantMessage = response.choices[0]?.message;
+
+    if (!assistantMessage) {
+      throw new Error('没有收到AI响应');
+    }
+
+    let toolCallsExecuted = 0;
+    const conversationMessages: UnifiedMessage[] = [...messages];
+
+    // 添加助手消息到对话历史
+    conversationMessages.push({
+      role: 'assistant',
+      content: assistantMessage.content || '',
+      toolCalls: assistantMessage.toolCalls
+    });
+
+    // 处理工具调用
+    if (assistantMessage.toolCalls && assistantMessage.toolCalls.length > 0) {
+      for (const toolCall of assistantMessage.toolCalls) {
+        try {
+          const toolResult = await this.aiClient.executeToolCall(
+            toolCall.function.name,
+            JSON.parse(toolCall.function.arguments)
+          );
+
+          // 添加工具结果到对话历史
+          conversationMessages.push({
+            role: 'tool',
+            content: JSON.stringify(toolResult),
+            toolCallId: toolCall.id
+          });
+
+          toolCallsExecuted++;
+        } catch (error) {
+          // 添加工具执行错误到对话历史
+          conversationMessages.push({
+            role: 'tool',
+            content: JSON.stringify({ error: (error as Error).message }),
+            toolCallId: toolCall.id
+          });
+        }
+      }
+
+      // 如果有工具调用，获取最终响应
+      if (toolCallsExecuted > 0) {
+        const finalResponse = await this.aiClient.chatCompletion(conversationMessages);
+        const finalMessage = finalResponse.choices[0]?.message;
+
+        if (finalMessage) {
+          conversationMessages.push({
+            role: 'assistant',
+            content: finalMessage.content || ''
+          });
+        }
+
+        return {
+          aiResponse: finalMessage?.content || assistantMessage.content || 'AI处理完成',
+          toolCallsExecuted,
+          conversationMessages
+        };
+      }
+    }
 
     return {
-      aiResponse: conversation.finalResponse.choices[0]?.message?.content || 'AI处理完成',
-      toolCallsExecuted: conversation.toolCallsExecuted,
-      conversationMessages: conversation.messages
+      aiResponse: assistantMessage.content || 'AI处理完成',
+      toolCallsExecuted,
+      conversationMessages
     };
   }
 
@@ -317,7 +347,7 @@ export class MQAgent {
       return await this.mqConnection.publish(this.config.resultQueue, messageData);
     } catch (error) {
       // 在测试环境下不输出错误，避免测试噪音
-      if (process.env['NODE_ENV'] !== 'test') {
+      if (!this.configManager.isTestEnvironment()) {
         console.error('Failed to send result:', error);
       }
       return false;

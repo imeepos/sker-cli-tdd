@@ -132,9 +132,8 @@ export class ConfigManager {
 
   private constructor() {
     // 注册验证器
-    this.validators.set('openai', new OpenAIConfigValidator());
+    this.validators.set('aiConfig', new OpenAIConfigValidator());
     this.validators.set('mq', new MQConfigValidator());
-    
     // 加载环境变量
     this.loadEnvironmentVariables();
   }
@@ -349,6 +348,38 @@ export class ConfigManager {
     return {
       valid: errors.length === 0,
       errors
+    };
+  }
+
+  /**
+   * 获取环境变量值
+   * 提供统一的环境变量访问接口
+   */
+  getEnvVar(key: string, defaultValue?: string): string | undefined {
+    return process.env[key] || defaultValue;
+  }
+
+  /**
+   * 检查是否为测试环境
+   */
+  isTestEnvironment(): boolean {
+    return process.env['NODE_ENV'] === 'test';
+  }
+
+  /**
+   * 获取当前用户名
+   */
+  getCurrentUser(): string | undefined {
+    return process.env['USER'] || process.env['USERNAME'];
+  }
+
+  /**
+   * 获取Shell环境信息
+   */
+  getShellInfo(): { shell: string; comSpec: string } {
+    return {
+      shell: process.env['SHELL'] || 'unknown',
+      comSpec: process.env['ComSpec'] || 'unknown'
     };
   }
 

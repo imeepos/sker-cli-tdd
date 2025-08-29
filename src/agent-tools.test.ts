@@ -81,7 +81,8 @@ describe('AgentToolsProvider', () => {
 
       expect(result.success).toBe(true);
       expect(result.agentId).toBeDefined();
-      expect(result.agentId).toMatch(/^agent-/);
+      // Agent ID 现在从 ConfigManager 获取，不再是自动生成的格式
+      expect(typeof result.agentId).toBe('string');
     });
   });
 
