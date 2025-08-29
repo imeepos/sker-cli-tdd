@@ -63,16 +63,16 @@ export class AIClientFactory {
    */
   private static detectProviderFromEnv(): AIProvider {
     // 优先级：AI_PROVIDER > 检测API密钥
-    const envProvider = process.env.AI_PROVIDER as AIProvider;
+    const envProvider = process.env['AI_PROVIDER'] as AIProvider;
     if (envProvider && this.registeredAdapters.has(envProvider)) {
       return envProvider;
     }
 
     // 根据API密钥检测
-    if (process.env.OPENAI_API_KEY) {
+    if (process.env['OPENAI_API_KEY']) {
       return 'openai';
     }
-    if (process.env.ANTHROPIC_API_KEY) {
+    if (process.env['ANTHROPIC_API_KEY']) {
       return 'anthropic';
     }
 
@@ -87,23 +87,23 @@ export class AIClientFactory {
       case 'openai':
         return {
           provider: 'openai',
-          apiKey: process.env.OPENAI_API_KEY || '',
-          model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
-          baseURL: process.env.OPENAI_BASE_URL,
-          maxTokens: process.env.OPENAI_MAX_TOKENS ? parseInt(process.env.OPENAI_MAX_TOKENS) : undefined,
-          temperature: process.env.OPENAI_TEMPERATURE ? parseFloat(process.env.OPENAI_TEMPERATURE) : undefined,
-          timeout: process.env.OPENAI_TIMEOUT ? parseInt(process.env.OPENAI_TIMEOUT) : undefined,
+          apiKey: process.env['OPENAI_API_KEY'] || '',
+          model: process.env['OPENAI_MODEL'] || 'gpt-3.5-turbo',
+          baseURL: process.env['OPENAI_BASE_URL'],
+          maxTokens: process.env['OPENAI_MAX_TOKENS'] ? parseInt(process.env['OPENAI_MAX_TOKENS']) : undefined,
+          temperature: process.env['OPENAI_TEMPERATURE'] ? parseFloat(process.env['OPENAI_TEMPERATURE']) : undefined,
+          timeout: process.env['OPENAI_TIMEOUT'] ? parseInt(process.env['OPENAI_TIMEOUT']) : undefined,
         };
 
       case 'anthropic':
         return {
           provider: 'anthropic',
-          apiKey: process.env.ANTHROPIC_API_KEY || '',
-          model: process.env.ANTHROPIC_MODEL || 'claude-3-sonnet-20240229',
-          baseURL: process.env.ANTHROPIC_BASE_URL,
-          maxTokens: process.env.ANTHROPIC_MAX_TOKENS ? parseInt(process.env.ANTHROPIC_MAX_TOKENS) : undefined,
-          temperature: process.env.ANTHROPIC_TEMPERATURE ? parseFloat(process.env.ANTHROPIC_TEMPERATURE) : undefined,
-          timeout: process.env.ANTHROPIC_TIMEOUT ? parseInt(process.env.ANTHROPIC_TIMEOUT) : undefined,
+          apiKey: process.env['ANTHROPIC_API_KEY'] || '',
+          model: process.env['ANTHROPIC_MODEL'] || 'claude-3-sonnet-20240229',
+          baseURL: process.env['ANTHROPIC_BASE_URL'],
+          maxTokens: process.env['ANTHROPIC_MAX_TOKENS'] ? parseInt(process.env['ANTHROPIC_MAX_TOKENS']) : undefined,
+          temperature: process.env['ANTHROPIC_TEMPERATURE'] ? parseFloat(process.env['ANTHROPIC_TEMPERATURE']) : undefined,
+          timeout: process.env['ANTHROPIC_TIMEOUT'] ? parseInt(process.env['ANTHROPIC_TIMEOUT']) : undefined,
         };
 
       default:

@@ -58,10 +58,17 @@ export class StreamChat {
   }
 
   /**
-   * 获取 OpenAI 客户端
+   * 获取 AI 客户端
    */
-  getOpenAIClient(): MCPOpenAIClient {
-    return this.openaiClient;
+  getAIClient(): MCPAIClient {
+    return this.aiClient;
+  }
+
+  /**
+   * 获取 OpenAI 客户端 (向后兼容)
+   */
+  getOpenAIClient(): MCPAIClient {
+    return this.aiClient;
   }
 
   /**
@@ -125,7 +132,7 @@ export class StreamChat {
     }
 
     const history = await this.chatStorage.getConversationHistory(targetSessionId);
-    this.conversationHistory = history;
+    this.conversationHistory = this.convertToUnifiedMessages(history);
     this.currentSessionId = targetSessionId;
   }
 
@@ -138,7 +145,7 @@ export class StreamChat {
       this.currentSessionId = await this.chatStorage.createSession();
     }
 
-    const userMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
+    const userMessage: UnifiedMessage = {
       role: 'user',
       content: message
     };
@@ -151,7 +158,7 @@ export class StreamChat {
     await this.chatStorage.saveMessage('user', message, this.currentSessionId);
 
     try {
-      const stream = await this.openaiClient.chatCompletionStream([...this.conversationHistory]);
+      const stream = this.aiClient.chatCompletionStream([...this.conversationHistory]);
       
       let fullContent = '';
       let tokenCount = 0;
@@ -170,7 +177,7 @@ export class StreamChat {
       }
 
       // 添加助手响应到对话历史
-      const assistantMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
+      const assistantMessage: UnifiedMessage = {
         role: 'assistant',
         content: fullContent
       };
@@ -201,7 +208,7 @@ export class StreamChat {
       this.currentSessionId = await this.chatStorage.createSession();
     }
 
-    const userMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
+    const userMessage: UnifiedMessage = {
       role: 'user',
       content: message
     };
@@ -215,7 +222,7 @@ export class StreamChat {
 
     try {
       // 首先进行带工具调用的聊天完成
-      const response = await this.openaiClient.chatCompletionWithTools([...this.conversationHistory]);
+      const response = await this.aiClient.chatCompletionWithTools([...this.conversationHistory]);
       const assistantMessage = response.choices[0]?.message;
 
       if (!assistantMessage) {
@@ -229,23 +236,33 @@ export class StreamChat {
       const toolCalls: ToolCallInfo[] = [];
 
       // 处理工具调用
-      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-        for (const toolCall of assistantMessage.tool_calls) {
-          const toolResult = await this.openaiClient.executeToolCall(toolCall);
-          this.conversationHistory.push(toolResult);
+      if (assistantMessage.toolCalls && assistantMessage.toolCalls.length > 0) {
+        for (const toolCall of assistantMessage.toolCalls) {
+          const toolResult = await this.aiClient.executeToolCall(
+            toolCall.function.name,
+            JSON.parse(toolCall.function.arguments)
+          );
+
+          // 添加工具结果到对话历史
+          const toolResultMessage: UnifiedMessage = {
+            role: 'tool',
+            content: JSON.stringify(toolResult),
+            toolCallId: toolCall.id
+          };
+          this.conversationHistory.push(toolResultMessage);
           this.stats.totalToolCalls++;
 
           if (toolCall.type === 'function') {
             toolCalls.push({
               name: toolCall.function.name,
               arguments: JSON.parse(toolCall.function.arguments),
-              result: JSON.parse(toolResult.content)
+              result: toolResult
             });
           }
         }
 
         // 获取最终的流式响应
-        const finalStream = await this.openaiClient.chatCompletionStream([...this.conversationHistory]);
+        const finalStream = this.aiClient.chatCompletionStream([...this.conversationHistory]);
         
         let finalContent = '';
         let tokenCount = 0;
@@ -263,7 +280,7 @@ export class StreamChat {
         }
 
         // 添加最终响应到对话历史
-        const finalMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
+        const finalMessage: UnifiedMessage = {
           role: 'assistant',
           content: finalContent
         };
@@ -311,8 +328,45 @@ export class StreamChat {
   /**
    * 获取对话历史
    */
-  getConversationHistory(): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
+  getConversationHistory(): UnifiedMessage[] {
     return [...this.conversationHistory];
+  }
+
+  /**
+   * 转换消息格式为统一格式
+   */
+  private convertToUnifiedMessages(messages: any[]): UnifiedMessage[] {
+    return messages.map(msg => {
+      // 如果已经是统一格式，直接返回
+      if (msg.role && msg.content && !msg.tool_calls && !msg.tool_call_id) {
+        return msg as UnifiedMessage;
+      }
+
+      // 转换OpenAI格式到统一格式
+      const unifiedMsg: UnifiedMessage = {
+        role: msg.role === 'developer' ? 'system' : msg.role,
+        content: msg.content || '',
+      };
+
+      // 处理工具调用
+      if (msg.tool_calls) {
+        unifiedMsg.toolCalls = msg.tool_calls.map((call: any) => ({
+          id: call.id,
+          type: call.type,
+          function: {
+            name: call.function.name,
+            arguments: call.function.arguments,
+          },
+        }));
+      }
+
+      // 处理工具调用ID
+      if (msg.tool_call_id) {
+        unifiedMsg.toolCallId = msg.tool_call_id;
+      }
+
+      return unifiedMsg;
+    });
   }
 
   /**

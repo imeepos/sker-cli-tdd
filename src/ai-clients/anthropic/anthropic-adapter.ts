@@ -166,7 +166,7 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(`Anthropic API Error ${response.status}: ${error.message || error.error?.message}`);
+      throw new Error(`Anthropic API Error ${response.status}: ${(error as Error).message || (error as any).error?.message}`);
     }
 
     return response.json();

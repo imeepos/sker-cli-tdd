@@ -4,32 +4,41 @@
  */
 
 import { CLI } from './cli';
-import { MCPOpenAIClient } from './mcp-openai';
+import { MCPAIClient } from './mcp-ai-client';
 
 // Mock 外部依赖
-jest.mock('./mcp-openai');
+jest.mock('./mcp-ai-client');
 jest.mock('fs');
 jest.mock('inquirer');
 
 describe('CLI 工具', () => {
   let cli: CLI;
-  let mockOpenAIClient: jest.Mocked<MCPOpenAIClient>;
+  let mockAIClient: jest.Mocked<MCPAIClient>;
 
   beforeEach(() => {
     // 重置所有 mock
     jest.clearAllMocks();
-    
-    // 创建 mock OpenAI 客户端
-    mockOpenAIClient = {
+
+    // 创建 mock AI 客户端
+    mockAIClient = {
+      provider: 'openai',
+      configuration: {
+        provider: 'openai',
+        apiKey: 'test-key',
+        model: 'gpt-4',
+        temperature: 0.7,
+        maxTokens: 4096
+      },
+      client: {} as any,
+      chatCompletion: jest.fn(),
       chatCompletionStream: jest.fn(),
       chatCompletionWithTools: jest.fn(),
       executeToolCall: jest.fn(),
-      processConversation: jest.fn(),
-      getOpenAITools: jest.fn().mockReturnValue([]),
-      getConfig: jest.fn().mockReturnValue({
-        apiKey: 'test-key',
-        model: 'gpt-4'
-      })
+      getAvailableTools: jest.fn().mockReturnValue([]),
+      validateConfig: jest.fn().mockReturnValue(true),
+      testConnection: jest.fn().mockResolvedValue(true),
+      getModelInfo: jest.fn().mockResolvedValue({}),
+      switchProvider: jest.fn()
     } as any;
 
     // 创建 CLI 实例
@@ -41,9 +50,9 @@ describe('CLI 工具', () => {
       expect(cli).toBeInstanceOf(CLI);
     });
 
-    it('应该能够设置 OpenAI 客户端', () => {
-      cli.setOpenAIClient(mockOpenAIClient);
-      expect(cli.getOpenAIClient()).toBe(mockOpenAIClient);
+    it('应该能够设置 AI 客户端', () => {
+      cli.setAIClient(mockAIClient);
+      expect(cli.getAIClient()).toBe(mockAIClient);
     });
   });
 
