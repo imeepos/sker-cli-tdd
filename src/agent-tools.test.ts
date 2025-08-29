@@ -276,7 +276,7 @@ describe('AgentToolsProvider', () => {
         agentId: 'ai-test-agent'
       });
 
-      // 发送AI任务（禁用AI，因为测试环境没有OpenAI配置）
+      // 发送AI任务（禁用AI，因为测试环境没有AI配置）
       const result = await server.executeTool('send_ai_task', {
         agentId: 'ai-test-agent',
         instruction: '请帮我获取当前系统信息',

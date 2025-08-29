@@ -5,9 +5,10 @@
 
 import { MQAgent, TaskMessage } from './agent';
 import { MQConnectionFactory } from './mq-connection';
-import { MCPOpenAIClient } from './mcp-openai';
+import { MCPAIClient } from './mcp-ai-client';
 import { MCPServer } from './mcp-server';
 import { MCPTool } from './mcp-server';
+import { ConfigManager } from './config-manager';
 
 /**
  * Agent工具提供者
@@ -432,14 +433,14 @@ export class AgentToolsProvider {
             try {
               // 尝试创建AI客户端
               const server = new MCPServer();
-              const aiConfig = MCPOpenAIClient.loadConfigFromEnv();
-              const aiClient = new MCPOpenAIClient(aiConfig, server);
+              const aiConfig = ConfigManager.getInstance().getAIConfig();
+              const aiClient = new MCPAIClient(aiConfig, server);
               agent.setAIClient(aiClient);
             } catch (error) {
               return {
                 success: false,
                 error: `无法初始化AI客户端: ${(error as Error).message}`,
-                suggestion: '请确保设置了OPENAI_API_KEY环境变量'
+                suggestion: '请确保设置了AI_API_KEY环境变量'
               };
             }
           }

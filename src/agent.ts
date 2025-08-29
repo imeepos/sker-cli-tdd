@@ -10,8 +10,8 @@ import { FileToolsProvider } from './file-tools';
 import { CommandToolsProvider } from './command-tools';
 import { FetchToolsProvider } from './fetch-tools';
 import { SystemContextToolsProvider } from './system-context-tools';
-import { MCPOpenAIClient } from './mcp-openai';
 import * as dotenv from 'dotenv';
+import { MCPAIClient } from './mcp-ai-client';
 
 // 加载环境变量
 dotenv.config({ debug: false, quiet: true });
@@ -75,7 +75,7 @@ export class MQAgent {
   private config: MQConfig;
   private mqConnection: MQConnection | null = null;
   private toolManager!: ToolManager;
-  private aiClient: MCPOpenAIClient | null = null;
+  private aiClient: MCPAIClient | null = null;
   private isListening = false;
 
   constructor() {
@@ -157,14 +157,14 @@ export class MQAgent {
   /**
    * 设置AI客户端
    */
-  setAIClient(client: MCPOpenAIClient): void {
+  setAIClient(client: MCPAIClient): void {
     this.aiClient = client;
   }
 
   /**
    * 获取AI客户端
    */
-  getAIClient(): MCPOpenAIClient | null {
+  getAIClient(): MCPAIClient | null {
     return this.aiClient;
   }
 

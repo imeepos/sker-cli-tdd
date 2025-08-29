@@ -5,7 +5,6 @@
 
 // 核心组件导出
 export { CLI } from './cli.js';
-export { MCPOpenAIClient, MCPOpenAIConfig } from './mcp-openai.js';
 export { MCPServer } from './mcp-server.js';
 export { MCPWorkspaceManager } from './mcp-workspace.js';
 export { StreamChat } from './stream-chat.js';

@@ -157,7 +157,7 @@ describe('ChatStorage', () => {
       sessionId = await chatStorage.createSession('历史测试会话');
     });
 
-    it('应该能够保存OpenAI对话历史', async () => {
+    it('应该能够保存AI对话历史', async () => {
       const history: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
         { role: 'user', content: 'What is TypeScript?' },
         { role: 'assistant', content: 'TypeScript is a superset of JavaScript...' },

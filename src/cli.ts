@@ -48,20 +48,6 @@ export class CLI {
   }
 
   /**
-   * 设置 OpenAI 客户端 (向后兼容)
-   */
-  setOpenAIClient(client: MCPAIClient): void {
-    this.setAIClient(client);
-  }
-
-  /**
-   * 获取 OpenAI 客户端 (向后兼容)
-   */
-  getOpenAIClient(): MCPAIClient | undefined {
-    return this.getAIClient();
-  }
-
-  /**
    * 获取默认配置
    */
   getDefaultConfig(): CLIConfig {
@@ -80,21 +66,21 @@ export class CLI {
    * 从环境变量加载配置
    */
   loadConfigFromEnv(): CLIConfig {
-    const apiKey = process.env['OPENAI_API_KEY'];
+    const apiKey = process.env['AI_API_KEY'];
     if (!apiKey) {
-      throw new Error('OPENAI_API_KEY 环境变量未设置');
+      throw new Error('AI_API_KEY 环境变量未设置');
     }
 
     const config: CLIConfig = {
       provider: (process.env['AI_PROVIDER'] as AIProvider) || 'openai',
       apiKey,
-      model: process.env['OPENAI_MODEL'] || 'gpt-4',
-      temperature: process.env['OPENAI_TEMPERATURE'] ? parseFloat(process.env['OPENAI_TEMPERATURE']) : 0.7,
-      maxTokens: process.env['OPENAI_MAX_TOKENS'] ? parseInt(process.env['OPENAI_MAX_TOKENS']) : 2000
+      model: process.env['AI_MODEL'] || 'gpt-4',
+      temperature: process.env['AI_TEMPERATURE'] ? parseFloat(process.env['AI_TEMPERATURE']) : 0.7,
+      maxTokens: process.env['AI_MAX_TOKENS'] ? parseInt(process.env['AI_MAX_TOKENS']) : 2000
     };
 
-    if (process.env['OPENAI_BASE_URL']) {
-      config.baseURL = process.env['OPENAI_BASE_URL'];
+    if (process.env['AI_BASE_URL']) {
+      config.baseURL = process.env['AI_BASE_URL'];
     }
 
     return config;
@@ -232,7 +218,7 @@ export class CLI {
    */
   getHelpText(): string {
     return `
-🤖 MCP OpenAI CLI 工具
+🤖 MCP AI CLI 工具
 
 使用方法:
   sker [选项] [消息]

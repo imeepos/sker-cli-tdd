@@ -6,6 +6,7 @@
 import { SkerError, ErrorFactory, ErrorCodes } from './sker-error';
 import { DatabaseConfig } from './database-service';
 import * as dotenv from 'dotenv';
+import { UnifiedAIConfig } from './ai-clients/base/unified-types';
 
 /**
  * OpenAI 配置接口
@@ -44,7 +45,7 @@ export interface MQConfig {
  * 包含所有子系统的配置
  */
 export interface SystemConfig {
-  openai: OpenAIConfig;
+  aiConfig: UnifiedAIConfig;
   database: DatabaseConfig;
   mq: MQConfig;
   cli: CLIConfig;
@@ -176,12 +177,12 @@ export class ConfigManager {
    * 获取 OpenAI 配置
    * 从环境变量加载并验证配置
    */
-  getOpenAIConfig(): OpenAIConfig {
-    if (!this.config.openai) {
-      this.config.openai = this.loadOpenAIConfigFromEnv();
-      this.validateConfig('openai', this.config.openai);
+  getAIConfig(): UnifiedAIConfig {
+    if (!this.config.aiConfig) {
+      this.config.aiConfig = this.loadAIConfigFromEnv();
+      this.validateConfig('aiConfig', this.config.aiConfig!);
     }
-    return this.config.openai;
+    return this.config.aiConfig!;
   }
 
   /**
@@ -215,7 +216,7 @@ export class ConfigManager {
    */
   getCLIConfig(): CLIConfig {
     if (!this.config.cli) {
-      const openaiConfig = this.getOpenAIConfig();
+      const openaiConfig = this.getAIConfig();
       this.config.cli = {
         ...openaiConfig
         // 这里可以添加CLI特定的配置项
@@ -229,7 +230,7 @@ export class ConfigManager {
    */
   getSystemConfig(): SystemConfig {
     return {
-      openai: this.getOpenAIConfig(),
+      aiConfig: this.getAIConfig(),
       database: this.getDatabaseConfig(),
       mq: this.getMQConfig(),
       cli: this.getCLIConfig()
@@ -276,22 +277,23 @@ export class ConfigManager {
   /**
    * 从环境变量加载 OpenAI 配置
    */
-  private loadOpenAIConfigFromEnv(): OpenAIConfig {
-    const apiKey = process.env['OPENAI_API_KEY'];
+  private loadAIConfigFromEnv(): UnifiedAIConfig {
+    const apiKey = process.env['AI_API_KEY'];
     if (!apiKey) {
       throw new SkerError(
         ErrorCodes.CONFIG_MISSING,
-        'OPENAI_API_KEY 环境变量未设置',
-        { context: { operation: 'load_openai_config' } }
+        'AI_API_KEY 环境变量未设置',
+        { context: { operation: 'load_AI_config' } }
       );
     }
 
     return {
+      provider: process.env["AI_PROVIDER"] as any || 'openai',
       apiKey,
-      model: process.env['OPENAI_MODEL'] || 'gpt-4',
-      maxTokens: process.env['OPENAI_MAX_TOKENS'] ? parseInt(process.env['OPENAI_MAX_TOKENS']) : 2000,
-      temperature: process.env['OPENAI_TEMPERATURE'] ? parseFloat(process.env['OPENAI_TEMPERATURE']) : 0.7,
-      baseURL: process.env['OPENAI_BASE_URL']
+      model: process.env['AI_MODEL'] || 'gpt-4',
+      maxTokens: process.env['AI_MAX_TOKENS'] ? parseInt(process.env['AI_MAX_TOKENS']) : 2000,
+      temperature: process.env['AI_TEMPERATURE'] ? parseFloat(process.env['AI_TEMPERATURE']) : 0.7,
+      baseURL: process.env['AI_BASE_URL']
     };
   }
 
@@ -325,7 +327,7 @@ export class ConfigManager {
     const errors: string[] = [];
 
     try {
-      this.getOpenAIConfig();
+      this.getAIConfig();
     } catch (error) {
       if (error instanceof SkerError) {
         errors.push(`OpenAI配置错误: ${error.getUserMessage()}`);
@@ -357,13 +359,14 @@ export class ConfigManager {
   getConfigSummary(): Record<string, any> {
     const summary: Record<string, any> = {};
 
-    if (this.config.openai) {
-      summary['openai'] = {
-        model: this.config.openai.model,
-        temperature: this.config.openai.temperature,
-        maxTokens: this.config.openai.maxTokens,
-        hasApiKey: !!this.config.openai.apiKey,
-        baseURL: this.config.openai.baseURL
+    if (this.config.aiConfig) {
+      summary['aiConfig'] = {
+        provider: this.config.aiConfig.provider,
+        model: this.config.aiConfig.model,
+        temperature: this.config.aiConfig.temperature,
+        maxTokens: this.config.aiConfig.maxTokens,
+        hasApiKey: !!this.config.aiConfig.apiKey,
+        baseURL: this.config.aiConfig.baseURL
       };
     }
 

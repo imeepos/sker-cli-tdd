@@ -3,7 +3,8 @@
  * 测试统一配置管理系统
  */
 
-import { ConfigManager, OpenAIConfig } from './config-manager';
+import { UnifiedAIConfig } from './ai-clients/base/unified-types';
+import { ConfigManager } from './config-manager';
 import { SkerError } from './sker-error';
 
 describe('ConfigManager', () => {
@@ -14,11 +15,11 @@ describe('ConfigManager', () => {
     originalEnv = { ...process.env };
     
     // 清除所有相关环境变量以避免.env文件干扰
-    delete process.env['OPENAI_API_KEY'];
-    delete process.env['OPENAI_MODEL'];
-    delete process.env['OPENAI_TEMPERATURE'];
-    delete process.env['OPENAI_MAX_TOKENS'];
-    delete process.env['OPENAI_BASE_URL'];
+    delete process.env['AI_API_KEY'];
+    delete process.env['AI_MODEL'];
+    delete process.env['AI_TEMPERATURE'];
+    delete process.env['AI_MAX_TOKENS'];
+    delete process.env['AI_BASE_URL'];
     delete process.env['MQ_HOST'];
     delete process.env['MQ_PORT'];
     delete process.env['AGENT_ID'];
@@ -30,10 +31,10 @@ describe('ConfigManager', () => {
     process.env['NODE_ENV'] = 'test';
     
     // 设置测试环境变量
-    process.env['OPENAI_API_KEY'] = 'test-api-key';
-    process.env['OPENAI_MODEL'] = 'gpt-3.5-turbo';
-    process.env['OPENAI_TEMPERATURE'] = '0.5';
-    process.env['OPENAI_MAX_TOKENS'] = '1500';
+    process.env['AI_API_KEY'] = 'test-api-key';
+    process.env['AI_MODEL'] = 'gpt-3.5-turbo';
+    process.env['AI_TEMPERATURE'] = '0.5';
+    process.env['AI_MAX_TOKENS'] = '1500';
     process.env['MQ_HOST'] = 'test-host';
     process.env['MQ_PORT'] = '5672';
     process.env['AGENT_ID'] = 'test-agent';
@@ -64,7 +65,7 @@ describe('ConfigManager', () => {
   describe('OpenAI配置管理', () => {
     it('应该从环境变量加载OpenAI配置', () => {
       const manager = ConfigManager.getInstance();
-      const config = manager.getOpenAIConfig();
+      const config = manager.getAIConfig();
 
       expect(config).toEqual({
         apiKey: 'test-api-key',
@@ -76,12 +77,12 @@ describe('ConfigManager', () => {
     });
 
     it('应该使用默认值', () => {
-      delete process.env['OPENAI_MODEL'];
-      delete process.env['OPENAI_TEMPERATURE'];
-      delete process.env['OPENAI_MAX_TOKENS'];
+      delete process.env['AI_MODEL'];
+      delete process.env['AI_TEMPERATURE'];
+      delete process.env['AI_MAX_TOKENS'];
 
       const manager = ConfigManager.getInstance();
-      const config = manager.getOpenAIConfig();
+      const config = manager.getAIConfig();
 
       expect(config.model).toBe('gpt-4');
       expect(config.temperature).toBe(0.7);
@@ -89,19 +90,20 @@ describe('ConfigManager', () => {
     });
 
     it('应该在缺少API密钥时抛出SkerError', () => {
-      delete process.env['OPENAI_API_KEY'];
+      delete process.env['AI_API_KEY'];
       
       const manager = ConfigManager.getInstance();
       
-      expect(() => manager.getOpenAIConfig()).toThrow(SkerError);
-      expect(() => manager.getOpenAIConfig()).toThrow(/OPENAI_API_KEY/);
+      expect(() => manager.getAIConfig()).toThrow(SkerError);
+      expect(() => manager.getAIConfig()).toThrow(/AI_API_KEY/);
     });
 
     it('应该验证temperature范围', () => {
       const manager = ConfigManager.getInstance();
       
       expect(() => {
-        manager.setConfig('openai', {
+        manager.setConfig('aiConfig', {
+          provider: `openai`,
           apiKey: 'test-key',
           model: 'gpt-4',
           temperature: 3.0 // 超出范围
@@ -113,7 +115,8 @@ describe('ConfigManager', () => {
       const manager = ConfigManager.getInstance();
       
       expect(() => {
-        manager.setConfig('openai', {
+        manager.setConfig('aiConfig', {
+          provider: `anthropic`,
           apiKey: 'test-key',
           model: 'gpt-4',
           maxTokens: -1 // 无效值
@@ -125,7 +128,8 @@ describe('ConfigManager', () => {
       const manager = ConfigManager.getInstance();
       
       expect(() => {
-        manager.setConfig('openai', {
+        manager.setConfig('aiConfig', {
+          provider: `openai`,
           apiKey: 'test-key',
           model: 'gpt-4',
           baseURL: 'invalid-url'
@@ -244,7 +248,7 @@ describe('ConfigManager', () => {
     it('应该基于OpenAI配置创建CLI配置', () => {
       const manager = ConfigManager.getInstance();
       const cliConfig = manager.getCLIConfig();
-      const openaiConfig = manager.getOpenAIConfig();
+      const openaiConfig = manager.getAIConfig();
 
       expect(cliConfig).toMatchObject(openaiConfig);
     });
@@ -255,15 +259,15 @@ describe('ConfigManager', () => {
       const manager = ConfigManager.getInstance();
       
       // 先获取原始配置
-      const originalConfig = manager.getOpenAIConfig();
+      const originalConfig = manager.getAIConfig();
       
       // 合并部分配置
-      manager.mergeConfig('openai', { 
+      manager.mergeConfig('aiConfig', { 
         temperature: 0.9,
         maxTokens: 3000 
       });
       
-      const mergedConfig = manager.getOpenAIConfig();
+      const mergedConfig = manager.getAIConfig();
       
       expect(mergedConfig.apiKey).toBe(originalConfig.apiKey);
       expect(mergedConfig.model).toBe(originalConfig.model);
@@ -274,15 +278,16 @@ describe('ConfigManager', () => {
     it('应该支持完整配置替换', () => {
       const manager = ConfigManager.getInstance();
       
-      const newConfig: OpenAIConfig = {
+      const newConfig: UnifiedAIConfig = {
+        provider: `openai`,
         apiKey: 'new-key',
         model: 'gpt-4-turbo',
         temperature: 0.1,
         maxTokens: 4000
       };
       
-      manager.setConfig('openai', newConfig);
-      const config = manager.getOpenAIConfig();
+      manager.setConfig('aiConfig', newConfig);
+      const config = manager.getAIConfig();
       
       expect(config).toEqual(newConfig);
     });
@@ -310,7 +315,7 @@ describe('ConfigManager', () => {
     });
 
     it('应该检测无效的环境配置', () => {
-      delete process.env['OPENAI_API_KEY'];
+      delete process.env['AI_API_KEY'];
       
       const manager = ConfigManager.getInstance();
       const check = manager.checkRequiredEnvironment();
@@ -326,7 +331,7 @@ describe('ConfigManager', () => {
       const manager = ConfigManager.getInstance();
       
       // 触发配置加载
-      manager.getOpenAIConfig();
+      manager.getAIConfig();
       manager.getMQConfig();
       
       const summary = manager.getConfigSummary();

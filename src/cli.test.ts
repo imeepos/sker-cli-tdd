@@ -69,21 +69,21 @@ describe('CLI 工具', () => {
     });
 
     it('应该能够从环境变量加载配置', () => {
-      process.env['OPENAI_API_KEY'] = 'test-api-key';
-      process.env['OPENAI_MODEL'] = 'gpt-3.5-turbo';
+      process.env['AI_API_KEY'] = 'test-api-key';
+      process.env['AI_MODEL'] = 'gpt-3.5-turbo';
 
       const config = cli.loadConfigFromEnv();
       expect(config.apiKey).toBe('test-api-key');
       expect(config.model).toBe('gpt-3.5-turbo');
 
       // 清理环境变量
-      delete process.env['OPENAI_API_KEY'];
-      delete process.env['OPENAI_MODEL'];
+      delete process.env['AI_API_KEY'];
+      delete process.env['AI_MODEL'];
     });
 
     it('应该在缺少 API 密钥时抛出错误', () => {
-      delete process.env['OPENAI_API_KEY'];
-      expect(() => cli.loadConfigFromEnv()).toThrow('OPENAI_API_KEY 环境变量未设置');
+      delete process.env['AI_API_KEY'];
+      expect(() => cli.loadConfigFromEnv()).toThrow('AI_API_KEY 环境变量未设置');
     });
   });
 
@@ -251,7 +251,7 @@ describe('CLI 工具', () => {
       (mockAIClient.chatCompletionStream as jest.Mock).mockImplementation(() => {
         throw new Error('网络错误');
       });
-      cli.setOpenAIClient(mockAIClient);
+      cli.setAIClient(mockAIClient);
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       

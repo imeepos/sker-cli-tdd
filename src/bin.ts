@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * 🚀 Sker CLI - MCP OpenAI 命令行工具入口
+ * 🚀 Sker CLI - MCP AI 命令行工具入口
  * 支持流式输出的 AI 聊天工具
  */
 

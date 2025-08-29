@@ -92,8 +92,8 @@ describe('AIClientFactory', () => {
     });
 
     it('应该从环境变量检测OpenAI提供商', () => {
-      process.env['OPENAI_API_KEY'] = 'test-openai-key';
-      process.env['OPENAI_MODEL'] = 'gpt-4';
+      process.env['AI_API_KEY'] = 'test-openai-key';
+      process.env['AI_MODEL'] = 'gpt-4';
 
       const client = AIClientFactory.createFromEnv();
       expect(client.provider).toBe('openai');
@@ -101,9 +101,9 @@ describe('AIClientFactory', () => {
     });
 
     it('应该从环境变量检测Anthropic提供商', () => {
-      delete process.env['OPENAI_API_KEY'];
-      process.env['ANTHROPIC_API_KEY'] = 'test-anthropic-key';
-      process.env['ANTHROPIC_MODEL'] = 'claude-3-sonnet-20240229';
+      delete process.env['AI_API_KEY'];
+      process.env['AI_API_KEY'] = 'test-anthropic-key';
+      process.env['AI_MODEL'] = 'claude-3-sonnet-20240229';
 
       const client = AIClientFactory.createFromEnv();
       expect(client.provider).toBe('anthropic');
@@ -112,16 +112,16 @@ describe('AIClientFactory', () => {
 
     it('应该优先使用AI_PROVIDER环境变量', () => {
       process.env['AI_PROVIDER'] = 'anthropic';
-      process.env['OPENAI_API_KEY'] = 'test-openai-key';
-      process.env['ANTHROPIC_API_KEY'] = 'test-anthropic-key';
+      process.env['AI_API_KEY'] = 'test-openai-key';
+      process.env['AI_API_KEY'] = 'test-anthropic-key';
 
       const client = AIClientFactory.createFromEnv();
       expect(client.provider).toBe('anthropic');
     });
 
     it('应该在没有API密钥时抛出错误', () => {
-      delete process.env['OPENAI_API_KEY'];
-      delete process.env['ANTHROPIC_API_KEY'];
+      delete process.env['AI_API_KEY'];
+      delete process.env['AI_API_KEY'];
       delete process.env['AI_PROVIDER'];
 
       expect(() => AIClientFactory.createFromEnv()).toThrow('No AI provider detected');

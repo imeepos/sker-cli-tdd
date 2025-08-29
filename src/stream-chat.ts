@@ -65,13 +65,6 @@ export class StreamChat {
   }
 
   /**
-   * 获取 OpenAI 客户端 (向后兼容)
-   */
-  getOpenAIClient(): MCPAIClient {
-    return this.aiClient;
-  }
-
-  /**
    * 获取 MCP 服务器
    */
   getMCPServer(): MCPServer {

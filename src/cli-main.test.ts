@@ -29,21 +29,21 @@ describe('CLI 主程序基础测试', () => {
   });
 
   describe('环境变量处理', () => {
-    it('应该能够检测 OPENAI_API_KEY 环境变量', () => {
+    it('应该能够检测 AI_API_KEY 环境变量', () => {
       // 设置环境变量
-      process.env['OPENAI_API_KEY'] = 'test-api-key';
+      process.env['AI_API_KEY'] = 'test-api-key';
       
-      expect(process.env['OPENAI_API_KEY']).toBe('test-api-key');
+      expect(process.env['AI_API_KEY']).toBe('test-api-key');
       
       // 清理环境变量
-      delete process.env['OPENAI_API_KEY'];
+      delete process.env['AI_API_KEY'];
     });
 
-    it('应该能够检测缺失的 OPENAI_API_KEY', () => {
+    it('应该能够检测缺失的 AI_API_KEY', () => {
       // 确保环境变量不存在
-      delete process.env['OPENAI_API_KEY'];
+      delete process.env['AI_API_KEY'];
       
-      expect(process.env['OPENAI_API_KEY']).toBeUndefined();
+      expect(process.env['AI_API_KEY']).toBeUndefined();
     });
   });
 
