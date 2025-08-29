@@ -5,6 +5,7 @@
 
 import { MCPServer, MCPTool } from './mcp-server';
 import { MCPWorkspaceManager, MCPWorkspace } from './mcp-workspace';
+import { TypeValidator } from './type-validator';
 
 /**
  * 工具提供者接口
@@ -18,7 +19,7 @@ export interface ToolProvider {
  */
 export interface ToolCall {
   name: string;
-  args: any;
+  args: Record<string, unknown>;
 }
 
 /**
@@ -100,13 +101,20 @@ export class ToolManager {
    */
   getToolsByCategory(category: string): MCPTool[] {
     const tools = this.mcpServer.getTools();
-    return tools.filter(tool => (tool as any).category === category);
+    return tools.filter(tool => {
+      const toolWithCategory = tool as MCPTool & { category?: string };
+      return toolWithCategory.category === category;
+    });
   }
 
   /**
    * 执行工具
    */
-  async executeTool(name: string, args: any): Promise<any> {
+  async executeTool(name: string, args: Record<string, unknown>): Promise<unknown> {
+    // 验证工具名称和参数
+    TypeValidator.validateString(name, 'toolName');
+    TypeValidator.validateObject(args, 'toolArgs');
+    
     this.executionCount++;
     try {
       const result = await this.mcpServer.executeTool(name, args);
@@ -120,9 +128,12 @@ export class ToolManager {
   /**
    * 批量执行工具
    */
-  async executeTools(toolCalls: ToolCall[]): Promise<any[]> {
-    const results: any[] = [];
+  async executeTools(toolCalls: ToolCall[]): Promise<unknown[]> {
+    TypeValidator.validateArray(toolCalls, 'toolCalls');
+    
+    const results: unknown[] = [];
     for (const toolCall of toolCalls) {
+      TypeValidator.validateObjectSchema(toolCall, { name: 'string', args: 'object' }, 'toolCall');
       const result = await this.executeTool(toolCall.name, toolCall.args);
       results.push(result);
     }
@@ -172,9 +183,11 @@ export class ToolManager {
     
     if (tool.schema && tool.schema['properties']) {
       help += `参数:\n`;
-      for (const [key, value] of Object.entries(tool.schema['properties'])) {
-        const prop = value as any;
-        help += `  - ${key}: ${prop.description || '无描述'}\n`;
+      const properties = tool.schema['properties'] as Record<string, unknown>;
+      for (const [key, value] of Object.entries(properties)) {
+        const prop = value as Record<string, unknown>;
+        const description = typeof prop.description === 'string' ? prop.description : '无描述';
+        help += `  - ${key}: ${description}\n`;
       }
     }
 

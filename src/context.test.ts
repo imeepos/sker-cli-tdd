@@ -61,6 +61,7 @@ describe('Context上下文功能', () => {
         // ❌ 这会失败，因为FileContext还没有统计信息功能
         const fileContext = new FileContext(testFile);
         await fileContext.loadFileInfo();
+        await fileContext.loadContent();
 
         expect(fileContext.size).toBe(testContent.length);
         expect(fileContext.modifiedTime).toBeDefined();
