@@ -23,7 +23,8 @@
     "lint": "echo \"Add linting tool here\"",
     "clean": "rimraf dist coverage",
     "cli": "tsx src/index.ts",
-    "cli:build": "npm run build:tsup && node dist/index.js"
+    "cli:build": "npm run build:tsup && node dist/index.js",
+    "claude": "claude --dangerously-skip-permissions"
   },
   "bin": {
     "sker": "./dist/index.js"
