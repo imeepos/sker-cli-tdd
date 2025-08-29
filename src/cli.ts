@@ -229,10 +229,27 @@ export class CLI {
   --help, -h               显示帮助信息
   --version, -v            显示版本信息
 
-示例:
+内置工具:
+  🗂️  文件工具:         文件读写、搜索、权限管理
+  ⚙️  命令工具:         系统命令执行
+  🌐 网络工具:         HTTP请求、API调用
+  📝 TODO工具:         任务管理、项目跟踪
+  🤖 智能体工具:        AI代理和分布式任务处理
+  📊 系统上下文工具:     系统信息收集和分析
+
+TODO工具使用示例:
+  添加任务:    "使用add_todo工具添加一个高优先级任务"
+  查看任务:    "使用list_todos工具显示所有待办事项"
+  完成任务:    "使用complete_todo工具标记任务为完成"
+  查询任务:    "使用query_todos工具查找高优先级任务"
+  统计信息:    "使用todo_stats工具显示任务统计"
+
+一般使用示例:
   sker-cli "你好，世界！"
   sker-cli --interactive
   sker-cli --model gpt-3.5-turbo --stream "解释量子计算"
+  sker-cli "添加一个TODO项目：完成项目文档"
+  sker-cli "显示所有未完成的高优先级任务"
 `;
   }
 
