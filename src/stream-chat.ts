@@ -3,10 +3,10 @@
  * 实现流式输出和实时聊天功能
  */
 
-import { MCPOpenAIClient } from './mcp-openai';
-import { MCPServer } from './mcp-server';
-import { OpenAI } from 'openai';
-import { ChatStorage } from './chat-storage';
+import { MCPAIClient } from './mcp-ai-client.js';
+import { MCPServer } from './mcp-server.js';
+import { UnifiedMessage } from './ai-clients/base/unified-types.js';
+import { ChatStorage } from './chat-storage.js';
 
 /**
  * 聊天结果接口
@@ -39,9 +39,9 @@ export interface ChatStats {
  * 流式聊天类
  */
 export class StreamChat {
-  private openaiClient: MCPOpenAIClient;
+  private aiClient: MCPAIClient;
   private mcpServer: MCPServer;
-  private conversationHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+  private conversationHistory: UnifiedMessage[] = [];
   private realTimeOutput: boolean = true;
   private chatStorage: ChatStorage;
   private currentSessionId: string | null = null;
@@ -51,8 +51,8 @@ export class StreamChat {
     totalToolCalls: 0
   };
 
-  constructor(openaiClient: MCPOpenAIClient, mcpServer: MCPServer, chatStorage?: ChatStorage) {
-    this.openaiClient = openaiClient;
+  constructor(aiClient: MCPAIClient, mcpServer: MCPServer, chatStorage?: ChatStorage) {
+    this.aiClient = aiClient;
     this.mcpServer = mcpServer;
     this.chatStorage = chatStorage || new ChatStorage();
   }

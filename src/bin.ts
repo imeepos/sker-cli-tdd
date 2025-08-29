@@ -6,7 +6,7 @@
  */
 
 import { CLI } from './cli.js';
-import { MCPOpenAIClient } from './mcp-openai.js';
+import { MCPAIClient } from './mcp-ai-client.js';
 import { MCPServer } from './mcp-server.js';
 import { MCPWorkspaceManager } from './mcp-workspace.js';
 import { StreamChat } from './stream-chat.js';
@@ -57,7 +57,7 @@ async function main() {
     // 创建 MCP 组件
     const mcpServer = new MCPServer();
     const workspaceManager = new MCPWorkspaceManager();
-    const openaiClient = new MCPOpenAIClient(config, mcpServer);
+    const aiClient = MCPAIClient.createFromEnv(mcpServer);
 
     // 设置 MCP 服务器
     mcpServer.setWorkspaceManager(workspaceManager);
@@ -78,11 +78,11 @@ async function main() {
     toolManager.registerToolProvider(todoToolsProvider);
 
     // 创建流式聊天
-    const streamChat = new StreamChat(openaiClient, mcpServer);
+    const streamChat = new StreamChat(aiClient, mcpServer);
     streamChat.setRealTimeOutput(options.stream !== false);
 
     // 设置 CLI 客户端
-    cli.setOpenAIClient(openaiClient);
+    cli.setAIClient(aiClient);
 
     // 交互式模式
     if (options.interactive) {

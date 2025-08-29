@@ -3,12 +3,13 @@
  * 命令行工具核心功能
  */
 
-import { MCPOpenAIClient, MCPOpenAIConfig } from './mcp-openai';
+import { MCPAIClient, MCPAIConfig } from './mcp-ai-client.js';
+import { AIProvider } from './ai-clients/base/unified-types.js';
 
 /**
  * CLI 配置接口
  */
-export interface CLIConfig extends MCPOpenAIConfig {
+export interface CLIConfig extends MCPAIConfig {
   stream?: boolean;
   interactive?: boolean;
 }
@@ -30,20 +31,34 @@ export interface CLIOptions {
  * CLI 工具类
  */
 export class CLI {
-  private openaiClient?: MCPOpenAIClient;
+  private aiClient?: MCPAIClient;
 
   /**
-   * 设置 OpenAI 客户端
+   * 设置 AI 客户端
    */
-  setOpenAIClient(client: MCPOpenAIClient): void {
-    this.openaiClient = client;
+  setAIClient(client: MCPAIClient): void {
+    this.aiClient = client;
   }
 
   /**
-   * 获取 OpenAI 客户端
+   * 获取 AI 客户端
    */
-  getOpenAIClient(): MCPOpenAIClient | undefined {
-    return this.openaiClient;
+  getAIClient(): MCPAIClient | undefined {
+    return this.aiClient;
+  }
+
+  /**
+   * 设置 OpenAI 客户端 (向后兼容)
+   */
+  setOpenAIClient(client: MCPAIClient): void {
+    this.setAIClient(client);
+  }
+
+  /**
+   * 获取 OpenAI 客户端 (向后兼容)
+   */
+  getOpenAIClient(): MCPAIClient | undefined {
+    return this.getAIClient();
   }
 
   /**
@@ -51,6 +66,7 @@ export class CLI {
    */
   getDefaultConfig(): CLIConfig {
     return {
+      provider: 'openai',
       apiKey: '',
       model: 'gpt-4',
       temperature: 0.7,
@@ -70,6 +86,7 @@ export class CLI {
     }
 
     const config: CLIConfig = {
+      provider: (process.env['AI_PROVIDER'] as AIProvider) || 'openai',
       apiKey,
       model: process.env['OPENAI_MODEL'] || 'gpt-4',
       temperature: process.env['OPENAI_TEMPERATURE'] ? parseFloat(process.env['OPENAI_TEMPERATURE']) : 0.7,
@@ -128,12 +145,12 @@ export class CLI {
    * 流式聊天
    */
   async streamChat(message: string): Promise<string> {
-    if (!this.openaiClient) {
-      throw new Error('OpenAI 客户端未设置');
+    if (!this.aiClient) {
+      throw new Error('AI 客户端未设置');
     }
 
     const messages = [{ role: 'user' as const, content: message }];
-    const stream = await this.openaiClient.chatCompletionStream(messages);
+    const stream = this.aiClient.chatCompletionStream(messages);
 
     let fullResponse = '';
     for await (const chunk of stream) {
@@ -151,28 +168,28 @@ export class CLI {
    * 获取可用工具列表
    */
   getAvailableTools(): any[] {
-    if (!this.openaiClient) {
+    if (!this.aiClient) {
       return [];
     }
-    return this.openaiClient.getOpenAITools();
+    return this.aiClient.getAvailableTools();
   }
 
   /**
    * 带工具调用的聊天
    */
   async chatWithTools(message: string): Promise<any> {
-    if (!this.openaiClient) {
-      throw new Error('OpenAI 客户端未设置');
+    if (!this.aiClient) {
+      throw new Error('AI 客户端未设置');
     }
 
     const messages = [{ role: 'user' as const, content: message }];
-    const response = await this.openaiClient.chatCompletionWithTools(messages);
+    const response = await this.aiClient.chatCompletionWithTools(messages);
 
     // 处理工具调用
     const assistantMessage = response.choices[0]?.message;
-    if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
-      for (const toolCall of assistantMessage.tool_calls) {
-        await this.openaiClient.executeToolCall(toolCall);
+    if (assistantMessage?.toolCalls && assistantMessage.toolCalls.length > 0) {
+      for (const toolCall of assistantMessage.toolCalls) {
+        await this.aiClient.executeToolCall(toolCall.function.name, JSON.parse(toolCall.function.arguments));
       }
     }
 
