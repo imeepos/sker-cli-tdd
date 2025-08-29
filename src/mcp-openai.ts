@@ -8,7 +8,7 @@ import * as dotenv from 'dotenv';
 import { MCPServer } from './mcp-server';
 
 // 加载环境变量
-dotenv.config();
+dotenv.config({ debug: false, quiet: true });
 
 /**
  * OpenAI 客户端配置接口
@@ -61,7 +61,7 @@ export class MCPOpenAIClient {
   constructor(config: MCPOpenAIConfig, mcpServer: MCPServer) {
     this.config = config;
     this.mcpServer = mcpServer;
-    
+
     // 初始化 OpenAI 客户端
     this.openai = new OpenAI({
       apiKey: config.apiKey,
@@ -240,7 +240,7 @@ export class MCPOpenAIClient {
     };
 
     const allMessages = [systemMessage, ...messages];
-    
+
     return await this.chatCompletionWithTools(allMessages, options);
   }
 

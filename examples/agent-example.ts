@@ -12,7 +12,7 @@ import { MCPWorkspaceManager } from '../src/mcp-workspace';
 import * as dotenv from 'dotenv';
 
 // 加载环境变量
-dotenv.config();
+dotenv.config({ debug: false });
 
 /**
  * MQ_URL配置示例
@@ -188,6 +188,7 @@ export async function runMultiAgentExample(): Promise<void> {
     // 连接所有Agent
     console.log('🔌 连接所有Agent到MQ...');
     for (let i = 0; i < agents.length; i++) {
+      const agent = agents[i];
       agents[i].setMQConnection(mqConnection);
       await agents[i].connect();
       await agents[i].startListening();

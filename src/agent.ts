@@ -14,7 +14,7 @@ import { MCPOpenAIClient } from './mcp-openai';
 import * as dotenv from 'dotenv';
 
 // 加载环境变量
-dotenv.config();
+dotenv.config({ debug: false, quiet: true });
 
 /**
  * MQ配置接口

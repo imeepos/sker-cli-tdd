@@ -166,7 +166,7 @@ export class ConfigManager {
     }
 
     try {
-      dotenv.config();
+      dotenv.config({ debug: false, quiet: true });
     } catch (error) {
       // 忽略dotenv错误，继续使用系统环境变量
     }
