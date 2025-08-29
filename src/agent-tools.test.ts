@@ -20,8 +20,8 @@ describe('AgentToolsProvider', () => {
       const tools = provider.getTools();
       
       expect(Array.isArray(tools)).toBe(true);
-      expect(tools.length).toBe(6);
-      
+      expect(tools.length).toBe(7);
+
       // 检查是否包含所有预期的工具
       const toolNames = tools.map(tool => tool.name);
       expect(toolNames).toContain('create_agent');
@@ -30,6 +30,7 @@ describe('AgentToolsProvider', () => {
       expect(toolNames).toContain('send_task');
       expect(toolNames).toContain('get_agent_status');
       expect(toolNames).toContain('list_agents');
+      expect(toolNames).toContain('send_ai_task');
     });
 
     it('应该返回具有正确结构的工具', () => {
@@ -256,6 +257,51 @@ describe('AgentToolsProvider', () => {
       expect(result.count).toBe(0);
       expect(Array.isArray(result.agents)).toBe(true);
       expect(result.agents.length).toBe(0);
+    });
+  });
+
+  describe('send_ai_task工具', () => {
+    it('应该能够发送AI任务给Agent', async () => {
+      const tools = provider.getTools();
+      tools.forEach(tool => {
+        server.registerTool(tool);
+      });
+
+      // 先创建并启动Agent
+      await server.executeTool('create_agent', {
+        agentId: 'ai-test-agent',
+        mqType: 'memory'
+      });
+      await server.executeTool('start_agent', {
+        agentId: 'ai-test-agent'
+      });
+
+      // 发送AI任务（禁用AI，因为测试环境没有OpenAI配置）
+      const result = await server.executeTool('send_ai_task', {
+        agentId: 'ai-test-agent',
+        instruction: '请帮我获取当前系统信息',
+        context: '我需要了解操作系统类型',
+        enableAI: false
+      });
+
+      expect(result).toBeDefined();
+      expect(result.success).toBe(true);
+      expect(result.taskId).toBeDefined();
+    });
+
+    it('应该能够处理不存在的Agent', async () => {
+      const tools = provider.getTools();
+      tools.forEach(tool => {
+        server.registerTool(tool);
+      });
+
+      const result = await server.executeTool('send_ai_task', {
+        agentId: 'non-existent-agent',
+        instruction: '测试任务'
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('不存在');
     });
   });
 

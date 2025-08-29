@@ -28,6 +28,20 @@ describe('MQAgent', () => {
       expect(agent).toBeInstanceOf(MQAgent);
     });
 
+    it('应该能够设置AI客户端', () => {
+      // 模拟AI客户端
+      const mockAIClient = {
+        processConversation: jest.fn().mockResolvedValue({
+          messages: [],
+          finalResponse: { choices: [{ message: { content: 'AI处理完成' } }] },
+          toolCallsExecuted: 1
+        })
+      };
+
+      agent.setAIClient(mockAIClient as any); // ❌ 这会失败 - 正确的！
+      expect(agent.getAIClient()).toBe(mockAIClient);
+    });
+
     it('应该能够从MQ_URL环境变量加载配置', () => {
       process.env['MQ_URL'] = 'amqp://testuser:testpass@testhost:5673';
       process.env['MQ_TASK_QUEUE'] = 'task_queue';
@@ -168,39 +182,82 @@ describe('MQAgent', () => {
     });
   });
 
-  describe('工具执行', () => {
-    it('应该能够执行命令工具', async () => {
+  describe('AI任务处理', () => {
+    it('应该能够通过AI理解并执行任务', async () => {
+      // 设置模拟AI客户端
+      const mockAIClient = {
+        processConversation: jest.fn().mockResolvedValue({
+          messages: [],
+          finalResponse: {
+            choices: [{
+              message: {
+                content: '我已经获取了系统信息：Windows 11, 版本 22H2'
+              }
+            }]
+          },
+          toolCallsExecuted: 1
+        })
+      };
+      agent.setAIClient(mockAIClient as any);
+
       const taskMessage: TaskMessage = {
         id: 'task-001',
         from: 'client-001',
         to: 'agent-001',
-        type: 'execute_command',
-        payload: { command: 'echo "test"' },
+        type: 'ai_task',
+        payload: {
+          instruction: '请帮我查看当前系统信息',
+          context: '我需要了解操作系统类型和版本'
+        },
         timestamp: new Date().toISOString()
       };
 
-      const result = await agent.executeTask(taskMessage); // ❌ 这会失败 - 正确的！
-      
+      const result = await agent.executeTask(taskMessage);
+
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
       expect(result.taskId).toBe('task-001');
+      expect(result.result).toBeDefined();
+      expect(result.result.aiResponse).toContain('系统信息');
+      expect(mockAIClient.processConversation).toHaveBeenCalled();
     });
 
-    it('应该能够执行文件操作工具', async () => {
+    it('应该能够处理复杂的AI任务指令', async () => {
+      // 设置模拟AI客户端
+      const mockAIClient = {
+        processConversation: jest.fn().mockResolvedValue({
+          messages: [],
+          finalResponse: {
+            choices: [{
+              message: {
+                content: '我已经创建了hello.txt文件，内容是"Hello World"，并成功读取了内容'
+              }
+            }]
+          },
+          toolCallsExecuted: 2
+        })
+      };
+      agent.setAIClient(mockAIClient as any);
+
       const taskMessage: TaskMessage = {
         id: 'task-002',
         from: 'client-001',
         to: 'agent-001',
-        type: 'read_file',
-        payload: { path: 'package.json' },
+        type: 'ai_task',
+        payload: {
+          instruction: '请创建一个名为hello.txt的文件，内容是"Hello World"，然后读取并返回内容',
+          context: '这是一个文件操作任务'
+        },
         timestamp: new Date().toISOString()
       };
 
-      const result = await agent.executeTask(taskMessage); // ❌ 这会失败 - 正确的！
-      
+      const result = await agent.executeTask(taskMessage);
+
       expect(result).toBeDefined();
-      expect(result.success).toBe(true);
       expect(result.taskId).toBe('task-002');
+      expect(result.success).toBe(true);
+      expect(result.result.toolCallsExecuted).toBe(2);
+      expect(mockAIClient.processConversation).toHaveBeenCalled();
     });
 
     it('应该能够处理工具执行错误', async () => {

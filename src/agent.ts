@@ -10,6 +10,11 @@ import { FileToolsProvider } from './file-tools';
 import { CommandToolsProvider } from './command-tools';
 import { FetchToolsProvider } from './fetch-tools';
 import { SystemContextToolsProvider } from './system-context-tools';
+import { MCPOpenAIClient } from './mcp-openai';
+import * as dotenv from 'dotenv';
+
+// 加载环境变量
+dotenv.config();
 
 /**
  * MQ配置接口
@@ -70,6 +75,7 @@ export class MQAgent {
   private config: MQConfig;
   private mqConnection: MQConnection | null = null;
   private toolManager!: ToolManager;
+  private aiClient: MCPOpenAIClient | null = null;
   private isListening = false;
 
   constructor() {
@@ -149,6 +155,20 @@ export class MQAgent {
   }
 
   /**
+   * 设置AI客户端
+   */
+  setAIClient(client: MCPOpenAIClient): void {
+    this.aiClient = client;
+  }
+
+  /**
+   * 获取AI客户端
+   */
+  getAIClient(): MCPOpenAIClient | null {
+    return this.aiClient;
+  }
+
+  /**
    * 连接到MQ服务器
    */
   async connect(): Promise<boolean> {
@@ -210,23 +230,31 @@ export class MQAgent {
    */
   async executeTask(taskMessage: TaskMessage): Promise<TaskResult> {
     const startTime = new Date().toISOString();
-    
+
     try {
       // 验证消息格式
       if (!this.validateTaskMessage(taskMessage)) {
         throw new Error('Invalid task message format');
       }
 
-      // 执行工具
-      const toolResult = await this.toolManager.executeTool(taskMessage.type, taskMessage.payload);
-      
+      let result: any;
+
+      // 检查是否是AI任务
+      if (taskMessage.type === 'ai_task' && this.aiClient) {
+        // 使用AI处理任务
+        result = await this.processAITask(taskMessage);
+      } else {
+        // 直接执行工具
+        result = await this.toolManager.executeTool(taskMessage.type, taskMessage.payload);
+      }
+
       return {
         id: `result-${Date.now()}`,
         taskId: taskMessage.id,
         from: this.config.agentId,
         to: taskMessage.from,
         success: true,
-        result: toolResult,
+        result: result,
         timestamp: startTime
       };
     } catch (error) {
@@ -240,6 +268,40 @@ export class MQAgent {
         timestamp: startTime
       };
     }
+  }
+
+  /**
+   * 使用AI处理任务
+   */
+  private async processAITask(taskMessage: TaskMessage): Promise<any> {
+    if (!this.aiClient) {
+      throw new Error('AI客户端未设置');
+    }
+
+    const { instruction, context } = taskMessage.payload;
+
+    // 构建AI对话消息
+    const messages = [
+      {
+        role: 'system' as const,
+        content: `你是一个智能Agent，可以调用各种工具来完成任务。
+当前可用的工具包括：文件操作、命令执行、网络请求、系统信息查询等。
+请根据用户的指令，智能选择合适的工具来完成任务。`
+      },
+      {
+        role: 'user' as const,
+        content: `任务指令：${instruction}${context ? `\n上下文：${context}` : ''}`
+      }
+    ];
+
+    // 使用AI处理对话并执行工具调用
+    const conversation = await this.aiClient.processConversation(messages);
+
+    return {
+      aiResponse: conversation.finalResponse.choices[0]?.message?.content || 'AI处理完成',
+      toolCallsExecuted: conversation.toolCallsExecuted,
+      conversationMessages: conversation.messages
+    };
   }
 
   /**

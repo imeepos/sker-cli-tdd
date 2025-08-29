@@ -6,6 +6,9 @@
 
 import { MQAgent, TaskMessage } from '../src/agent';
 import { MQConnectionFactory } from '../src/mq-connection';
+import { MCPOpenAIClient } from '../src/mcp-openai';
+import { MCPServer } from '../src/mcp-server';
+import { MCPWorkspaceManager } from '../src/mcp-workspace';
 import * as dotenv from 'dotenv';
 
 // 加载环境变量
@@ -318,6 +321,117 @@ export async function runErrorHandlingExample(): Promise<void> {
 }
 
 /**
+ * AI Agent 示例
+ */
+export async function runAIAgentExample(): Promise<void> {
+  console.log('\n🧠 启动AI Agent示例...\n');
+
+  try {
+    // 设置OpenAI环境变量（示例）
+    process.env['OPENAI_API_KEY'] = 'your-openai-api-key-here';
+    process.env['OPENAI_MODEL'] = 'gpt-4';
+
+    // 创建AI Agent
+    const agent = new MQAgent();
+
+    // 创建内存MQ连接
+    const mqConnection = MQConnectionFactory.create('memory');
+    agent.setMQConnection(mqConnection);
+
+    // 尝试设置AI客户端（如果有OpenAI配置）
+    try {
+      const server = new MCPServer();
+      const workspaceManager = new MCPWorkspaceManager();
+      const aiConfig = MCPOpenAIClient.loadConfigFromEnv();
+      const aiClient = new MCPOpenAIClient(aiConfig, server);
+      agent.setAIClient(aiClient);
+      console.log('✅ AI客户端已设置');
+    } catch (error) {
+      console.log('⚠️ AI客户端设置失败，将使用模拟模式');
+      // 设置模拟AI客户端
+      const mockAIClient = {
+        processConversation: async () => ({
+          messages: [],
+          finalResponse: {
+            choices: [{
+              message: {
+                content: '我已经通过调用系统工具获取了信息：当前系统是Windows 11，版本22H2。我还检查了可用的命令行工具，包括PowerShell、cmd等。'
+              }
+            }]
+          },
+          toolCallsExecuted: 2
+        })
+      };
+      agent.setAIClient(mockAIClient as any);
+    }
+
+    // 连接并启动Agent
+    await agent.connect();
+    await agent.startListening();
+
+    console.log('🤖 AI Agent已启动，准备处理智能任务...\n');
+
+    // 测试AI任务处理
+    const aiTasks = [
+      {
+        id: 'ai-task-001',
+        instruction: '请帮我获取当前系统的详细信息，包括操作系统类型、版本和可用的命令行工具',
+        context: '我需要了解当前运行环境'
+      },
+      {
+        id: 'ai-task-002',
+        instruction: '请创建一个名为ai-test.txt的文件，内容是当前时间和系统信息的摘要',
+        context: '这是一个文件操作任务'
+      },
+      {
+        id: 'ai-task-003',
+        instruction: '请检查当前目录下的package.json文件，告诉我项目的名称和版本',
+        context: '我想了解项目信息'
+      }
+    ];
+
+    console.log('📤 发送AI任务进行处理...\n');
+
+    for (const task of aiTasks) {
+      console.log(`🧠 处理AI任务: ${task.instruction}`);
+
+      const taskMessage: TaskMessage = {
+        id: task.id,
+        from: 'ai-example-client',
+        to: agent.loadConfig().agentId,
+        type: 'ai_task',
+        payload: {
+          instruction: task.instruction,
+          context: task.context
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      const result = await agent.executeTask(taskMessage);
+
+      if (result.success) {
+        console.log(`✅ 任务完成: ${task.id}`);
+        console.log(`📋 AI响应: ${result.result.aiResponse}`);
+        console.log(`🔧 工具调用次数: ${result.result.toolCallsExecuted}`);
+      } else {
+        console.log(`❌ 任务失败: ${result.error}`);
+      }
+      console.log('');
+    }
+
+    // 停止Agent
+    await agent.stopListening();
+    await agent.disconnect();
+
+    console.log('✅ AI Agent示例完成！');
+    console.log('🧠 AI Agent能够理解自然语言指令并智能调用工具完成任务！');
+
+  } catch (error) {
+    console.error(`❌ AI Agent示例执行失败: ${(error as Error).message}`);
+  }
+}
+
+/**
  * 主函数 - 运行所有示例
  */
 export async function runAllAgentExamples(): Promise<void> {
@@ -328,10 +442,12 @@ export async function runAllAgentExamples(): Promise<void> {
   await runBasicAgentExample();
   await runMultiAgentExample();
   await runErrorHandlingExample();
+  await runAIAgentExample();
 
   console.log('\n✅ 所有Agent示例完成！');
   console.log('🎯 Agent系统现在可以处理MQ任务并调用各种工具！');
   console.log('🔗 支持标准MQ_URL配置格式！');
+  console.log('🧠 支持AI智能任务处理！');
   console.log('=' .repeat(60));
 }
 
