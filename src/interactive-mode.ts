@@ -88,6 +88,36 @@ export class InteractiveMode {
   }
 
   /**
+   * 检查是否为会话命令
+   */
+  isSessionCommand(message: string): boolean {
+    const sessionCommands = ['/sessions', '/sess', '/list'];
+    return sessionCommands.includes(message.toLowerCase());
+  }
+
+  /**
+   * 检查是否为新建会话命令
+   */
+  isNewSessionCommand(message: string): boolean {
+    return message.toLowerCase().startsWith('/new');
+  }
+
+  /**
+   * 检查是否为加载会话命令
+   */
+  isLoadSessionCommand(message: string): boolean {
+    return message.toLowerCase().startsWith('/load');
+  }
+
+  /**
+   * 检查是否为数据库统计命令
+   */
+  isDbStatsCommand(message: string): boolean {
+    const dbStatsCommands = ['/dbstats', '/db'];
+    return dbStatsCommands.includes(message.toLowerCase());
+  }
+
+  /**
    * 执行命令
    */
   async executeCommand(command: string): Promise<void> {
@@ -98,6 +128,10 @@ export class InteractiveMode {
   /clear, /cls      - 清除对话历史
   /stats            - 显示统计信息
   /tools, /t        - 显示可用工具
+  /sessions, /sess  - 列出所有会话
+  /new [name]       - 创建新会话
+  /load <id>        - 加载指定会话
+  /dbstats, /db     - 显示数据库统计
   /exit, /quit, /q  - 退出程序
       `);
     } else if (this.isClearCommand(command)) {
@@ -120,6 +154,50 @@ export class InteractiveMode {
     } else if (this.isToolsCommand(command)) {
       const toolsHelp = this.toolManager.getAllToolsHelp();
       console.log(toolsHelp);
+    } else if (this.isSessionCommand(command)) {
+      const sessions = await this.streamChat.listSessions(10);
+      if (sessions.length === 0) {
+        console.log('📂 暂无保存的会话');
+      } else {
+        console.log('\n📂 最近的会话:');
+        sessions.forEach((session, index) => {
+          const date = new Date(session.updatedAt).toLocaleString();
+          console.log(`  ${index + 1}. ${session.name} (ID: ${session.id})`);
+          console.log(`     更新时间: ${date}, 消息数: ${session.messageCount}`);
+        });
+      }
+    } else if (this.isNewSessionCommand(command)) {
+      const parts = command.split(' ');
+      const sessionName = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
+      const sessionId = await this.streamChat.createSession(sessionName);
+      console.log(`✅ 创建新会话: ${sessionId}`);
+    } else if (this.isLoadSessionCommand(command)) {
+      const parts = command.split(' ');
+      if (parts.length < 2) {
+        console.log('❌ 请指定会话ID: /load <session-id>');
+        return;
+      }
+      const sessionId = parts[1];
+      if (!sessionId) {
+        console.log('❌ 请指定会话ID: /load <session-id>');
+        return;
+      }
+      try {
+        await this.streamChat.loadSessionHistory(sessionId);
+        const sessionInfo = await this.streamChat.getSessionInfo(sessionId);
+        console.log(`✅ 已加载会话: ${sessionInfo?.name || sessionId}`);
+        console.log(`   消息数: ${sessionInfo?.messageCount || 0}`);
+      } catch (error) {
+        console.log(`❌ 加载会话失败: ${(error as Error).message}`);
+      }
+    } else if (this.isDbStatsCommand(command)) {
+      const dbStats = await this.streamChat.getStorageStats();
+      console.log(`
+📊 数据库统计:
+  总会话数: ${dbStats.totalSessions}
+  总消息数: ${dbStats.totalMessages}
+  数据库大小: ${dbStats.dbSize} bytes
+      `);
     } else {
       console.log(`❌ 未知命令: ${command}`);
       console.log('输入 /help 查看可用命令');
