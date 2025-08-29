@@ -94,9 +94,6 @@ async function main() {
     // 单次聊天模式
     const message = args.find(arg => !arg.startsWith('-'));
     if (message) {
-      console.log('🤖 AI 助手:');
-      console.log('─'.repeat(50));
-
       try {
         if (toolManager.getAvailableTools().length > 0) {
           await streamChat.chatWithTools(message);
@@ -104,6 +101,25 @@ async function main() {
           await streamChat.chat(message);
         }
         console.log('\n');
+
+        // 输出token消耗统计
+        const stats = streamChat.getStats();
+        const storageStats = await streamChat.getStorageStats();
+
+        console.log('📊 本次对话: ${stats.totalTokens} tokens');
+        console.log(`   本次对话: ${stats.totalTokens} tokens`);
+        console.log(`   消息数量: ${stats.totalMessages} 条`);
+        if (stats.totalToolCalls > 0) {
+          console.log(`   工具调用: ${stats.totalToolCalls} 次`);
+        }
+
+        // 显示数据库统计
+        if (storageStats.messages) {
+          console.log(`   历史消息: ${storageStats.messages} 条`);
+        }
+        if (storageStats.sessions) {
+          console.log(`   历史会话: ${storageStats.sessions} 个`);
+        }
       } catch (error) {
         console.error(`❌ 错误: ${(error as Error).message}`);
         process.exit(1);
