@@ -677,8 +677,8 @@ custom-ignored/
         expect(projectContext.projectInfo?.version).toBe('1.2.3');
         expect(projectContext.projectInfo?.description).toBe('A test project with JSON5 config');
         expect(projectContext.projectInfo?.['author']).toBe('Test Developer');
-        expect(projectContext.projectInfo?.['scripts']?.['build']).toBe('npm run compile');
-        expect(projectContext.projectInfo?.['scripts']?.['test']).toBe('jest');
+        expect((projectContext.projectInfo?.['scripts'] as any)?.['build']).toBe('npm run compile');
+        expect((projectContext.projectInfo?.['scripts'] as any)?.['test']).toBe('jest');
 
         // getProjectInfo应该直接返回缓存的内容，不需要文件系统访问
         const cachedInfo = await projectContext.getProjectInfo();

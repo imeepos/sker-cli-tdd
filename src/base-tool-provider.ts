@@ -14,7 +14,7 @@ import { TypeValidator, ValidationError } from './type-validator';
 export interface ToolResponse {
   success: boolean;
   error?: string;
-  [key: string]: string | number | boolean | undefined;
+  [key: string]: any;
 }
 
 /**
@@ -59,6 +59,11 @@ export abstract class BaseToolProvider implements ToolProvider {
           if (error instanceof SkerError) {
             return this.createSkerErrorResponse(error);
           }
+          // 检查是否是参数验证错误
+          const errorMessage = (error as Error).message;
+          if (errorMessage.includes('缺少必需参数')) {
+            return this.createErrorResponse(error as Error);
+          }
           const skerError = ErrorFactory.toolExecutionFailed(name, error as Error);
           return this.createSkerErrorResponse(skerError);
         }
@@ -73,7 +78,7 @@ export abstract class BaseToolProvider implements ToolProvider {
    * @param data 响应数据
    * @returns 成功响应对象
    */
-  protected createSuccessResponse(data: Record<string, string | number | boolean | undefined> = {}): ToolResponse {
+  protected createSuccessResponse(data: Record<string, any> = {}): ToolResponse {
     return {
       success: true,
       ...data
@@ -241,7 +246,7 @@ export abstract class BaseToolProvider implements ToolProvider {
   ): Promise<ToolResponse> {
     try {
       const result = await asyncFn();
-      return this.createSuccessResponse({ result });
+      return this.createSuccessResponse({ result: result as any });
     } catch (error) {
       return this.createErrorResponseWithContext(operation, error as Error);
     }

@@ -186,7 +186,7 @@ export class ToolManager {
       const properties = tool.schema['properties'] as Record<string, unknown>;
       for (const [key, value] of Object.entries(properties)) {
         const prop = value as Record<string, unknown>;
-        const description = typeof prop.description === 'string' ? prop.description : '无描述';
+        const description = typeof prop['description'] === 'string' ? prop['description'] : '无描述';
         help += `  - ${key}: ${description}\n`;
       }
     }
