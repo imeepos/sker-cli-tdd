@@ -14,8 +14,8 @@ describe('ChatStorage', () => {
 
   beforeEach(async () => {
     // 创建临时测试数据库路径
-    testDbPath = path.join(__dirname, '..', 'test-db', `test-${Date.now()}`);
-    chatStorage = new ChatStorage();
+    testDbPath = path.join(__dirname, '..', 'test-db', `test-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
+    chatStorage = new ChatStorage({ dbPath: testDbPath });
     await chatStorage.initialize();
   });
 
@@ -262,10 +262,14 @@ describe('ChatStorage', () => {
       const sessionId = await chatStorage.createSession('统计测试会话');
       await chatStorage.saveMessage('user', 'Test', sessionId);
 
-      const stats = await chatStorage.getStats();
-      expect(stats['totalMessages']).toBeGreaterThanOrEqual(1);
-      expect(stats['totalSessions']).toBeGreaterThanOrEqual(1);
-      expect(typeof stats['dbSize']).toBe('number');
+      const stats = await chatStorage.getChatStats();
+      expect(stats.totalMessages).toBeGreaterThanOrEqual(1);
+      expect(stats.totalSessions).toBeGreaterThanOrEqual(1);
+
+      // 测试原始getStats方法
+      const rawStats = await chatStorage.getStats();
+      expect(rawStats['messages']).toBeGreaterThanOrEqual(1);
+      expect(rawStats['sessions']).toBeGreaterThanOrEqual(1);
     });
 
     it('应该能够清空所有数据', async () => {
@@ -274,9 +278,9 @@ describe('ChatStorage', () => {
 
       await chatStorage.clear();
 
-      const stats = await chatStorage.getStats();
-      expect(stats['totalMessages']).toBe(0);
-      expect(stats['totalSessions']).toBe(0);
+      const stats = await chatStorage.getChatStats();
+      expect(stats.totalMessages).toBe(0);
+      expect(stats.totalSessions).toBe(0);
     });
   });
 });
