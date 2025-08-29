@@ -22,12 +22,12 @@
     "type-check": "tsc --noEmit",
     "lint": "echo \"Add linting tool here\"",
     "clean": "rimraf dist coverage",
-    "cli": "tsx src/index.ts",
-    "cli:build": "npm run build:tsup && node dist/index.js",
+    "cli": "tsx src/bin.ts",
+    "cli:build": "npm run build:tsup && node dist/bin.js",
     "claude": "claude --dangerously-skip-permissions"
   },
   "bin": {
-    "sker": "./dist/index.js"
+    "sker": "./dist/bin.js"
   },
   "keywords": [
     "typescript",
