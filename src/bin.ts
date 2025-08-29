@@ -105,21 +105,20 @@ async function main() {
         // 输出token消耗统计
         const stats = streamChat.getStats();
         const storageStats = await streamChat.getStorageStats();
-
-        console.log('📊 本次对话: ${stats.totalTokens} tokens');
-        console.log(`   本次对话: ${stats.totalTokens} tokens`);
-        console.log(`   消息数量: ${stats.totalMessages} 条`);
+        let msg = `📊 本次对话: ${stats.totalTokens} tokens 消息数量: ${stats.totalMessages} 条`
         if (stats.totalToolCalls > 0) {
-          console.log(`   工具调用: ${stats.totalToolCalls} 次`);
+          msg += ` 工具调用: ${stats.totalToolCalls} 次`;
         }
 
         // 显示数据库统计
         if (storageStats.messages) {
-          console.log(`   历史消息: ${storageStats.messages} 条`);
+          msg += ` 历史消息: ${storageStats.messages} 条`;
         }
         if (storageStats.sessions) {
-          console.log(`   历史会话: ${storageStats.sessions} 个`);
+          msg += (` 历史会话: ${storageStats.sessions} 个`);
         }
+
+        console.log(msg);
       } catch (error) {
         console.error(`❌ 错误: ${(error as Error).message}`);
         process.exit(1);
