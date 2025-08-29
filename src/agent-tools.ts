@@ -5,6 +5,8 @@
 
 import { MQAgent, TaskMessage } from './agent';
 import { MQConnectionFactory } from './mq-connection';
+import { MCPOpenAIClient } from './mcp-openai';
+import { MCPServer } from './mcp-server';
 import { MCPTool } from './mcp-server';
 
 /**
@@ -25,7 +27,8 @@ export class AgentToolsProvider {
       this.getStopAgentTool(),
       this.getSendTaskTool(),
       this.getAgentStatusTool(),
-      this.getListAgentsTool()
+      this.getListAgentsTool(),
+      this.getSendAITaskTool()
     ];
   }
 
@@ -372,6 +375,103 @@ export class AgentToolsProvider {
         type: 'object',
         properties: {},
         required: []
+      }
+    };
+  }
+
+  /**
+   * 发送AI任务工具
+   */
+  private getSendAITaskTool(): MCPTool {
+    return {
+      name: 'send_ai_task',
+      description: '向Agent发送AI任务，让AI理解指令并智能调用工具完成任务',
+      schema: {
+        type: 'object',
+        properties: {
+          agentId: {
+            type: 'string',
+            description: '目标Agent的ID'
+          },
+          instruction: {
+            type: 'string',
+            description: '任务指令，用自然语言描述要完成的任务'
+          },
+          context: {
+            type: 'string',
+            description: '任务上下文信息（可选）'
+          },
+          enableAI: {
+            type: 'boolean',
+            description: '是否启用AI处理（默认true）',
+            default: true
+          }
+        },
+        required: ['agentId', 'instruction']
+      },
+      handler: async (params: {
+        agentId: string;
+        instruction: string;
+        context?: string;
+        enableAI?: boolean
+      }) => {
+        try {
+          const { agentId, instruction, context, enableAI = true } = params;
+
+          // 检查Agent是否存在
+          const agent = this.agents.get(agentId);
+          if (!agent) {
+            return {
+              success: false,
+              error: `Agent ${agentId} 不存在`
+            };
+          }
+
+          // 如果启用AI，需要设置AI客户端
+          if (enableAI && !agent.getAIClient()) {
+            try {
+              // 尝试创建AI客户端
+              const server = new MCPServer();
+              const aiConfig = MCPOpenAIClient.loadConfigFromEnv();
+              const aiClient = new MCPOpenAIClient(aiConfig, server);
+              agent.setAIClient(aiClient);
+            } catch (error) {
+              return {
+                success: false,
+                error: `无法初始化AI客户端: ${(error as Error).message}`,
+                suggestion: '请确保设置了OPENAI_API_KEY环境变量'
+              };
+            }
+          }
+
+          // 构建任务消息
+          const taskMessage: TaskMessage = {
+            id: `ai-task-${Date.now()}`,
+            from: 'ai-task-sender',
+            to: agentId,
+            type: enableAI ? 'ai_task' : 'execute_command',
+            payload: enableAI ? { instruction, context } : { command: instruction },
+            timestamp: new Date().toISOString()
+          };
+
+          // 执行任务
+          const result = await agent.executeTask(taskMessage);
+
+          return {
+            success: result.success,
+            taskId: result.taskId,
+            result: result.result,
+            error: result.error,
+            message: result.success ?
+              `AI任务已成功处理${enableAI ? '，AI调用了工具完成任务' : ''}` :
+              '任务处理失败'
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: `AI任务发送失败: ${(error as Error).message}`
+          };
+        }
       }
     };
   }
