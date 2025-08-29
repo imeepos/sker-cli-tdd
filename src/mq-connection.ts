@@ -6,6 +6,15 @@
 import { MQConnection, MQConfig } from './agent';
 
 /**
+ * 条件性地输出日志，测试环境下不输出
+ */
+function logInfo(message: string, ...args: any[]): void {
+  if (process.env['NODE_ENV'] !== 'test') {
+    console.log(message, ...args);
+  }
+}
+
+/**
  * 基于内存的简单MQ连接实现
  * 用于开发和测试环境
  */
@@ -16,7 +25,7 @@ export class InMemoryMQConnection implements MQConnection {
 
   async connect(): Promise<boolean> {
     this.connected = true;
-    console.log('✅ Connected to in-memory MQ');
+    logInfo('✅ Connected to in-memory MQ');
     return true;
   }
 
@@ -24,7 +33,7 @@ export class InMemoryMQConnection implements MQConnection {
     this.connected = false;
     this.queues.clear();
     this.subscribers.clear();
-    console.log('✅ Disconnected from in-memory MQ');
+    logInfo('✅ Disconnected from in-memory MQ');
     return true;
   }
 
@@ -44,7 +53,7 @@ export class InMemoryMQConnection implements MQConnection {
     // 清空已处理的消息
     this.queues.set(queue, []);
     
-    console.log(`📡 Subscribed to queue: ${queue}`);
+    logInfo(`📡 Subscribed to queue: ${queue}`);
   }
 
   async publish(queue: string, message: string): Promise<boolean> {
@@ -63,7 +72,7 @@ export class InMemoryMQConnection implements MQConnection {
       this.queues.set(queue, messages);
     }
 
-    console.log(`📤 Published message to queue: ${queue}`);
+    logInfo(`📤 Published message to queue: ${queue}`);
     return true;
   }
 
@@ -92,7 +101,7 @@ export class RabbitMQConnection implements MQConnection {
 
   constructor(config: MQConfig) {
     this.config = config;
-    console.log(`RabbitMQ connection initialized for ${config.url}`);
+    logInfo(`RabbitMQ connection initialized for ${config.url}`);
   }
 
   async connect(): Promise<boolean> {
@@ -108,7 +117,7 @@ export class RabbitMQConnection implements MQConnection {
       // await this.channel.assertQueue(this.config.taskQueue, { durable: true });
       // await this.channel.assertQueue(this.config.resultQueue, { durable: true });
 
-      console.log(`✅ Connected to RabbitMQ at ${this.config.url} (mock implementation)`);
+      logInfo(`✅ Connected to RabbitMQ at ${this.config.url} (mock implementation)`);
       return true;
     } catch (error) {
       console.error('❌ Failed to connect to RabbitMQ:', error);
@@ -124,7 +133,7 @@ export class RabbitMQConnection implements MQConnection {
       if (this.connection) {
         await this.connection.close();
       }
-      console.log('✅ Disconnected from RabbitMQ');
+      logInfo('✅ Disconnected from RabbitMQ');
       return true;
     } catch (error) {
       console.error('❌ Failed to disconnect from RabbitMQ:', error);
@@ -145,7 +154,7 @@ export class RabbitMQConnection implements MQConnection {
     //   }
     // });
 
-    console.log(`📡 Subscribed to RabbitMQ queue: ${queue} (mock implementation)`, typeof callback === 'function' ? 'with callback' : 'no callback');
+    logInfo(`📡 Subscribed to RabbitMQ queue: ${queue} (mock implementation)`, typeof callback === 'function' ? 'with callback' : 'no callback');
   }
 
   async publish(queue: string, message: string): Promise<boolean> {
@@ -158,7 +167,7 @@ export class RabbitMQConnection implements MQConnection {
       //   persistent: true
       // });
 
-      console.log(`📤 Published message to RabbitMQ queue: ${queue} (mock implementation)`, message.length > 0 ? 'with content' : 'empty');
+      logInfo(`📤 Published message to RabbitMQ queue: ${queue} (mock implementation)`, message.length > 0 ? 'with content' : 'empty');
       return true;
     } catch (error) {
       console.error('❌ Failed to publish message:', error);

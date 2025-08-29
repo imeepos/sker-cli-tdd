@@ -263,9 +263,9 @@ describe('ChatStorage', () => {
       await chatStorage.saveMessage('user', 'Test', sessionId);
 
       const stats = await chatStorage.getStats();
-      expect(stats.totalMessages).toBeGreaterThanOrEqual(1);
-      expect(stats.totalSessions).toBeGreaterThanOrEqual(1);
-      expect(typeof stats.dbSize).toBe('number');
+      expect(stats['totalMessages']).toBeGreaterThanOrEqual(1);
+      expect(stats['totalSessions']).toBeGreaterThanOrEqual(1);
+      expect(typeof stats['dbSize']).toBe('number');
     });
 
     it('应该能够清空所有数据', async () => {
@@ -275,8 +275,8 @@ describe('ChatStorage', () => {
       await chatStorage.clear();
 
       const stats = await chatStorage.getStats();
-      expect(stats.totalMessages).toBe(0);
-      expect(stats.totalSessions).toBe(0);
+      expect(stats['totalMessages']).toBe(0);
+      expect(stats['totalSessions']).toBe(0);
     });
   });
 });

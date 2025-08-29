@@ -254,7 +254,10 @@ export class MQAgent {
       const messageData = JSON.stringify(taskResult);
       return await this.mqConnection.publish(this.config.resultQueue, messageData);
     } catch (error) {
-      console.error('Failed to send result:', error);
+      // 在测试环境下不输出错误，避免测试噪音
+      if (process.env['NODE_ENV'] !== 'test') {
+        console.error('Failed to send result:', error);
+      }
       return false;
     }
   }

@@ -81,7 +81,10 @@ export class MCPConfig {
 
       return config;
     } catch (error) {
-      console.warn(`加载配置失败: ${(error as Error).message}，使用默认配置`);
+      // 在测试环境下不输出警告，避免测试噪音
+      if (process.env['NODE_ENV'] !== 'test') {
+        console.warn(`加载配置失败: ${(error as Error).message}，使用默认配置`);
+      }
       return { tools: [], resources: [] };
     }
   }

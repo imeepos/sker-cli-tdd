@@ -1391,7 +1391,10 @@ export class ContextBuilder {
               folderContext.projectInfo = projectInfo;
             } catch (error) {
               // 如果解析失败，创建基本的项目信息
-              console.warn(`无法解析项目配置 ${fullPath}: ${(error as Error).message}`);
+              // 在测试环境下不输出警告，避免测试噪音
+              if (!process.env['NODE_ENV'] || process.env['NODE_ENV'] !== 'test') {
+                console.warn(`无法解析项目配置 ${fullPath}: ${(error as Error).message}`);
+              }
               folderContext.projectInfo = {
                 name: folderContext.name
               };
@@ -1408,7 +1411,10 @@ export class ContextBuilder {
       }
     } catch (error) {
       // 忽略无法访问的目录
-      console.warn(`无法扫描目录 ${folderContext.path}: ${(error as Error).message}`);
+      // 在测试环境下不输出警告，避免测试噪音
+      if (!process.env['NODE_ENV'] || process.env['NODE_ENV'] !== 'test') {
+        console.warn(`无法扫描目录 ${folderContext.path}: ${(error as Error).message}`);
+      }
     }
   }
 
