@@ -63,6 +63,7 @@ export class Calculator {
 - **绝对不允许**跳过红阶段直接写实现
 - **绝对不允许**在红灯状态下进行重构
 - **绝对不允许**同时处理多个失败测试
+- **绝对不允许**重构阶段example
 
 ### ✅ 必须行为
 - **必须确认**测试在功能实现前是失败的
@@ -368,18 +369,8 @@ npm run test  # ✅ 测试通过
 # 现在可以安全重构
 ```
 
-## 📚 Claude TDD 学习资源
-
-### 推荐阅读顺序
-1. 阅读 `tdd-expert/tdd-expert.role.md` - 理解 TDD 核心原则
-2. 查看 `TDD_WORKFLOW_DEMO.md` - 学习完整工作流程
-3. 实践本文档中的示例 - 动手练习
-4. 在实际项目中应用 - 持续改进
-
 ### 关键文件说明
 - `jest.config.js` - 测试框架配置
 - `tsconfig.json` - TypeScript 严格模式配置
 - `package.json` - TDD 相关脚本命令
 - `src/*.test.ts` - 测试文件 (TDD 的核心)
-
-**开始你的 Claude TDD 之旅吧！记住：测试先行，质量至上！** 🚀
