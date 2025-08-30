@@ -43,7 +43,7 @@ async function todoExample() {
       tags: ['性能', '数据库']
     });
 
-    const todo4 = await todoStorage.addTodo('更新UI设计', {
+    await todoStorage.addTodo('更新UI设计', {
       description: '根据最新设计稿更新界面',
       priority: 'low',
       tags: ['UI', '设计']
@@ -107,9 +107,9 @@ async function todoExample() {
     console.log(`已完成: ${stats.completed}`);
     console.log(`待完成: ${stats.pending}`);
     console.log(`按优先级分布:`);
-    console.log(`  🔴 高优先级: ${stats.byPriority.high}`);
-    console.log(`  🟡 中优先级: ${stats.byPriority.medium}`);
-    console.log(`  🟢 低优先级: ${stats.byPriority.low}`);
+    console.log(`  🔴 高优先级: ${stats.byPriority['high']}`);
+    console.log(`  🟡 中优先级: ${stats.byPriority['medium']}`);
+    console.log(`  🟢 低优先级: ${stats.byPriority['low']}`);
     console.log('');
 
     // 更新任务

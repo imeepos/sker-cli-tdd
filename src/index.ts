@@ -19,6 +19,12 @@ export { SystemContextToolsProvider } from './system-context-tools.js';
 export { AgentToolsProvider } from './agent-tools.js';
 export { TodoToolsProvider } from './todo-tools.js';
 
+// 上下文相关导出
+export { ContextBuilder } from './context-builder.js';
+export { FolderContext } from './folder-context.js';
+export { FileContext } from './file-context.js';
+
 // 类型导出
 export type { CLIConfig, CLIOptions } from './cli.js';
 export type { MCPTool } from './mcp-server.js';
+export type { ContextBuilderOptions } from './context-builder.js';

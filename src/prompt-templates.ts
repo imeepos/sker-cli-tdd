@@ -247,6 +247,13 @@ export class PromptTemplatesProvider {
   }
 
   /**
+   * 注册所有模板（别名方法，向后兼容）
+   */
+  async registerAllTemplates(): Promise<void> {
+    await this.loadAllTemplates();
+  }
+
+  /**
    * 创建默认模板文件（向后兼容，现在创建default.md）
    */
   async createDefaultTemplates(): Promise<void> {
