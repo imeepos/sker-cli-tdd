@@ -15,10 +15,14 @@ describe('OpenAIAdapter', () => {
   let adapter: OpenAIAdapter;
   let mockConfig: UnifiedAIConfig;
   let mockOpenAIClient: jest.Mocked<OpenAI>;
+  let consoleSpy: jest.SpyInstance;
 
   beforeEach(() => {
     // 重置所有mock
     jest.clearAllMocks();
+
+    // Mock console.log to prevent Jest from capturing unexpected output
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
     // 创建mock配置
     mockConfig = {
@@ -48,6 +52,13 @@ describe('OpenAIAdapter', () => {
 
     // 创建适配器实例
     adapter = new OpenAIAdapter(mockConfig);
+  });
+
+  afterEach(() => {
+    // Restore console.log
+    if (consoleSpy) {
+      consoleSpy.mockRestore();
+    }
   });
 
   describe('构造函数', () => {

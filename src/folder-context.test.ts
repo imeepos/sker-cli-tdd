@@ -11,8 +11,11 @@ import * as path from 'path';
 describe('FolderContext', () => {
   let testDirPath: string;
   let testFilePath: string;
+  let consoleSpy: jest.SpyInstance;
 
   beforeEach(async () => {
+    // Mock console.warn to prevent Jest from capturing unexpected output
+    consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
     // 创建临时测试目录和文件
     testDirPath = path.join(__dirname, '..', 'test-temp-dir');
     testFilePath = path.join(testDirPath, 'test-file.txt');
@@ -22,6 +25,10 @@ describe('FolderContext', () => {
   });
 
   afterEach(async () => {
+    // Restore console.warn
+    if (consoleSpy) {
+      consoleSpy.mockRestore();
+    }
     // 清理临时测试文件和目录
     try {
       await fs.promises.rm(testDirPath, { recursive: true, force: true });

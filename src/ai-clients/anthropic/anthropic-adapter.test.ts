@@ -13,8 +13,11 @@ describe('AnthropicAdapter', () => {
   let adapter: AnthropicAdapter;
   let mockConfig: UnifiedAIConfig;
   let mockFetch: jest.MockedFunction<typeof fetch>;
+  let consoleSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    // Mock console.log to prevent Jest from capturing unexpected output
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
     mockConfig = {
       provider: 'anthropic',
       apiKey: 'test-api-key',
@@ -26,6 +29,13 @@ describe('AnthropicAdapter', () => {
     adapter = new AnthropicAdapter(mockConfig);
     mockFetch = fetch as jest.MockedFunction<typeof fetch>;
     mockFetch.mockClear();
+  });
+
+  afterEach(() => {
+    // Restore console.log
+    if (consoleSpy) {
+      consoleSpy.mockRestore();
+    }
   });
 
   describe('构造函数', () => {

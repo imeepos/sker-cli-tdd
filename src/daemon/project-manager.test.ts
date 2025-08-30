@@ -12,8 +12,11 @@ describe('Project Manager 多项目管理', () => {
   let projectManager: ProjectManager;
   let testProjectDir: string;
   let testProjectDir2: string;
+  let consoleSpy: jest.SpyInstance;
 
   beforeEach(async () => {
+    // Mock console.log to prevent Jest from capturing unexpected output
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
     projectManager = new ProjectManager();
     
     // 创建测试项目目录
@@ -37,6 +40,11 @@ describe('Project Manager 多项目管理', () => {
 
   afterEach(async () => {
     await projectManager.shutdown();
+    
+    // Restore console.log
+    if (consoleSpy) {
+      consoleSpy.mockRestore();
+    }
     
     // 清理测试目录
     try {

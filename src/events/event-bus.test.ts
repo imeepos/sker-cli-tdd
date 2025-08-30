@@ -23,14 +23,21 @@ interface ErrorEvent extends EventBusEvent {
 
 describe('EventBus 事件总线系统', () => {
   let eventBus: EventBus;
+  let consoleSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    // Mock console.error to prevent Jest from capturing unexpected output
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation();
     eventBus = new EventBus();
   });
 
   afterEach(() => {
     if (eventBus) {
       eventBus.destroy();
+    }
+    // Restore console.error
+    if (consoleSpy) {
+      consoleSpy.mockRestore();
     }
   });
 
