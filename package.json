@@ -38,6 +38,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/chokidar": "^2.1.7",
     "@types/iconv-lite": "^0.0.1",
     "@types/inquirer": "^9.0.9",
     "@types/jest": "^30.0.0",
@@ -53,6 +54,7 @@
   },
   "dependencies": {
     "chalk": "^5.6.0",
+    "chokidar": "^4.0.3",
     "commander": "^14.0.0",
     "dotenv": "^17.2.1",
     "iconv-lite": "^0.7.0",
