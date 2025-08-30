@@ -18,17 +18,20 @@ export interface DatabaseConfig {
 export class DatabaseService {
   protected db: Level<string, string>;
   protected sublevels: Map<string, any> = new Map();
-  
+
   constructor(config: DatabaseConfig = {}) {
     const defaultPath = path.join(os.homedir(), '.sker-ai', 'db');
     const actualPath = config.dbPath || defaultPath;
-    
+
     this.db = new Level(actualPath);
-    
+
     // 初始化子级数据库
     if (config.sublevels) {
       config.sublevels.forEach(name => {
-        this.sublevels.set(name, this.db.sublevel(name, { valueEncoding: 'json' }));
+        this.sublevels.set(
+          name,
+          this.db.sublevel(name, { valueEncoding: 'json' })
+        );
       });
     }
   }
@@ -87,7 +90,7 @@ export class DatabaseService {
    */
   async getStats(): Promise<{ [sublevelName: string]: number }> {
     const stats: { [sublevelName: string]: number } = {};
-    
+
     for (const [name, sublevel] of this.sublevels) {
       let count = 0;
       for await (const [] of sublevel.iterator({ values: false })) {
@@ -95,7 +98,7 @@ export class DatabaseService {
       }
       stats[name] = count;
     }
-    
+
     return stats;
   }
 }

@@ -11,7 +11,7 @@ import {
   UnifiedTool,
   UnifiedChatCompletionParams,
   UnifiedAIConfig,
-  AIProvider
+  AIProvider,
 } from '../base/unified-types';
 
 /**
@@ -26,7 +26,7 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
   constructor(config: UnifiedAIConfig) {
     super();
     this.config = config;
-    
+
     // 设置API基础URL和请求头
     this.baseURL = config.baseURL || 'https://api.anthropic.com';
     this.headers = {
@@ -39,11 +39,15 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
   /**
    * 标准聊天完成
    */
-  async chatCompletion(params: UnifiedChatCompletionParams): Promise<UnifiedResponse> {
+  async chatCompletion(
+    params: UnifiedChatCompletionParams
+  ): Promise<UnifiedResponse> {
     this.validateMessages(params.messages);
 
     try {
-      const anthropicMessages = this.convertToAnthropicMessages(params.messages);
+      const anthropicMessages = this.convertToAnthropicMessages(
+        params.messages
+      );
       const systemMessage = this.extractSystemMessage(params.messages);
 
       const requestBody = {
@@ -52,7 +56,9 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
         temperature: params.temperature || this.config.temperature,
         messages: anthropicMessages,
         ...(systemMessage && { system: systemMessage }),
-        ...(params.tools && { tools: this.convertToAnthropicTools(params.tools) }),
+        ...(params.tools && {
+          tools: this.convertToAnthropicTools(params.tools),
+        }),
         stream: false,
       };
 
@@ -66,11 +72,15 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
   /**
    * 流式聊天完成
    */
-  async* chatCompletionStream(params: UnifiedChatCompletionParams): AsyncIterable<UnifiedChunk> {
+  async *chatCompletionStream(
+    params: UnifiedChatCompletionParams
+  ): AsyncIterable<UnifiedChunk> {
     this.validateMessages(params.messages);
 
     try {
-      const anthropicMessages = this.convertToAnthropicMessages(params.messages);
+      const anthropicMessages = this.convertToAnthropicMessages(
+        params.messages
+      );
       const systemMessage = this.extractSystemMessage(params.messages);
 
       const requestBody = {
@@ -79,14 +89,19 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
         temperature: params.temperature || this.config.temperature,
         messages: anthropicMessages,
         ...(systemMessage && { system: systemMessage }),
-        ...(params.tools && { tools: this.convertToAnthropicTools(params.tools) }),
+        ...(params.tools && {
+          tools: this.convertToAnthropicTools(params.tools),
+        }),
         stream: true,
       };
 
       const stream = await this.makeStreamRequest('/v1/messages', requestBody);
-      
+
       for await (const chunk of stream) {
-        if (chunk.type === 'content_block_delta' || chunk.type === 'message_delta') {
+        if (
+          chunk.type === 'content_block_delta' ||
+          chunk.type === 'message_delta'
+        ) {
           yield this.convertFromAnthropicChunk(chunk);
         }
       }
@@ -98,7 +113,10 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
   /**
    * 带工具调用的聊天完成
    */
-  async chatCompletionWithTools(messages: UnifiedMessage[], tools: UnifiedTool[]): Promise<UnifiedResponse> {
+  async chatCompletionWithTools(
+    messages: UnifiedMessage[],
+    tools: UnifiedTool[]
+  ): Promise<UnifiedResponse> {
     this.validateMessages(messages);
     this.validateTools(tools);
 
@@ -165,8 +183,12 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(`Anthropic API Error ${response.status}: ${(error as Error).message || (error as any).error?.message}`);
+      const error = await response
+        .json()
+        .catch(() => ({ message: response.statusText }));
+      throw new Error(
+        `Anthropic API Error ${response.status}: ${(error as Error).message || (error as any).error?.message}`
+      );
     }
 
     return response.json();
@@ -175,19 +197,26 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
   /**
    * 发送流式HTTP请求
    */
-  private async* makeStreamRequest(endpoint: string, body: any): AsyncIterable<any> {
+  private async *makeStreamRequest(
+    endpoint: string,
+    body: any
+  ): AsyncIterable<any> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'POST',
       headers: {
         ...this.headers,
-        'Accept': 'text/event-stream',
+        Accept: 'text/event-stream',
       },
       body: JSON.stringify(body),
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(`Anthropic API Error ${response.status}: ${(error as any).message || (error as any).error?.message}`);
+      const error = await response
+        .json()
+        .catch(() => ({ message: response.statusText }));
+      throw new Error(
+        `Anthropic API Error ${response.status}: ${(error as any).message || (error as any).error?.message}`
+      );
     }
 
     const reader = response.body?.getReader();
@@ -211,7 +240,7 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
             if (data === '[DONE]') return;
-            
+
             try {
               yield JSON.parse(data);
             } catch {
@@ -265,19 +294,25 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
       object: 'chat.completion',
       created: this.getCurrentTimestamp(),
       model: response.model || this.config.model,
-      choices: [{
-        index: 0,
-        message: {
-          role: 'assistant',
-          content: this.extractContentFromAnthropicResponse(response),
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: this.extractContentFromAnthropicResponse(response),
+          },
+          finishReason: this.mapAnthropicStopReason(response.stop_reason),
         },
-        finishReason: this.mapAnthropicStopReason(response.stop_reason),
-      }],
-      usage: response.usage ? {
-        promptTokens: response.usage.input_tokens || 0,
-        completionTokens: response.usage.output_tokens || 0,
-        totalTokens: (response.usage.input_tokens || 0) + (response.usage.output_tokens || 0),
-      } : undefined,
+      ],
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.input_tokens || 0,
+            completionTokens: response.usage.output_tokens || 0,
+            totalTokens:
+              (response.usage.input_tokens || 0) +
+              (response.usage.output_tokens || 0),
+          }
+        : undefined,
     };
   }
 
@@ -290,14 +325,16 @@ export class AnthropicAdapter extends BaseAIClientAdapter {
       object: 'chat.completion.chunk',
       created: this.getCurrentTimestamp(),
       model: this.config.model,
-      choices: [{
-        index: 0,
-        delta: {
-          role: 'assistant',
-          content: chunk.delta?.text || '',
+      choices: [
+        {
+          index: 0,
+          delta: {
+            role: 'assistant',
+            content: chunk.delta?.text || '',
+          },
+          finishReason: chunk.type === 'message_stop' ? 'stop' : null,
         },
-        finishReason: chunk.type === 'message_stop' ? 'stop' : null,
-      }],
+      ],
     };
   }
 

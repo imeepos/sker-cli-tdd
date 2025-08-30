@@ -9,7 +9,8 @@ import { MCPPrompt, MCPPromptManager } from './mcp-prompts'; // ❌ 这会失败
 describe('MCP Prompt 提示词功能', () => {
   describe('Prompt 接口定义', () => {
     it('应该定义 MCPPrompt 接口', () => {
-      const prompt: MCPPrompt = { // ❌ 会失败 - 接口不存在
+      const prompt: MCPPrompt = {
+        // ❌ 会失败 - 接口不存在
         name: 'test-prompt',
         description: '测试提示词',
         template: '你好，{{name}}！',
@@ -17,11 +18,11 @@ describe('MCP Prompt 提示词功能', () => {
           {
             name: 'name',
             description: '用户名称',
-            required: true
-          }
-        ]
+            required: true,
+          },
+        ],
       };
-      
+
       expect(prompt.name).toBe('test-prompt');
       expect(prompt.template).toBe('你好，{{name}}！');
       expect(prompt.arguments).toHaveLength(1);
@@ -48,15 +49,15 @@ describe('MCP Prompt 提示词功能', () => {
           {
             name: 'name',
             description: '用户名称',
-            required: true
+            required: true,
           },
           {
             name: 'product',
             description: '产品名称',
             required: false,
-            default: 'MCP 服务器'
-          }
-        ]
+            default: 'MCP 服务器',
+          },
+        ],
       };
 
       promptManager.registerPrompt(prompt); // ❌ 会失败
@@ -69,14 +70,14 @@ describe('MCP Prompt 提示词功能', () => {
         name: 'prompt1',
         description: '提示词1',
         template: '模板1',
-        arguments: []
+        arguments: [],
       };
 
       const prompt2: MCPPrompt = {
         name: 'prompt2',
         description: '提示词2',
         template: '模板2',
-        arguments: []
+        arguments: [],
       };
 
       promptManager.registerPrompt(prompt1);
@@ -93,7 +94,7 @@ describe('MCP Prompt 提示词功能', () => {
         name: 'test-prompt',
         description: '测试提示词',
         template: '测试模板',
-        arguments: []
+        arguments: [],
       };
 
       promptManager.registerPrompt(prompt);
@@ -111,14 +112,14 @@ describe('MCP Prompt 提示词功能', () => {
         name: 'duplicate',
         description: '第一个',
         template: '模板1',
-        arguments: []
+        arguments: [],
       };
 
       const prompt2: MCPPrompt = {
         name: 'duplicate',
         description: '第二个',
         template: '模板2',
-        arguments: []
+        arguments: [],
       };
 
       promptManager.registerPrompt(prompt1);
@@ -143,13 +144,15 @@ describe('MCP Prompt 提示词功能', () => {
           {
             name: 'name',
             description: '用户名称',
-            required: true
-          }
-        ]
+            required: true,
+          },
+        ],
       };
 
       promptManager.registerPrompt(prompt);
-      const result = await promptManager.renderPrompt('simple', { name: '张三' }); // ❌ 会失败
+      const result = await promptManager.renderPrompt('simple', {
+        name: '张三',
+      }); // ❌ 会失败
       expect(result).toBe('你好，张三！');
     });
 
@@ -162,19 +165,21 @@ describe('MCP Prompt 提示词功能', () => {
           {
             name: 'name',
             description: '用户名称',
-            required: true
+            required: true,
           },
           {
             name: 'product',
             description: '产品名称',
             required: false,
-            default: 'MCP 服务器'
-          }
-        ]
+            default: 'MCP 服务器',
+          },
+        ],
       };
 
       promptManager.registerPrompt(prompt);
-      const result = await promptManager.renderPrompt('with-default', { name: '李四' });
+      const result = await promptManager.renderPrompt('with-default', {
+        name: '李四',
+      });
       expect(result).toBe('欢迎使用 MCP 服务器，李四！');
     });
 
@@ -187,15 +192,15 @@ describe('MCP Prompt 提示词功能', () => {
           {
             name: 'name',
             description: '用户名称',
-            required: true
-          }
-        ]
+            required: true,
+          },
+        ],
       };
 
       promptManager.registerPrompt(prompt);
-      await expect(promptManager.renderPrompt('required-args', {}))
-        .rejects
-        .toThrow('必需参数 "name" 未提供');
+      await expect(
+        promptManager.renderPrompt('required-args', {})
+      ).rejects.toThrow('必需参数 "name" 未提供');
     });
 
     it('应该处理复杂的 Prompt 模板', async () => {
@@ -212,32 +217,32 @@ describe('MCP Prompt 提示词功能', () => {
           {
             name: 'role',
             description: '角色',
-            required: true
+            required: true,
           },
           {
             name: 'task',
             description: '任务',
-            required: true
+            required: true,
           },
           {
             name: 'name',
             description: '用户姓名',
-            required: true
+            required: true,
           },
           {
             name: 'level',
             description: '经验等级',
             required: false,
-            default: '初级'
-          }
-        ]
+            default: '初级',
+          },
+        ],
       };
 
       promptManager.registerPrompt(prompt);
       const result = await promptManager.renderPrompt('complex', {
         role: 'AI 助手',
         task: '学习编程',
-        name: '王五'
+        name: '王五',
       });
 
       expect(result).toContain('你是一个 AI 助手');
@@ -266,7 +271,7 @@ describe('MCP Prompt 提示词功能', () => {
         name: 'server-prompt',
         description: '服务器提示词',
         template: '服务器模板',
-        arguments: []
+        arguments: [],
       };
 
       server.setPromptManager(promptManager);
@@ -285,21 +290,22 @@ describe('MCP Prompt 提示词功能', () => {
           {
             name: 'name',
             description: '用户名称',
-            required: true
-          }
-        ]
+            required: true,
+          },
+        ],
       };
 
       server.setPromptManager(promptManager);
       promptManager.registerPrompt(prompt);
 
-      const result = await server.renderPrompt('server-render', { name: '赵六' }); // ❌ 会失败
+      const result = await server.renderPrompt('server-render', {
+        name: '赵六',
+      }); // ❌ 会失败
       expect(result).toBe('你好，赵六！');
     });
 
     it('应该在没有 Prompt 管理器时抛出错误', () => {
-      expect(() => server.getPrompts())
-        .toThrow('Prompt 管理器未设置');
+      expect(() => server.getPrompts()).toThrow('Prompt 管理器未设置');
     });
   });
 });

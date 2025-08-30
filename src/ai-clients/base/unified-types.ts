@@ -114,7 +114,10 @@ export interface UnifiedChatCompletionParams {
   maxTokens?: number;
   temperature?: number;
   tools?: UnifiedTool[];
-  toolChoice?: 'auto' | 'none' | { type: 'function'; function: { name: string } };
+  toolChoice?:
+    | 'auto'
+    | 'none'
+    | { type: 'function'; function: { name: string } };
   stream?: boolean;
 }
 

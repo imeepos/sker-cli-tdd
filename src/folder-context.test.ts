@@ -193,7 +193,7 @@ describe('FolderContext', () => {
       subFolder.addChild(subFile);
 
       const descendants = root.getAllDescendants();
-      
+
       expect(descendants).toHaveLength(3);
       expect(descendants).toContain(subFolder);
       expect(descendants).toContain(file);
@@ -211,7 +211,7 @@ describe('FolderContext', () => {
       root.addChild(txtFile);
 
       const scriptFiles = root.findFilesByPattern(/\.(js|ts)$/);
-      
+
       expect(scriptFiles).toHaveLength(2);
       expect(scriptFiles).toContain(jsFile);
       expect(scriptFiles).toContain(tsFile);
@@ -229,7 +229,7 @@ describe('FolderContext', () => {
       root.addChild(distFolder);
 
       const sourceFolders = root.findFoldersByPattern(/^(src|test)$/);
-      
+
       expect(sourceFolders).toHaveLength(2);
       expect(sourceFolders).toContain(srcFolder);
       expect(sourceFolders).toContain(testFolder);
@@ -258,7 +258,7 @@ describe('FolderContext', () => {
       folder.addChild(subFolder);
 
       const summary = await folder.getSummary();
-      
+
       expect(typeof summary).toBe('string');
       expect(summary).toContain('test');
       expect(summary).toContain('test-project');

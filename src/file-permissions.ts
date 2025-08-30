@@ -71,27 +71,27 @@ export interface PermissionIssue {
 
 /**
  * 文件权限管理工具
- * 
+ *
  * 基于FileContext和FolderContext提供完整的文件权限管理功能，
  * 包括权限检查、修改、批量操作和分析报告。
- * 
+ *
  * @example
  * ```typescript
  * const manager = new FilePermissionsManager();
  * const fileContext = new FileContext('/path/to/file.txt');
- * 
+ *
  * // 检查权限
  * const isReadable = await manager.isReadable(fileContext);
  * const permissions = await manager.getPermissions(fileContext);
- * 
+ *
  * // 修改权限
  * await manager.setReadOnly(fileContext);
  * await manager.setMode(fileContext, 0o755);
- * 
+ *
  * // 批量操作
  * const folderContext = new FolderContext('/path/to/folder');
  * await manager.setFolderReadOnly(folderContext);
- * 
+ *
  * // 生成报告
  * const report = await manager.generatePermissionsReport(folderContext);
  * ```
@@ -99,7 +99,7 @@ export interface PermissionIssue {
 export class FilePermissionsManager {
   /**
    * 检查文件是否可读
-   * 
+   *
    * @param context 文件上下文
    * @returns Promise，解析为是否可读
    */
@@ -114,7 +114,7 @@ export class FilePermissionsManager {
 
   /**
    * 检查文件是否可写
-   * 
+   *
    * @param context 文件上下文
    * @returns Promise，解析为是否可写
    */
@@ -129,7 +129,7 @@ export class FilePermissionsManager {
 
   /**
    * 检查文件是否可执行
-   * 
+   *
    * @param context 文件上下文
    * @returns Promise，解析为是否可执行
    */
@@ -144,13 +144,13 @@ export class FilePermissionsManager {
 
   /**
    * 获取文件的详细权限信息
-   * 
+   *
    * @param context 文件上下文
    * @returns Promise，解析为权限信息
    */
   async getPermissions(context: FileContext): Promise<FilePermissions> {
     const stats = await fs.promises.stat(context.path);
-    
+
     return {
       readable: await this.isReadable(context),
       writable: await this.isWritable(context),
@@ -158,20 +158,20 @@ export class FilePermissionsManager {
       mode: stats.mode,
       owner: {
         uid: stats.uid,
-        username: this.getUsername(stats.uid)
+        username: this.getUsername(stats.uid),
       },
       group: {
         gid: stats.gid,
-        groupname: this.getGroupname(stats.gid)
+        groupname: this.getGroupname(stats.gid),
       },
       size: stats.size,
-      mtime: stats.mtime
+      mtime: stats.mtime,
     };
   }
 
   /**
    * 设置文件为只读
-   * 
+   *
    * @param context 文件上下文
    */
   async setReadOnly(context: FileContext): Promise<void> {
@@ -182,7 +182,7 @@ export class FilePermissionsManager {
 
   /**
    * 设置文件为可写
-   * 
+   *
    * @param context 文件上下文
    */
   async setWritable(context: FileContext): Promise<void> {
@@ -193,7 +193,7 @@ export class FilePermissionsManager {
 
   /**
    * 设置文件为可执行
-   * 
+   *
    * @param context 文件上下文
    */
   async setExecutable(context: FileContext): Promise<void> {
@@ -204,7 +204,7 @@ export class FilePermissionsManager {
 
   /**
    * 使用八进制模式设置权限
-   * 
+   *
    * @param context 文件上下文
    * @param mode 八进制权限模式
    */
@@ -214,13 +214,23 @@ export class FilePermissionsManager {
 
   /**
    * 批量检查文件夹中所有文件的权限
-   * 
+   *
    * @param context 文件夹上下文
    * @returns Promise，解析为文件夹权限信息
    */
-  async checkFolderPermissions(context: FolderContext): Promise<FolderPermissions> {
-    const files: Array<{ name: string; path: string; permissions: FilePermissions }> = [];
-    const folders: Array<{ name: string; path: string; permissions: FolderPermissions }> = [];
+  async checkFolderPermissions(
+    context: FolderContext
+  ): Promise<FolderPermissions> {
+    const files: Array<{
+      name: string;
+      path: string;
+      permissions: FilePermissions;
+    }> = [];
+    const folders: Array<{
+      name: string;
+      path: string;
+      permissions: FolderPermissions;
+    }> = [];
 
     // 检查文件夹自身权限
     const folderReadable = await this.isFolderReadable(context);
@@ -235,10 +245,12 @@ export class FilePermissionsManager {
         files.push({
           name: file.name,
           path: file.path,
-          permissions
+          permissions,
         });
       } catch (error) {
-        console.warn(`无法获取文件权限 ${file.path}: ${(error as Error).message}`);
+        console.warn(
+          `无法获取文件权限 ${file.path}: ${(error as Error).message}`
+        );
       }
     }
 
@@ -250,10 +262,12 @@ export class FilePermissionsManager {
         folders.push({
           name: folder.name,
           path: folder.path,
-          permissions
+          permissions,
         });
       } catch (error) {
-        console.warn(`无法获取文件夹权限 ${folder.path}: ${(error as Error).message}`);
+        console.warn(
+          `无法获取文件夹权限 ${folder.path}: ${(error as Error).message}`
+        );
       }
     }
 
@@ -262,30 +276,32 @@ export class FilePermissionsManager {
       writable: folderWritable,
       executable: folderExecutable,
       files,
-      folders
+      folders,
     };
   }
 
   /**
    * 批量设置文件夹中所有文件为只读
-   * 
+   *
    * @param context 文件夹上下文
    */
   async setFolderReadOnly(context: FolderContext): Promise<void> {
     const allFiles = context.getAllFiles();
-    
+
     for (const file of allFiles) {
       try {
         await this.setReadOnly(file);
       } catch (error) {
-        console.warn(`无法设置文件只读 ${file.path}: ${(error as Error).message}`);
+        console.warn(
+          `无法设置文件只读 ${file.path}: ${(error as Error).message}`
+        );
       }
     }
   }
 
   /**
    * 生成权限分析报告
-   * 
+   *
    * @param context 文件夹上下文
    * @returns Promise，解析为权限报告字符串
    */
@@ -294,26 +310,34 @@ export class FilePermissionsManager {
     const lines: string[] = [];
 
     lines.push('📋 权限分析报告');
-    lines.push('=' .repeat(50));
+    lines.push('='.repeat(50));
     lines.push(`📁 目录: ${context.path}`);
     lines.push(`📊 文件总数: ${folderPermissions.files.length}`);
-    
+
     // 统计权限分布
-    const readableFiles = folderPermissions.files.filter(f => f.permissions.readable).length;
-    const writableFiles = folderPermissions.files.filter(f => f.permissions.writable).length;
-    const executableFiles = folderPermissions.files.filter(f => f.permissions.executable).length;
-    
+    const readableFiles = folderPermissions.files.filter(
+      f => f.permissions.readable
+    ).length;
+    const writableFiles = folderPermissions.files.filter(
+      f => f.permissions.writable
+    ).length;
+    const executableFiles = folderPermissions.files.filter(
+      f => f.permissions.executable
+    ).length;
+
     lines.push(`👁️  可读文件: ${readableFiles}`);
     lines.push(`✏️  可写文件: ${writableFiles}`);
     lines.push(`⚡ 可执行文件: ${executableFiles}`);
-    
+
     // 权限问题
     const issues = await this.findPermissionIssues(context);
     if (issues.length > 0) {
       lines.push('');
       lines.push('⚠️  权限问题:');
       for (const issue of issues) {
-        lines.push(`  ${issue.severity.toUpperCase()}: ${issue.file} - ${issue.issue}`);
+        lines.push(
+          `  ${issue.severity.toUpperCase()}: ${issue.file} - ${issue.issue}`
+        );
       }
     }
 
@@ -322,25 +346,27 @@ export class FilePermissionsManager {
 
   /**
    * 识别权限异常文件
-   * 
+   *
    * @param context 文件夹上下文
    * @returns Promise，解析为权限问题数组
    */
-  async findPermissionIssues(context: FolderContext): Promise<PermissionIssue[]> {
+  async findPermissionIssues(
+    context: FolderContext
+  ): Promise<PermissionIssue[]> {
     const issues: PermissionIssue[] = [];
     const allFiles = context.getAllFiles();
 
     for (const file of allFiles) {
       try {
         const permissions = await this.getPermissions(file);
-        
+
         // 检查常见权限问题
         if (!permissions.readable) {
           issues.push({
             file: file.path,
             issue: '文件不可读',
             severity: 'high',
-            suggestion: '检查文件权限设置'
+            suggestion: '检查文件权限设置',
           });
         }
 
@@ -350,7 +376,7 @@ export class FilePermissionsManager {
             file: file.path,
             issue: '非脚本文件具有执行权限',
             severity: 'medium',
-            suggestion: '移除不必要的执行权限'
+            suggestion: '移除不必要的执行权限',
           });
         }
 
@@ -360,15 +386,14 @@ export class FilePermissionsManager {
             file: file.path,
             issue: '文件权限过于宽松 (777)',
             severity: 'high',
-            suggestion: '限制文件权限'
+            suggestion: '限制文件权限',
           });
         }
-
       } catch (error) {
         issues.push({
           file: file.path,
           issue: `无法检查权限: ${(error as Error).message}`,
-          severity: 'low'
+          severity: 'low',
         });
       }
     }
@@ -422,7 +447,9 @@ export class FilePermissionsManager {
   private getUsername(uid: number): string | undefined {
     // 在实际实现中，可以通过系统调用获取用户名
     const configManager = ConfigManager.getInstance();
-    return process.getuid && process.getuid() === uid ? configManager.getCurrentUser() : undefined;
+    return process.getuid && process.getuid() === uid
+      ? configManager.getCurrentUser()
+      : undefined;
   }
 
   /**
@@ -439,7 +466,15 @@ export class FilePermissionsManager {
    * @private
    */
   private isScriptFile(filename: string): boolean {
-    const scriptExtensions = ['.sh', '.bat', '.cmd', '.ps1', '.py', '.js', '.ts'];
+    const scriptExtensions = [
+      '.sh',
+      '.bat',
+      '.cmd',
+      '.ps1',
+      '.py',
+      '.js',
+      '.ts',
+    ];
     const ext = path.extname(filename).toLowerCase();
     return scriptExtensions.includes(ext);
   }

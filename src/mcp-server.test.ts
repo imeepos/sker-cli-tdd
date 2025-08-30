@@ -62,7 +62,7 @@ describe('MCP服务器', () => {
       const tool = {
         name: 'calculator',
         description: '基础计算器操作',
-        handler: jest.fn()
+        handler: jest.fn(),
       };
 
       server.registerTool(tool); // ❌ 会失败
@@ -74,7 +74,7 @@ describe('MCP服务器', () => {
       const tool = {
         name: 'test-tool',
         description: '测试工具',
-        handler: mockHandler
+        handler: mockHandler,
       };
 
       server.registerTool(tool);
@@ -86,8 +86,7 @@ describe('MCP服务器', () => {
 
     it('应该为未注册的工具抛出错误', async () => {
       await expect(server.executeTool('nonexistent', {})) // ❌ 会失败
-        .rejects
-        .toThrow('工具 "nonexistent" 未找到');
+        .rejects.toThrow('工具 "nonexistent" 未找到');
     });
   });
 
@@ -102,7 +101,7 @@ describe('MCP服务器', () => {
       const resource = {
         uri: 'file://test.txt',
         name: '测试文件',
-        mimeType: 'text/plain'
+        mimeType: 'text/plain',
       };
 
       server.registerResource(resource);
@@ -113,7 +112,7 @@ describe('MCP服务器', () => {
       const resource = {
         uri: 'file://test.txt',
         name: '测试文件',
-        mimeType: 'text/plain'
+        mimeType: 'text/plain',
       };
 
       server.registerResource(resource);
@@ -134,7 +133,7 @@ describe('MCP服务器', () => {
       const calculatorTool = {
         name: 'add',
         description: '两数相加',
-        handler: jest.fn().mockResolvedValue({ result: 8 })
+        handler: jest.fn().mockResolvedValue({ result: 8 }),
       };
 
       server.registerTool(calculatorTool);
@@ -149,7 +148,7 @@ describe('MCP服务器', () => {
       const calculatorTool = {
         name: 'add',
         description: '两数相加',
-        handler: mockHandler
+        handler: mockHandler,
       };
 
       server.registerTool(calculatorTool);

@@ -99,11 +99,24 @@ export interface SystemContext {
  */
 export class SystemContextCollector {
   private readonly commonTools = [
-    'node', 'npm', 'git', 'python', 'java', 'docker', 'curl', 'wget'
+    'node',
+    'npm',
+    'git',
+    'python',
+    'java',
+    'docker',
+    'curl',
+    'wget',
   ];
 
   private readonly commonShells = [
-    'bash', 'zsh', 'fish', 'cmd', 'powershell', 'pwsh', 'PowerShell'
+    'bash',
+    'zsh',
+    'fish',
+    'cmd',
+    'powershell',
+    'pwsh',
+    'PowerShell',
   ];
 
   /**
@@ -117,7 +130,7 @@ export class SystemContextCollector {
       shells,
       currentShell,
       environment,
-      networkInfo
+      networkInfo,
     ] = await Promise.all([
       this.collectOSInfo(),
       this.collectSystemInfo(),
@@ -125,7 +138,7 @@ export class SystemContextCollector {
       this.collectShells(),
       this.detectCurrentShell(),
       this.collectEnvironment(),
-      this.collectNetworkInfo()
+      this.collectNetworkInfo(),
     ]);
 
     return {
@@ -136,7 +149,7 @@ export class SystemContextCollector {
       currentShell,
       environment,
       network: networkInfo,
-      collectedAt: new Date()
+      collectedAt: new Date(),
     };
   }
 
@@ -150,7 +163,7 @@ export class SystemContextCollector {
       version: os.version(),
       arch: os.arch(),
       release: os.release(),
-      hostname: os.hostname()
+      hostname: os.hostname(),
     };
   }
 
@@ -163,7 +176,7 @@ export class SystemContextCollector {
       freeMemory: os.freemem(),
       cpuCount: os.cpus().length,
       uptime: os.uptime(),
-      loadAverage: os.loadavg()
+      loadAverage: os.loadavg(),
     };
   }
 
@@ -172,12 +185,12 @@ export class SystemContextCollector {
    */
   private async collectCommandLineTools(): Promise<CommandLineTool[]> {
     const tools: CommandLineTool[] = [];
-    
+
     for (const toolName of this.commonTools) {
       const toolInfo = await this.checkCommandLineTool(toolName);
       tools.push(toolInfo);
     }
-    
+
     return tools.filter(tool => tool.available);
   }
 
@@ -190,13 +203,16 @@ export class SystemContextCollector {
       return {
         name,
         available: result.success,
-        version: result.output && result.output.length > 0 ? result.output.split('\n')[0]?.trim() : undefined,
-        path: await this.getCommandPath(name)
+        version:
+          result.output && result.output.length > 0
+            ? result.output.split('\n')[0]?.trim()
+            : undefined,
+        path: await this.getCommandPath(name),
       };
     } catch {
       return {
         name,
-        available: false
+        available: false,
       };
     }
   }
@@ -208,7 +224,9 @@ export class SystemContextCollector {
     try {
       const whichCmd = os.platform() === 'win32' ? 'where' : 'which';
       const result = await this.executeCommand(`${whichCmd} ${command}`);
-      return result.success && result.output && result.output.length > 0 ? result.output.split('\n')[0]?.trim() : undefined;
+      return result.success && result.output && result.output.length > 0
+        ? result.output.split('\n')[0]?.trim()
+        : undefined;
     } catch {
       return undefined;
     }
@@ -219,14 +237,14 @@ export class SystemContextCollector {
    */
   private async collectShells(): Promise<ShellInfo[]> {
     const shells: ShellInfo[] = [];
-    
+
     for (const shellName of this.commonShells) {
       const shellInfo = await this.checkShell(shellName);
       if (shellInfo.available) {
         shells.push(shellInfo);
       }
     }
-    
+
     return shells;
   }
 
@@ -252,13 +270,16 @@ export class SystemContextCollector {
       return {
         name,
         available: result.success,
-        version: result.output && result.output.length > 0 ? result.output.split('\n')[0]?.trim() : undefined,
-        path: await this.getCommandPath(name)
+        version:
+          result.output && result.output.length > 0
+            ? result.output.split('\n')[0]?.trim()
+            : undefined,
+        path: await this.getCommandPath(name),
       };
     } catch {
       return {
         name,
-        available: false
+        available: false,
       };
     }
   }
@@ -276,7 +297,7 @@ export class SystemContextCollector {
       name: shellName,
       available: true,
       path: shellEnv,
-      isDefault: true
+      isDefault: true,
     };
   }
 
@@ -288,21 +309,23 @@ export class SystemContextCollector {
     // 但这是在 SystemContext 内部，用于系统信息收集的特殊用途
     const env = { ...process.env };
     const sensitiveKeys = ['PASSWORD', 'SECRET', 'TOKEN', 'KEY', 'PRIVATE'];
-    
+
     // 过滤敏感环境变量
     Object.keys(env).forEach(key => {
-      if (sensitiveKeys.some(sensitive => key.toUpperCase().includes(sensitive))) {
+      if (
+        sensitiveKeys.some(sensitive => key.toUpperCase().includes(sensitive))
+      ) {
         delete env[key];
       }
     });
-    
+
     // 确保包含重要的环境变量
     return {
       PATH: env['PATH'] || '',
       NODE_ENV: env['NODE_ENV'] || 'development',
       HOME: env['HOME'] || env['USERPROFILE'] || '',
       USER: env['USER'] || env['USERNAME'] || '',
-      ...env
+      ...env,
     };
   }
 
@@ -312,10 +335,10 @@ export class SystemContextCollector {
   private async collectNetworkInfo(): Promise<NetworkInfo> {
     const interfaces = this.getNetworkInterfaces();
     const connectivity = await this.checkNetworkConnectivity();
-    
+
     return {
       interfaces,
-      connectivity
+      connectivity,
     };
   }
 
@@ -325,18 +348,18 @@ export class SystemContextCollector {
   private getNetworkInterfaces(): NetworkInterface[] {
     const interfaces: NetworkInterface[] = [];
     const nets = networkInterfaces();
-    
+
     Object.keys(nets).forEach(name => {
       nets[name]?.forEach(net => {
         interfaces.push({
           name,
           address: net.address,
           family: net.family,
-          internal: net.internal
+          internal: net.internal,
         });
       });
     });
-    
+
     return interfaces;
   }
 
@@ -346,15 +369,17 @@ export class SystemContextCollector {
   private async checkNetworkConnectivity(): Promise<NetworkConnectivity> {
     try {
       // 简单的网络连接检查
-      const result = await this.executeCommand('ping -c 1 8.8.8.8 || ping -n 1 8.8.8.8');
+      const result = await this.executeCommand(
+        'ping -c 1 8.8.8.8 || ping -n 1 8.8.8.8'
+      );
       return {
         internet: result.success,
-        dns: result.success
+        dns: result.success,
       };
     } catch {
       return {
         internet: false,
-        dns: false
+        dns: false,
       };
     }
   }
@@ -362,33 +387,35 @@ export class SystemContextCollector {
   /**
    * 执行命令的辅助方法
    */
-  private executeCommand(command: string): Promise<{ success: boolean; output: string }> {
-    return new Promise((resolve) => {
+  private executeCommand(
+    command: string
+  ): Promise<{ success: boolean; output: string }> {
+    return new Promise(resolve => {
       const shell = os.platform() === 'win32' ? 'cmd' : 'sh';
       const flag = os.platform() === 'win32' ? '/c' : '-c';
-      
+
       const child = spawn(shell, [flag, command], { stdio: 'pipe' });
       let output = '';
-      
-      child.stdout?.on('data', (data) => {
+
+      child.stdout?.on('data', data => {
         output += data.toString();
       });
-      
-      child.stderr?.on('data', (data) => {
+
+      child.stderr?.on('data', data => {
         output += data.toString();
       });
-      
-      child.on('close', (code) => {
+
+      child.on('close', code => {
         resolve({
           success: code === 0,
-          output: output.trim() || ''
+          output: output.trim() || '',
         });
       });
 
       child.on('error', () => {
         resolve({
           success: false,
-          output: ''
+          output: '',
         });
       });
     });
@@ -399,7 +426,7 @@ export class SystemContextCollector {
    */
   async generateContextSummary(): Promise<string> {
     const context = await this.collectSystemContext();
-    
+
     const summary = `
 系统上下文摘要
 ================
@@ -430,7 +457,7 @@ ${context.shells.map(shell => `- ${shell.name}: ${shell.version || '未知版本
 
 收集时间: ${context.collectedAt.toLocaleString()}
     `.trim();
-    
+
     return summary;
   }
 }

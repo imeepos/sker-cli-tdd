@@ -13,7 +13,10 @@ import { ConfigManager } from '../../config-manager';
  * AI客户端工厂类
  */
 export class AIClientFactory {
-  private static registeredAdapters = new Map<AIProvider, new (config: UnifiedAIConfig) => UnifiedAIClient>();
+  private static registeredAdapters = new Map<
+    AIProvider,
+    new (config: UnifiedAIConfig) => UnifiedAIClient
+  >();
 
   // 静态初始化：注册内置适配器
   static {
@@ -26,7 +29,10 @@ export class AIClientFactory {
    * @param provider 提供商类型
    * @param adapterClass 适配器类
    */
-  static registerAdapter(provider: AIProvider, adapterClass: new (config: UnifiedAIConfig) => UnifiedAIClient): void {
+  static registerAdapter(
+    provider: AIProvider,
+    adapterClass: new (config: UnifiedAIConfig) => UnifiedAIClient
+  ): void {
     this.registeredAdapters.set(provider, adapterClass);
   }
 
@@ -37,7 +43,7 @@ export class AIClientFactory {
    */
   static create(config: UnifiedAIConfig): UnifiedAIClient {
     const AdapterClass = this.registeredAdapters.get(config.provider);
-    
+
     if (!AdapterClass) {
       throw new Error(`Unsupported AI provider: ${config.provider}`);
     }
@@ -83,7 +89,10 @@ export class AIClientFactory {
     }
 
     // 验证温度范围
-    if (config.temperature !== undefined && (config.temperature < 0 || config.temperature > 2)) {
+    if (
+      config.temperature !== undefined &&
+      (config.temperature < 0 || config.temperature > 2)
+    ) {
       throw new Error('Temperature must be between 0 and 2');
     }
 
@@ -122,7 +131,10 @@ export class AIClientFactory {
   /**
    * 创建带故障转移的客户端
    */
-  static createWithFailover(primaryConfig: UnifiedAIConfig, fallbackConfigs: UnifiedAIConfig[]): UnifiedAIClient[] {
+  static createWithFailover(
+    primaryConfig: UnifiedAIConfig,
+    fallbackConfigs: UnifiedAIConfig[]
+  ): UnifiedAIClient[] {
     const clients = [this.create(primaryConfig)];
     clients.push(...fallbackConfigs.map(config => this.create(config)));
     return clients;

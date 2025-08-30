@@ -9,7 +9,7 @@ describe('Context基础接口', () => {
   describe('ProjectInfo接口', () => {
     it('应该包含必需的name属性', () => {
       const projectInfo: ProjectInfo = {
-        name: 'test-project'
+        name: 'test-project',
       };
 
       expect(projectInfo.name).toBe('test-project');
@@ -20,7 +20,7 @@ describe('Context基础接口', () => {
         name: 'test-project',
         version: '1.0.0',
         description: 'Test project description',
-        customField: 'custom-value'
+        customField: 'custom-value',
       };
 
       expect(projectInfo.version).toBe('1.0.0');
@@ -35,7 +35,7 @@ describe('Context基础接口', () => {
         path: '/test/file.ts',
         name: 'file.ts',
         type: 'file',
-        parent: undefined
+        parent: undefined,
       };
 
       expect(context.path).toBe('/test/file.ts');
@@ -48,7 +48,7 @@ describe('Context基础接口', () => {
       const context: Context = {
         path: '/test/folder',
         name: 'folder',
-        type: 'folder'
+        type: 'folder',
       };
 
       expect(context.type).toBe('folder');
@@ -58,14 +58,14 @@ describe('Context基础接口', () => {
       const parentContext: Context = {
         path: '/test',
         name: 'test',
-        type: 'folder'
+        type: 'folder',
       };
 
       const childContext: Context = {
         path: '/test/child',
         name: 'child',
         type: 'file',
-        parent: parentContext
+        parent: parentContext,
       };
 
       expect(childContext.parent).toBe(parentContext);

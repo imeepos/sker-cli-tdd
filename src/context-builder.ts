@@ -107,7 +107,10 @@ export class ContextBuilder {
 
     // 如果需要遵循gitignore规则，初始化ignore实例
     if (options.respectGitignore) {
-      await this.initializeIgnore(directoryPath, options.ignoreFile || '.gitignore');
+      await this.initializeIgnore(
+        directoryPath,
+        options.ignoreFile || '.gitignore'
+      );
     } else {
       this.ignoreInstance = null;
     }
@@ -125,7 +128,10 @@ export class ContextBuilder {
    * @param ignoreFileName ignore文件名
    * @private
    */
-  private async initializeIgnore(rootPath: string, ignoreFileName: string): Promise<void> {
+  private async initializeIgnore(
+    rootPath: string,
+    ignoreFileName: string
+  ): Promise<void> {
     const ignoreFilePath = path.join(rootPath, ignoreFileName);
 
     try {
@@ -160,7 +166,9 @@ export class ContextBuilder {
     }
 
     try {
-      const entries = await fs.promises.readdir(folderContext.path, { withFileTypes: true });
+      const entries = await fs.promises.readdir(folderContext.path, {
+        withFileTypes: true,
+      });
 
       for (const entry of entries) {
         const fullPath = path.join(folderContext.path, entry.name);
@@ -183,7 +191,10 @@ export class ContextBuilder {
 
             // 读取并解析sker.json文件
             try {
-              const skerJsonContent = await fs.promises.readFile(fullPath, 'utf8');
+              const skerJsonContent = await fs.promises.readFile(
+                fullPath,
+                'utf8'
+              );
               const projectInfo = JSON5.parse(skerJsonContent);
 
               // 确保项目名称存在，如果没有则使用文件夹名
@@ -197,14 +208,16 @@ export class ContextBuilder {
               // 在测试环境下不输出警告，避免测试噪音
               const configManager = ConfigManager.getInstance();
               if (!configManager.isTestEnvironment()) {
-                console.warn(`无法解析项目配置 ${fullPath}: ${(error as Error).message}`);
+                console.warn(
+                  `无法解析项目配置 ${fullPath}: ${(error as Error).message}`
+                );
               }
               folderContext.projectInfo = {
-                name: folderContext.name
+                name: folderContext.name,
               };
             }
           }
-          
+
           // 检查文件扩展名过滤
           const ext = path.extname(entry.name);
 
@@ -219,7 +232,9 @@ export class ContextBuilder {
       // 在测试环境下不输出警告，避免测试噪音
       const configManager = ConfigManager.getInstance();
       if (!configManager.isTestEnvironment()) {
-        console.warn(`无法扫描目录 ${folderContext.path}: ${(error as Error).message}`);
+        console.warn(
+          `无法扫描目录 ${folderContext.path}: ${(error as Error).message}`
+        );
       }
     }
   }
@@ -234,7 +249,10 @@ export class ContextBuilder {
    * @returns 如果应该被忽略则返回true，否则返回false
    * @private
    */
-  private shouldIgnoreByGitignore(fullPath: string, isDirectory: boolean): boolean {
+  private shouldIgnoreByGitignore(
+    fullPath: string,
+    isDirectory: boolean
+  ): boolean {
     if (!this.ignoreInstance) {
       return false; // 没有ignore实例，不忽略任何文件
     }
@@ -261,7 +279,10 @@ export class ContextBuilder {
    * @returns 如果文件应该被包含则返回true，否则返回false
    * @private
    */
-  private shouldIncludeFile(extension: string, options: ContextBuilderOptions): boolean {
+  private shouldIncludeFile(
+    extension: string,
+    options: ContextBuilderOptions
+  ): boolean {
     // 如果指定了包含扩展名列表，只包含列表中的扩展名
     if (options.includeExtensions && options.includeExtensions.length > 0) {
       return options.includeExtensions.includes(extension);

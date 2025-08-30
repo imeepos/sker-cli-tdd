@@ -16,7 +16,7 @@ describe('MQAgent', () => {
       disconnect: jest.fn().mockResolvedValue(true),
       subscribe: jest.fn(),
       publish: jest.fn().mockResolvedValue(true),
-      isConnected: jest.fn().mockReturnValue(true)
+      isConnected: jest.fn().mockReturnValue(true),
     };
 
     agent = new MQAgent(); // ❌ 这会失败 - 正确的！
@@ -32,12 +32,12 @@ describe('MQAgent', () => {
       // 模拟AI客户端
       const mockAIClient = {
         chatCompletionWithTools: jest.fn().mockResolvedValue({
-          choices: [{ message: { content: 'AI处理完成', toolCalls: [] } }]
+          choices: [{ message: { content: 'AI处理完成', toolCalls: [] } }],
         }),
         chatCompletion: jest.fn().mockResolvedValue({
-          choices: [{ message: { content: 'AI处理完成' } }]
+          choices: [{ message: { content: 'AI处理完成' } }],
         }),
-        executeToolCall: jest.fn().mockResolvedValue({ result: 'success' })
+        executeToolCall: jest.fn().mockResolvedValue({ result: 'success' }),
       };
 
       agent.setAIClient(mockAIClient as any);
@@ -79,27 +79,27 @@ describe('MQAgent', () => {
   describe('MQ连接管理', () => {
     it('应该能够连接到MQ服务器', async () => {
       agent.setMQConnection(mockMQConnection);
-      
+
       const connected = await agent.connect(); // ❌ 这会失败 - 正确的！
-      
+
       expect(connected).toBe(true);
       expect(mockMQConnection.connect).toHaveBeenCalled();
     });
 
     it('应该能够断开MQ连接', async () => {
       agent.setMQConnection(mockMQConnection);
-      
+
       const disconnected = await agent.disconnect(); // ❌ 这会失败 - 正确的！
-      
+
       expect(disconnected).toBe(true);
       expect(mockMQConnection.disconnect).toHaveBeenCalled();
     });
 
     it('应该能够检查连接状态', () => {
       agent.setMQConnection(mockMQConnection);
-      
+
       const isConnected = agent.isConnected(); // ❌ 这会失败 - 正确的！
-      
+
       expect(isConnected).toBe(true);
       expect(mockMQConnection.isConnected).toHaveBeenCalled();
     });
@@ -113,13 +113,13 @@ describe('MQAgent', () => {
         to: 'agent-001',
         type: 'execute_command',
         payload: {
-          command: 'echo "Hello World"'
+          command: 'echo "Hello World"',
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       const taskMessage = agent.parseTaskMessage(messageData); // ❌ 这会失败 - 正确的！
-      
+
       expect(taskMessage).toBeDefined();
       expect(taskMessage.id).toBe('task-001');
       expect(taskMessage.from).toBe('client-001');
@@ -130,7 +130,7 @@ describe('MQAgent', () => {
 
     it('应该能够处理无效的任务消息', () => {
       const invalidMessage = 'invalid json';
-      
+
       expect(() => {
         agent.parseTaskMessage(invalidMessage); // ❌ 这会失败 - 正确的！
       }).toThrow();
@@ -143,7 +143,7 @@ describe('MQAgent', () => {
         to: 'agent-001',
         type: 'execute_command',
         payload: { command: 'ls' },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const isValid = agent.validateTaskMessage(validMessage); // ❌ 这会失败 - 正确的！
@@ -166,21 +166,25 @@ describe('MQAgent', () => {
       // 设置模拟AI客户端
       const mockAIClient = {
         chatCompletionWithTools: jest.fn().mockResolvedValue({
-          choices: [{
-            message: {
-              content: '我已经获取了系统信息：Windows 11, 版本 22H2',
-              toolCalls: []
-            }
-          }]
+          choices: [
+            {
+              message: {
+                content: '我已经获取了系统信息：Windows 11, 版本 22H2',
+                toolCalls: [],
+              },
+            },
+          ],
         }),
         chatCompletion: jest.fn().mockResolvedValue({
-          choices: [{
-            message: {
-              content: '我已经获取了系统信息：Windows 11, 版本 22H2'
-            }
-          }]
+          choices: [
+            {
+              message: {
+                content: '我已经获取了系统信息：Windows 11, 版本 22H2',
+              },
+            },
+          ],
         }),
-        executeToolCall: jest.fn().mockResolvedValue({ result: 'success' })
+        executeToolCall: jest.fn().mockResolvedValue({ result: 'success' }),
       };
       agent.setAIClient(mockAIClient as any);
 
@@ -191,9 +195,9 @@ describe('MQAgent', () => {
         type: 'ai_task',
         payload: {
           instruction: '请帮我查看当前系统信息',
-          context: '我需要了解操作系统类型和版本'
+          context: '我需要了解操作系统类型和版本',
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const result = await agent.executeTask(taskMessage);
@@ -210,38 +214,46 @@ describe('MQAgent', () => {
       // 设置模拟AI客户端
       const mockAIClient = {
         chatCompletionWithTools: jest.fn().mockResolvedValue({
-          choices: [{
-            message: {
-              content: '我需要创建文件并读取内容',
-              toolCalls: [
-                {
-                  id: 'call-1',
-                  type: 'function',
-                  function: {
-                    name: 'write_file',
-                    arguments: JSON.stringify({ path: 'hello.txt', content: 'Hello World' })
-                  }
-                },
-                {
-                  id: 'call-2',
-                  type: 'function',
-                  function: {
-                    name: 'read_file',
-                    arguments: JSON.stringify({ path: 'hello.txt' })
-                  }
-                }
-              ]
-            }
-          }]
+          choices: [
+            {
+              message: {
+                content: '我需要创建文件并读取内容',
+                toolCalls: [
+                  {
+                    id: 'call-1',
+                    type: 'function',
+                    function: {
+                      name: 'write_file',
+                      arguments: JSON.stringify({
+                        path: 'hello.txt',
+                        content: 'Hello World',
+                      }),
+                    },
+                  },
+                  {
+                    id: 'call-2',
+                    type: 'function',
+                    function: {
+                      name: 'read_file',
+                      arguments: JSON.stringify({ path: 'hello.txt' }),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
         }),
         chatCompletion: jest.fn().mockResolvedValue({
-          choices: [{
-            message: {
-              content: '我已经创建了hello.txt文件，内容是"Hello World"，并成功读取了内容'
-            }
-          }]
+          choices: [
+            {
+              message: {
+                content:
+                  '我已经创建了hello.txt文件，内容是"Hello World"，并成功读取了内容',
+              },
+            },
+          ],
         }),
-        executeToolCall: jest.fn().mockResolvedValue({ result: 'success' })
+        executeToolCall: jest.fn().mockResolvedValue({ result: 'success' }),
       };
       agent.setAIClient(mockAIClient as any);
 
@@ -251,10 +263,11 @@ describe('MQAgent', () => {
         to: 'agent-001',
         type: 'ai_task',
         payload: {
-          instruction: '请创建一个名为hello.txt的文件，内容是"Hello World"，然后读取并返回内容',
-          context: '这是一个文件操作任务'
+          instruction:
+            '请创建一个名为hello.txt的文件，内容是"Hello World"，然后读取并返回内容',
+          context: '这是一个文件操作任务',
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const result = await agent.executeTask(taskMessage);
@@ -273,11 +286,11 @@ describe('MQAgent', () => {
         to: 'agent-001',
         type: 'invalid_tool',
         payload: {},
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const result = await agent.executeTask(taskMessage); // ❌ 这会失败 - 正确的！
-      
+
       expect(result).toBeDefined();
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -287,7 +300,7 @@ describe('MQAgent', () => {
   describe('结果发送', () => {
     it('应该能够发送任务结果', async () => {
       agent.setMQConnection(mockMQConnection);
-      
+
       const taskResult: TaskResult = {
         id: 'result-001',
         taskId: 'task-001',
@@ -295,11 +308,11 @@ describe('MQAgent', () => {
         to: 'client-001',
         success: true,
         result: { output: 'Hello World' },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const sent = await agent.sendResult(taskResult); // ❌ 这会失败 - 正确的！
-      
+
       expect(sent).toBe(true);
       expect(mockMQConnection.publish).toHaveBeenCalled();
     });
@@ -307,7 +320,7 @@ describe('MQAgent', () => {
     it('应该能够处理结果发送失败', async () => {
       mockMQConnection.publish.mockRejectedValue(new Error('Send failed'));
       agent.setMQConnection(mockMQConnection);
-      
+
       const taskResult: TaskResult = {
         id: 'result-001',
         taskId: 'task-001',
@@ -315,11 +328,11 @@ describe('MQAgent', () => {
         to: 'client-001',
         success: true,
         result: { output: 'Hello World' },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const sent = await agent.sendResult(taskResult); // ❌ 这会失败 - 正确的！
-      
+
       expect(sent).toBe(false);
     });
   });
@@ -327,18 +340,18 @@ describe('MQAgent', () => {
   describe('任务监听', () => {
     it('应该能够开始监听任务队列', async () => {
       agent.setMQConnection(mockMQConnection);
-      
+
       const listening = await agent.startListening(); // ❌ 这会失败 - 正确的！
-      
+
       expect(listening).toBe(true);
       expect(mockMQConnection.subscribe).toHaveBeenCalled();
     });
 
     it('应该能够停止监听任务队列', async () => {
       agent.setMQConnection(mockMQConnection);
-      
+
       const stopped = await agent.stopListening(); // ❌ 这会失败 - 正确的！
-      
+
       expect(stopped).toBe(true);
     });
   });
@@ -346,7 +359,7 @@ describe('MQAgent', () => {
   describe('完整工作流程', () => {
     it('应该能够完成完整的任务处理流程', async () => {
       agent.setMQConnection(mockMQConnection);
-      
+
       // 模拟接收到任务消息
       const taskMessage: TaskMessage = {
         id: 'task-001',
@@ -354,12 +367,12 @@ describe('MQAgent', () => {
         to: 'agent-001',
         type: 'execute_command',
         payload: { command: 'echo "test"' },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // 处理任务
       const result = await agent.processTask(taskMessage); // ❌ 这会失败 - 正确的！
-      
+
       expect(result).toBe(true);
       expect(mockMQConnection.publish).toHaveBeenCalled();
     });

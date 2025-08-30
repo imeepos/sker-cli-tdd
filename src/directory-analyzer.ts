@@ -192,24 +192,24 @@ export interface AnalysisData {
 
 /**
  * 目录结构分析工具
- * 
+ *
  * 基于FolderContext提供完整的目录结构分析功能，
  * 包括结构统计、可视化、比较、优化建议等。
- * 
+ *
  * @example
  * ```typescript
  * const analyzer = new DirectoryAnalyzer();
  * const folderContext = new FolderContext('/path/to/project');
- * 
+ *
  * // 分析目录结构
  * const analysis = await analyzer.analyzeStructure(folderContext);
- * 
+ *
  * // 生成树形视图
  * const treeView = await analyzer.generateTreeView(folderContext);
- * 
+ *
  * // 检测项目类型
  * const projectType = await analyzer.detectProjectType(folderContext);
- * 
+ *
  * // 生成优化建议
  * const suggestions = await analyzer.analyzeOptimizations(folderContext);
  * ```
@@ -217,14 +217,16 @@ export interface AnalysisData {
 export class DirectoryAnalyzer {
   /**
    * 分析目录的基本结构信息
-   * 
+   *
    * @param context 文件夹上下文
    * @returns Promise，解析为结构分析结果
    */
-  async analyzeStructure(context: FolderContext): Promise<DirectoryStructureAnalysis> {
+  async analyzeStructure(
+    context: FolderContext
+  ): Promise<DirectoryStructureAnalysis> {
     const allFiles = context.getAllFiles();
     const allFolders = context.getAllSubfolders();
-    
+
     // 计算总大小
     let totalSize = 0;
     try {
@@ -232,44 +234,46 @@ export class DirectoryAnalyzer {
     } catch (error) {
       console.warn(`无法计算总大小: ${(error as Error).message}`);
     }
-    
+
     // 分析文件类型
     const fileTypes = await this.analyzeFileTypes(context);
-    
+
     // 计算最大深度
     const maxDepth = this.calculateMaxDepth(context);
-    
+
     return {
       totalFiles: allFiles.length,
       totalFolders: allFolders.length,
       totalSize,
       maxDepth,
       fileTypes,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
   /**
    * 分析文件类型分布
-   * 
+   *
    * @param context 文件夹上下文
    * @returns Promise，解析为文件类型分布
    */
-  async analyzeFileTypes(context: FolderContext): Promise<FileTypeDistribution> {
+  async analyzeFileTypes(
+    context: FolderContext
+  ): Promise<FileTypeDistribution> {
     const allFiles = context.getAllFiles();
     const distribution: FileTypeDistribution = {};
-    
+
     for (const file of allFiles) {
       const ext = path.extname(file.name).toLowerCase() || '(无扩展名)';
       distribution[ext] = (distribution[ext] || 0) + 1;
     }
-    
+
     return distribution;
   }
 
   /**
    * 分析目录深度信息
-   * 
+   *
    * @param context 文件夹上下文
    * @returns Promise，解析为深度分析信息
    */
@@ -277,42 +281,45 @@ export class DirectoryAnalyzer {
     const depthDistribution: Record<number, number> = {};
     let totalDepth = 0;
     let nodeCount = 0;
-    
+
     const analyzeNode = (node: FolderContext, currentDepth: number) => {
-      depthDistribution[currentDepth] = (depthDistribution[currentDepth] || 0) + 1;
+      depthDistribution[currentDepth] =
+        (depthDistribution[currentDepth] || 0) + 1;
       totalDepth += currentDepth;
       nodeCount++;
-      
+
       for (const child of node.children) {
         if (child.type === 'folder') {
           analyzeNode(child as FolderContext, currentDepth + 1);
         }
       }
     };
-    
+
     analyzeNode(context, 0);
-    
+
     const maxDepth = Math.max(...Object.keys(depthDistribution).map(Number));
     const avgDepth = nodeCount > 0 ? totalDepth / nodeCount : 0;
-    
+
     return {
       maxDepth,
       avgDepth,
-      depthDistribution
+      depthDistribution,
     };
   }
 
   /**
    * 检测项目类型
-   * 
+   *
    * @param context 文件夹上下文
    * @returns Promise，解析为项目类型检测结果
    */
-  async detectProjectType(context: FolderContext): Promise<ProjectTypeDetection> {
+  async detectProjectType(
+    context: FolderContext
+  ): Promise<ProjectTypeDetection> {
     const indicators: string[] = [];
     let confidence = 0;
     let type = 'unknown';
-    
+
     // 检查关键文件
     const hasPackageJson = context.findChild('package.json') !== undefined;
     const hasPyProjectToml = context.findChild('pyproject.toml') !== undefined;
@@ -320,81 +327,83 @@ export class DirectoryAnalyzer {
     const hasGemfile = context.findChild('Gemfile') !== undefined;
     const hasComposerJson = context.findChild('composer.json') !== undefined;
     const hasPomXml = context.findChild('pom.xml') !== undefined;
-    
+
     if (hasPackageJson) {
       type = 'nodejs';
       confidence += 0.8;
       indicators.push('package.json');
     }
-    
+
     if (hasPyProjectToml) {
       type = 'python';
       confidence += 0.8;
       indicators.push('pyproject.toml');
     }
-    
+
     if (hasCargoToml) {
       type = 'rust';
       confidence += 0.8;
       indicators.push('Cargo.toml');
     }
-    
+
     if (hasGemfile) {
       type = 'ruby';
       confidence += 0.8;
       indicators.push('Gemfile');
     }
-    
+
     if (hasComposerJson) {
       type = 'php';
       confidence += 0.8;
       indicators.push('composer.json');
     }
-    
+
     if (hasPomXml) {
       type = 'java';
       confidence += 0.8;
       indicators.push('pom.xml');
     }
-    
+
     // 检查文件扩展名
     const fileTypes = await this.analyzeFileTypes(context);
-    
+
     if (fileTypes['.ts'] || fileTypes['.js']) {
       if (type === 'unknown') type = 'javascript';
       confidence += 0.3;
       indicators.push('TypeScript/JavaScript files');
     }
-    
+
     if (fileTypes['.py']) {
       if (type === 'unknown') type = 'python';
       confidence += 0.3;
       indicators.push('Python files');
     }
-    
+
     if (fileTypes['.rs']) {
       if (type === 'unknown') type = 'rust';
       confidence += 0.3;
       indicators.push('Rust files');
     }
-    
+
     return {
       type,
       confidence: Math.min(confidence, 1.0),
-      indicators
+      indicators,
     };
   }
 
   /**
    * 分析目录大小分布
-   * 
+   *
    * @param context 文件夹上下文
    * @returns Promise，解析为大小分布分析
    */
-  async analyzeSizeDistribution(context: FolderContext): Promise<SizeDistribution> {
+  async analyzeSizeDistribution(
+    context: FolderContext
+  ): Promise<SizeDistribution> {
     const allFiles = context.getAllFiles();
     const allFolders = context.getAllSubfolders();
-    
+
     // 计算文件大小
     const fileSizes: Array<{ name: string; path: string; size: number }> = [];
     for (const file of allFiles) {
@@ -406,13 +415,13 @@ export class DirectoryAnalyzer {
         fileSizes.push({
           name: file.name,
           path: file.path,
-          size: file.size || 0
+          size: file.size || 0,
         });
       } catch (error) {
         // 忽略无法访问的文件
       }
     }
-    
+
     // 计算文件夹大小
     const folderSizes: Array<{ name: string; path: string; size: number }> = [];
     for (const folder of allFolders) {
@@ -421,13 +430,13 @@ export class DirectoryAnalyzer {
         folderSizes.push({
           name: folder.name,
           path: folder.path,
-          size
+          size,
         });
       } catch (error) {
         // 忽略无法访问的文件夹
       }
     }
-    
+
     // 按类型分组大小
     const sizeByType: Record<string, number> = {};
 
@@ -435,23 +444,21 @@ export class DirectoryAnalyzer {
       const ext = path.extname(file.name).toLowerCase() || '(无扩展名)';
       sizeByType[ext] = (sizeByType[ext] || 0) + file.size;
     }
-    
+
     // 排序并取前10
-    const largestFiles = fileSizes
-      .sort((a, b) => b.size - a.size)
-      .slice(0, 10);
-    
+    const largestFiles = fileSizes.sort((a, b) => b.size - a.size).slice(0, 10);
+
     const largestFolders = folderSizes
       .sort((a, b) => b.size - a.size)
       .slice(0, 10);
-    
+
     const totalSize = fileSizes.reduce((sum, file) => sum + file.size, 0);
-    
+
     return {
       totalSize,
       largestFiles,
       largestFolders,
-      sizeByType
+      sizeByType,
     };
   }
 
@@ -462,12 +469,15 @@ export class DirectoryAnalyzer {
    * @param options 树形视图选项
    * @returns Promise，解析为树形结构字符串
    */
-  async generateTreeView(context: FolderContext, options: TreeViewOptions = {}): Promise<string> {
+  async generateTreeView(
+    context: FolderContext,
+    options: TreeViewOptions = {}
+  ): Promise<string> {
     const {
       includeFiles = true,
       maxDepth = Infinity,
       excludePatterns = [],
-      showSize = false
+      showSize = false,
     } = options;
 
     const lines: string[] = [];
@@ -502,7 +512,8 @@ export class DirectoryAnalyzer {
       const newPrefix = prefix + (isLast ? '    ' : '│   ');
       const children = node.children.filter(child => {
         if (!includeFiles && child.type === 'file') return false;
-        if (excludePatterns.some(pattern => child.name.includes(pattern))) return false;
+        if (excludePatterns.some(pattern => child.name.includes(pattern)))
+          return false;
         return true;
       });
 
@@ -511,7 +522,12 @@ export class DirectoryAnalyzer {
         const isChildLast = i === children.length - 1;
 
         if (child.type === 'folder') {
-          await generateNode(child as FolderContext, newPrefix, isChildLast, currentDepth + 1);
+          await generateNode(
+            child as FolderContext,
+            newPrefix,
+            isChildLast,
+            currentDepth + 1
+          );
         } else if (includeFiles) {
           const childConnector = isChildLast ? '└── ' : '├── ';
           let childLine = newPrefix + childConnector + child.name;
@@ -544,11 +560,13 @@ export class DirectoryAnalyzer {
    * @returns Promise，解析为结构数据
    */
   async generateStructureData(context: FolderContext): Promise<StructureNode> {
-    const generateNode = async (node: FolderContext | FileContext): Promise<StructureNode> => {
+    const generateNode = async (
+      node: FolderContext | FileContext
+    ): Promise<StructureNode> => {
       const structureNode: StructureNode = {
         name: node.name,
         type: node.type,
-        path: node.path
+        path: node.path,
       };
 
       if (node.type === 'file') {
@@ -566,7 +584,9 @@ export class DirectoryAnalyzer {
         structureNode.children = [];
 
         for (const child of folderNode.children) {
-          const childNode = await generateNode(child as FolderContext | FileContext);
+          const childNode = await generateNode(
+            child as FolderContext | FileContext
+          );
           structureNode.children.push(childNode);
         }
       }
@@ -732,7 +752,10 @@ export class DirectoryAnalyzer {
    * @param context2 第二个目录上下文
    * @returns Promise，解析为结构比较结果
    */
-  async compareStructures(context1: FolderContext, context2: FolderContext): Promise<StructureComparison> {
+  async compareStructures(
+    context1: FolderContext,
+    context2: FolderContext
+  ): Promise<StructureComparison> {
     const getAllPaths = (context: FolderContext): Set<string> => {
       const paths = new Set<string>();
 
@@ -789,7 +812,10 @@ export class DirectoryAnalyzer {
    * @param newContext 新的目录上下文
    * @returns Promise，解析为变化报告字符串
    */
-  async generateChangeReport(oldContext: FolderContext, newContext: FolderContext): Promise<string> {
+  async generateChangeReport(
+    oldContext: FolderContext,
+    newContext: FolderContext
+  ): Promise<string> {
     const comparison = await this.compareStructures(oldContext, newContext);
     const lines: string[] = [];
 
@@ -837,7 +863,9 @@ export class DirectoryAnalyzer {
    * @param context 文件夹上下文
    * @returns Promise，解析为优化建议数组
    */
-  async analyzeOptimizations(context: FolderContext): Promise<OptimizationSuggestion[]> {
+  async analyzeOptimizations(
+    context: FolderContext
+  ): Promise<OptimizationSuggestion[]> {
     const suggestions: OptimizationSuggestion[] = [];
     const analysis = await this.analyzeStructure(context);
 
@@ -848,7 +876,7 @@ export class DirectoryAnalyzer {
         description: '目录层级过深，建议重新组织文件结构',
         priority: 'medium',
         impact: '提高代码可读性和维护性',
-        location: '整个项目'
+        location: '整个项目',
       });
     }
 
@@ -859,7 +887,7 @@ export class DirectoryAnalyzer {
         description: '文件数量过多，建议按功能模块分组',
         priority: 'high',
         impact: '提高项目管理效率',
-        location: '根目录'
+        location: '根目录',
       });
     }
 
@@ -871,7 +899,7 @@ export class DirectoryAnalyzer {
         description: 'node_modules目录应该被排除在版本控制之外',
         priority: 'high',
         impact: '减少仓库大小，提高克隆速度',
-        location: 'node_modules'
+        location: 'node_modules',
       });
     }
 
@@ -884,7 +912,9 @@ export class DirectoryAnalyzer {
    * @param context 文件夹上下文
    * @returns Promise，解析为结构问题数组
    */
-  async detectStructureIssues(context: FolderContext): Promise<StructureIssue[]> {
+  async detectStructureIssues(
+    context: FolderContext
+  ): Promise<StructureIssue[]> {
     const issues: StructureIssue[] = [];
 
     // 检查空文件夹
@@ -894,7 +924,7 @@ export class DirectoryAnalyzer {
           issue: '空文件夹',
           severity: 'info',
           location: folder.path,
-          suggestion: '考虑删除空文件夹或添加README文件说明用途'
+          suggestion: '考虑删除空文件夹或添加README文件说明用途',
         });
       }
 
@@ -915,7 +945,7 @@ export class DirectoryAnalyzer {
           issue: '文件名包含空格',
           severity: 'warning',
           location: file.path,
-          suggestion: '使用下划线或连字符替代空格'
+          suggestion: '使用下划线或连字符替代空格',
         });
       }
     }
@@ -956,7 +986,9 @@ export class DirectoryAnalyzer {
     maintainabilityScore = Math.max(0, maintainabilityScore);
     scalabilityScore = Math.max(0, scalabilityScore);
 
-    const overall = Math.round((organizationScore + maintainabilityScore + scalabilityScore) / 3);
+    const overall = Math.round(
+      (organizationScore + maintainabilityScore + scalabilityScore) / 3
+    );
 
     const strengths: string[] = [];
     const weaknesses: string[] = [];
@@ -984,8 +1016,8 @@ export class DirectoryAnalyzer {
       details: {
         strengths,
         weaknesses,
-        recommendations
-      }
+        recommendations,
+      },
     };
   }
 
@@ -996,8 +1028,12 @@ export class DirectoryAnalyzer {
    * @param options 导出选项
    * @returns Promise，解析为报告字符串
    */
-  async exportAnalysisReport(context: FolderContext, options: ExportOptions): Promise<string> {
-    const { format, includeTreeView, includeStatistics, includeOptimizations } = options;
+  async exportAnalysisReport(
+    context: FolderContext,
+    options: ExportOptions
+  ): Promise<string> {
+    const { format, includeTreeView, includeStatistics, includeOptimizations } =
+      options;
 
     if (format !== 'markdown') {
       throw new Error('目前只支持 markdown 格式');
@@ -1060,14 +1096,14 @@ export class DirectoryAnalyzer {
       fileTypes,
       projectType,
       healthScore,
-      suggestions
+      suggestions,
     ] = await Promise.all([
       this.generateStructureData(context),
       this.analyzeStructure(context),
       this.analyzeFileTypes(context),
       this.detectProjectType(context),
       this.calculateHealthScore(context),
-      this.analyzeOptimizations(context)
+      this.analyzeOptimizations(context),
     ]);
 
     return {
@@ -1076,7 +1112,7 @@ export class DirectoryAnalyzer {
       fileTypes,
       projectType,
       healthScore,
-      suggestions
+      suggestions,
     };
   }
 
@@ -1084,12 +1120,18 @@ export class DirectoryAnalyzer {
    * 计算最大深度
    * @private
    */
-  private calculateMaxDepth(context: FolderContext, currentDepth: number = 0): number {
+  private calculateMaxDepth(
+    context: FolderContext,
+    currentDepth: number = 0
+  ): number {
     let maxDepth = currentDepth;
 
     for (const child of context.children) {
       if (child.type === 'folder') {
-        const childDepth = this.calculateMaxDepth(child as FolderContext, currentDepth + 1);
+        const childDepth = this.calculateMaxDepth(
+          child as FolderContext,
+          currentDepth + 1
+        );
         maxDepth = Math.max(maxDepth, childDepth);
       }
     }

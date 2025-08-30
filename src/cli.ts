@@ -58,7 +58,7 @@ export class CLI {
       temperature: 0.7,
       maxTokens: 2000,
       stream: true,
-      interactive: false
+      interactive: false,
     };
   }
 
@@ -75,7 +75,7 @@ export class CLI {
       model: aiConfig.model,
       temperature: aiConfig.temperature,
       maxTokens: aiConfig.maxTokens,
-      baseURL: aiConfig.baseURL
+      baseURL: aiConfig.baseURL,
     };
   }
 
@@ -87,7 +87,7 @@ export class CLI {
 
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
-      
+
       switch (arg) {
         case '--model':
           options.model = args[++i];
@@ -168,7 +168,10 @@ export class CLI {
     const assistantMessage = response.choices[0]?.message;
     if (assistantMessage?.toolCalls && assistantMessage.toolCalls.length > 0) {
       for (const toolCall of assistantMessage.toolCalls) {
-        await this.aiClient.executeToolCall(toolCall.function.name, JSON.parse(toolCall.function.arguments));
+        await this.aiClient.executeToolCall(
+          toolCall.function.name,
+          JSON.parse(toolCall.function.arguments)
+        );
       }
     }
 
@@ -180,16 +183,16 @@ export class CLI {
    */
   async startInteractiveMode(): Promise<void> {
     const inquirer = require('inquirer');
-    
+
     console.log('🤖 进入交互式聊天模式 (输入 /exit 退出)');
-    
+
     while (true) {
       const { message } = await inquirer.prompt([
         {
           type: 'input',
           name: 'message',
-          message: '你:'
-        }
+          message: '你:',
+        },
       ]);
 
       if (message === '/exit') {

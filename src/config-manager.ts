@@ -71,12 +71,21 @@ class OpenAIConfigValidator implements ConfigValidator<OpenAIConfig> {
       throw ErrorFactory.configError('model', new Error('模型不能为空'));
     }
 
-    if (config.temperature !== undefined && (config.temperature < 0 || config.temperature > 2)) {
-      throw ErrorFactory.configError('temperature', new Error('temperature必须在0-2之间'));
+    if (
+      config.temperature !== undefined &&
+      (config.temperature < 0 || config.temperature > 2)
+    ) {
+      throw ErrorFactory.configError(
+        'temperature',
+        new Error('temperature必须在0-2之间')
+      );
     }
 
     if (config.maxTokens !== undefined && config.maxTokens < 1) {
-      throw ErrorFactory.configError('maxTokens', new Error('maxTokens必须大于0'));
+      throw ErrorFactory.configError(
+        'maxTokens',
+        new Error('maxTokens必须大于0')
+      );
     }
 
     if (config.baseURL && !this.isValidURL(config.baseURL)) {
@@ -104,7 +113,10 @@ class MQConfigValidator implements ConfigValidator<MQConfig> {
     }
 
     if (!config.port || config.port < 1 || config.port > 65535) {
-      throw ErrorFactory.configError('port', new Error('端口必须在1-65535之间'));
+      throw ErrorFactory.configError(
+        'port',
+        new Error('端口必须在1-65535之间')
+      );
     }
 
     if (!config.agentId || config.agentId.trim() === '') {
@@ -112,11 +124,17 @@ class MQConfigValidator implements ConfigValidator<MQConfig> {
     }
 
     if (!config.taskQueue || config.taskQueue.trim() === '') {
-      throw ErrorFactory.configError('taskQueue', new Error('任务队列名不能为空'));
+      throw ErrorFactory.configError(
+        'taskQueue',
+        new Error('任务队列名不能为空')
+      );
     }
 
     if (!config.resultQueue || config.resultQueue.trim() === '') {
-      throw ErrorFactory.configError('resultQueue', new Error('结果队列名不能为空'));
+      throw ErrorFactory.configError(
+        'resultQueue',
+        new Error('结果队列名不能为空')
+      );
     }
   }
 }
@@ -203,7 +221,7 @@ export class ConfigManager {
   getDatabaseConfig(): DatabaseConfig {
     if (!this.config.database) {
       this.config.database = {
-        dbPath: process.env['DATABASE_PATH'] || './data/sker.db'
+        dbPath: process.env['DATABASE_PATH'] || './data/sker.db',
       };
     }
     return this.config.database;
@@ -217,7 +235,7 @@ export class ConfigManager {
     if (!this.config.cli) {
       const openaiConfig = this.getAIConfig();
       this.config.cli = {
-        ...openaiConfig
+        ...openaiConfig,
         // 这里可以添加CLI特定的配置项
       };
     }
@@ -232,7 +250,7 @@ export class ConfigManager {
       aiConfig: this.getAIConfig(),
       database: this.getDatabaseConfig(),
       mq: this.getMQConfig(),
-      cli: this.getCLIConfig()
+      cli: this.getCLIConfig(),
     };
   }
 
@@ -240,7 +258,10 @@ export class ConfigManager {
    * 设置配置项
    * 允许程序动态修改配置
    */
-  setConfig<K extends keyof SystemConfig>(key: K, config: SystemConfig[K]): void {
+  setConfig<K extends keyof SystemConfig>(
+    key: K,
+    config: SystemConfig[K]
+  ): void {
     this.validateConfig(key, config);
     this.config[key] = config;
   }
@@ -249,8 +270,11 @@ export class ConfigManager {
    * 合并配置
    * 用于从命令行参数或其他源合并配置
    */
-  mergeConfig<K extends keyof SystemConfig>(key: K, partialConfig: Partial<SystemConfig[K]>): void {
-    const currentConfig = this.config[key] || {} as SystemConfig[K];
+  mergeConfig<K extends keyof SystemConfig>(
+    key: K,
+    partialConfig: Partial<SystemConfig[K]>
+  ): void {
+    const currentConfig = this.config[key] || ({} as SystemConfig[K]);
     const mergedConfig = { ...currentConfig, ...partialConfig };
     this.setConfig(key, mergedConfig);
   }
@@ -259,7 +283,10 @@ export class ConfigManager {
    * 验证配置
    * 使用对应的验证器验证配置格式和内容
    */
-  private validateConfig<K extends keyof SystemConfig>(key: K, config: SystemConfig[K]): void {
+  private validateConfig<K extends keyof SystemConfig>(
+    key: K,
+    config: SystemConfig[K]
+  ): void {
     const validator = this.validators.get(key as string);
     if (validator) {
       try {
@@ -287,12 +314,16 @@ export class ConfigManager {
     }
 
     return {
-      provider: process.env["AI_PROVIDER"] as any || 'openai',
+      provider: (process.env['AI_PROVIDER'] as any) || 'openai',
       apiKey,
       model: process.env['AI_MODEL'] || 'gpt-4',
-      maxTokens: process.env['AI_MAX_TOKENS'] ? parseInt(process.env['AI_MAX_TOKENS']) : 2000,
-      temperature: process.env['AI_TEMPERATURE'] ? parseFloat(process.env['AI_TEMPERATURE']) : 0.7,
-      baseURL: process.env['AI_BASE_URL']
+      maxTokens: process.env['AI_MAX_TOKENS']
+        ? parseInt(process.env['AI_MAX_TOKENS'])
+        : 2000,
+      temperature: process.env['AI_TEMPERATURE']
+        ? parseFloat(process.env['AI_TEMPERATURE'])
+        : 0.7,
+      baseURL: process.env['AI_BASE_URL'],
     };
   }
 
@@ -307,14 +338,16 @@ export class ConfigManager {
     const agentId = process.env['AGENT_ID'] || `agent-${Date.now()}`;
 
     return {
-      url: process.env['MQ_URL'] || `amqp://${username}:${password}@${host}:${port}`,
+      url:
+        process.env['MQ_URL'] ||
+        `amqp://${username}:${password}@${host}:${port}`,
       host,
       port,
       username,
       password,
       taskQueue: process.env['MQ_TASK_QUEUE'] || `tasks-${agentId}`,
       resultQueue: process.env['MQ_RESULT_QUEUE'] || `results-${agentId}`,
-      agentId
+      agentId,
     };
   }
 
@@ -347,7 +380,7 @@ export class ConfigManager {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -379,7 +412,7 @@ export class ConfigManager {
   getShellInfo(): { shell: string; comSpec: string } {
     return {
       shell: process.env['SHELL'] || 'unknown',
-      comSpec: process.env['ComSpec'] || 'unknown'
+      comSpec: process.env['ComSpec'] || 'unknown',
     };
   }
 
@@ -397,7 +430,7 @@ export class ConfigManager {
         temperature: this.config.aiConfig.temperature,
         maxTokens: this.config.aiConfig.maxTokens,
         hasApiKey: !!this.config.aiConfig.apiKey,
-        baseURL: this.config.aiConfig.baseURL
+        baseURL: this.config.aiConfig.baseURL,
       };
     }
 
@@ -407,13 +440,13 @@ export class ConfigManager {
         port: this.config.mq.port,
         agentId: this.config.mq.agentId,
         taskQueue: this.config.mq.taskQueue,
-        resultQueue: this.config.mq.resultQueue
+        resultQueue: this.config.mq.resultQueue,
       };
     }
 
     if (this.config.database) {
       summary['database'] = {
-        dbPath: this.config.database.dbPath
+        dbPath: this.config.database.dbPath,
       };
     }
 

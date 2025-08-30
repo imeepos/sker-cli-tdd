@@ -30,9 +30,9 @@ describe('交互式模式', () => {
       getStats: jest.fn().mockReturnValue({
         totalMessages: 0,
         totalTokens: 0,
-        totalToolCalls: 0
+        totalToolCalls: 0,
       }),
-      resetStats: jest.fn()
+      resetStats: jest.fn(),
     } as any;
 
     mockToolManager = {
@@ -41,8 +41,8 @@ describe('交互式模式', () => {
       getToolStats: jest.fn().mockReturnValue({
         totalTools: 0,
         totalExecutions: 0,
-        successRate: 0
-      })
+        successRate: 0,
+      }),
     } as any;
 
     interactiveMode = new InteractiveMode(mockStreamChat, mockToolManager);
@@ -99,18 +99,20 @@ describe('交互式模式', () => {
   describe('命令执行', () => {
     it('应该能够执行帮助命令', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
+
       await interactiveMode.executeCommand('/help');
-      
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('可用命令'));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('可用命令')
+      );
       consoleSpy.mockRestore();
     });
 
     it('应该能够执行清除命令', async () => {
       const consoleSpy = jest.spyOn(console, 'clear').mockImplementation();
-      
+
       await interactiveMode.executeCommand('/clear');
-      
+
       expect(mockStreamChat.clearHistory).toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
@@ -118,31 +120,37 @@ describe('交互式模式', () => {
 
     it('应该能够执行统计命令', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
+
       await interactiveMode.executeCommand('/stats');
-      
+
       expect(mockStreamChat.getStats).toHaveBeenCalled();
       expect(mockToolManager.getToolStats).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('统计信息'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('统计信息')
+      );
       consoleSpy.mockRestore();
     });
 
     it('应该能够执行工具命令', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
+
       await interactiveMode.executeCommand('/tools');
-      
+
       expect(mockToolManager.getAllToolsHelp).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('可用工具列表'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('可用工具列表')
+      );
       consoleSpy.mockRestore();
     });
 
     it('应该能够处理未知命令', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
+
       await interactiveMode.executeCommand('/unknown');
-      
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('未知命令'));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('未知命令')
+      );
       consoleSpy.mockRestore();
     });
   });
@@ -151,11 +159,11 @@ describe('交互式模式', () => {
     it('应该能够处理普通聊天消息', async () => {
       mockStreamChat.chat.mockResolvedValue({
         content: 'Hello World',
-        tokens: 10
+        tokens: 10,
       });
 
       await interactiveMode.handleMessage('Hello');
-      
+
       expect(mockStreamChat.chat).toHaveBeenCalledWith('Hello');
     });
 
@@ -163,21 +171,23 @@ describe('交互式模式', () => {
       mockStreamChat.chatWithTools.mockResolvedValue({
         content: '计算结果是 5',
         tokens: 15,
-        toolCalls: [{ name: 'add', arguments: { a: 2, b: 3 }, result: 5 }]
+        toolCalls: [{ name: 'add', arguments: { a: 2, b: 3 }, result: 5 }],
       });
 
       await interactiveMode.handleMessageWithTools('计算 2 + 3');
-      
+
       expect(mockStreamChat.chatWithTools).toHaveBeenCalledWith('计算 2 + 3');
     });
 
     it('应该能够处理聊天错误', async () => {
       mockStreamChat.chat.mockRejectedValue(new Error('API 错误'));
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      
+
       await interactiveMode.handleMessage('Hello');
-      
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('API 错误'));
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('API 错误')
+      );
       consoleSpy.mockRestore();
     });
   });
@@ -191,7 +201,9 @@ describe('交互式模式', () => {
       // 测试启动消息
       interactiveMode.showWelcomeMessage();
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('交互式聊天模式'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('交互式聊天模式')
+      );
 
       consoleSpy.mockRestore();
     });
@@ -202,14 +214,16 @@ describe('交互式模式', () => {
       // 直接测试命令执行而不是完整的交互循环
       await interactiveMode.executeCommand('/help');
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('可用命令'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('可用命令')
+      );
       consoleSpy.mockRestore();
     });
 
     it('应该能够处理聊天消息', async () => {
       mockStreamChat.chat.mockResolvedValue({
         content: 'Hi there!',
-        tokens: 5
+        tokens: 5,
       });
 
       await interactiveMode.handleMessage('Hello');
@@ -221,13 +235,13 @@ describe('交互式模式', () => {
   describe('配置和设置', () => {
     it('应该能够设置实时输出', () => {
       interactiveMode.setRealTimeOutput(false);
-      
+
       expect(mockStreamChat.setRealTimeOutput).toHaveBeenCalledWith(false);
     });
 
     it('应该能够获取会话配置', () => {
       const config = interactiveMode.getSessionConfig();
-      
+
       expect(config).toHaveProperty('realTimeOutput');
       expect(config).toHaveProperty('autoSave');
       expect(config).toHaveProperty('maxHistory');
@@ -237,11 +251,11 @@ describe('交互式模式', () => {
       const newConfig = {
         realTimeOutput: false,
         autoSave: true,
-        maxHistory: 100
+        maxHistory: 100,
       };
 
       interactiveMode.updateSessionConfig(newConfig);
-      
+
       const config = interactiveMode.getSessionConfig();
       expect(config.realTimeOutput).toBe(false);
       expect(config.autoSave).toBe(true);
@@ -253,24 +267,24 @@ describe('交互式模式', () => {
     it('应该能够保存会话', async () => {
       mockStreamChat.getConversationHistory.mockReturnValue([
         { role: 'user', content: 'Hello' },
-        { role: 'assistant', content: 'Hi there!' }
+        { role: 'assistant', content: 'Hi there!' },
       ]);
 
       const result = await interactiveMode.saveSession('test-session');
-      
+
       expect(result).toBe(true);
       expect(mockStreamChat.getConversationHistory).toHaveBeenCalled();
     });
 
     it('应该能够加载会话', async () => {
       const result = await interactiveMode.loadSession('test-session');
-      
+
       expect(typeof result).toBe('boolean');
     });
 
     it('应该能够列出保存的会话', () => {
       const sessions = interactiveMode.listSavedSessions();
-      
+
       expect(Array.isArray(sessions)).toBe(true);
     });
   });

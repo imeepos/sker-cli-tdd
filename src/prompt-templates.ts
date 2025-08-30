@@ -45,9 +45,13 @@ export class PromptTemplatesProvider {
    */
   async ensureGlobalPromptsDirectory(): Promise<void> {
     try {
-      await fs.promises.mkdir(this.getGlobalPromptsDirectory(), { recursive: true });
+      await fs.promises.mkdir(this.getGlobalPromptsDirectory(), {
+        recursive: true,
+      });
     } catch (error) {
-      console.warn(`无法创建全局提示词目录 ${this.getGlobalPromptsDirectory()}: ${(error as Error).message}`);
+      console.warn(
+        `无法创建全局提示词目录 ${this.getGlobalPromptsDirectory()}: ${(error as Error).message}`
+      );
       throw error; // 重新抛出异常，让调用者处理
     }
   }
@@ -66,7 +70,9 @@ export class PromptTemplatesProvider {
         await this.loadTemplateFromFile(file);
       }
 
-      logInfo(`✅ 从 ${this.getGlobalPromptsDirectory()} 加载了 ${mdFiles.length} 个提示词模板`);
+      logInfo(
+        `✅ 从 ${this.getGlobalPromptsDirectory()} 加载了 ${mdFiles.length} 个提示词模板`
+      );
 
       // 如果没有找到任何模板文件，创建示例文件
       if (mdFiles.length === 0) {
@@ -114,7 +120,9 @@ export class PromptTemplatesProvider {
       // 在测试环境下不输出警告，避免测试噪音
       const configManager = ConfigManager.getInstance();
       if (!configManager.isTestEnvironment()) {
-        console.warn(`无法加载提示词模板 ${filename}: ${(error as Error).message}`);
+        console.warn(
+          `无法加载提示词模板 ${filename}: ${(error as Error).message}`
+        );
       }
     }
   }
@@ -138,17 +146,19 @@ export class PromptTemplatesProvider {
     }
 
     // 创建参数定义
-    const arguments_: MCPPrompt['arguments'] = Array.from(params).map(param => ({
-      name: param,
-      description: `${param}参数`,
-      required: true
-    }));
+    const arguments_: MCPPrompt['arguments'] = Array.from(params).map(
+      param => ({
+        name: param,
+        description: `${param}参数`,
+        required: true,
+      })
+    );
 
     return {
       name,
       description: `${name}提示词模板`,
       template: content,
-      arguments: arguments_
+      arguments: arguments_,
     };
   }
 
@@ -173,7 +183,10 @@ export class PromptTemplatesProvider {
 分析重点：{{focus}}
 详细程度：{{level}}`;
 
-    const examplePath = path.join(this.getGlobalPromptsDirectory(), 'example-prompt.md');
+    const examplePath = path.join(
+      this.getGlobalPromptsDirectory(),
+      'example-prompt.md'
+    );
 
     try {
       await fs.promises.writeFile(examplePath, exampleContent, 'utf8');
@@ -203,7 +216,10 @@ export class PromptTemplatesProvider {
   /**
    * 保存提示词模板到全局目录
    */
-  async saveTemplate(template: MCPPrompt, format: 'md' | 'json' = 'md'): Promise<void> {
+  async saveTemplate(
+    template: MCPPrompt,
+    format: 'md' | 'json' = 'md'
+  ): Promise<void> {
     await this.ensureGlobalPromptsDirectory();
 
     const filename = `${template.name}.${format}`;
@@ -223,7 +239,9 @@ export class PromptTemplatesProvider {
       await fs.promises.writeFile(filePath, content, 'utf8');
       logInfo(`✅ 保存提示词模板: ${template.name} -> ${filename}`);
     } catch (error) {
-      console.error(`无法保存提示词模板 ${template.name}: ${(error as Error).message}`);
+      console.error(
+        `无法保存提示词模板 ${template.name}: ${(error as Error).message}`
+      );
       throw error;
     }
   }
@@ -234,7 +252,10 @@ export class PromptTemplatesProvider {
   async createDefaultTemplates(): Promise<void> {
     await this.ensureGlobalPromptsDirectory();
 
-    const defaultPath = path.join(this.getGlobalPromptsDirectory(), 'default.md');
+    const defaultPath = path.join(
+      this.getGlobalPromptsDirectory(),
+      'default.md'
+    );
 
     // 只有文件不存在时才创建
     if (!fs.existsSync(defaultPath)) {

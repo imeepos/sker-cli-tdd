@@ -10,7 +10,7 @@ import {
   UnifiedTool,
   UnifiedChatCompletionParams,
   UnifiedAIConfig,
-  AIProvider
+  AIProvider,
 } from './unified-types.js';
 
 /**
@@ -40,7 +40,9 @@ export interface UnifiedAIClient {
    * @param params 聊天参数
    * @returns 流式响应迭代器
    */
-  chatCompletionStream(params: UnifiedChatCompletionParams): AsyncIterable<UnifiedChunk>;
+  chatCompletionStream(
+    params: UnifiedChatCompletionParams
+  ): AsyncIterable<UnifiedChunk>;
 
   /**
    * 带工具调用的聊天完成
@@ -93,9 +95,16 @@ export abstract class BaseAIClientAdapter implements UnifiedAIClient {
   abstract readonly provider: AIProvider;
   abstract readonly config: UnifiedAIConfig;
 
-  abstract chatCompletion(params: UnifiedChatCompletionParams): Promise<UnifiedResponse>;
-  abstract chatCompletionStream(params: UnifiedChatCompletionParams): AsyncIterable<UnifiedChunk>;
-  abstract chatCompletionWithTools(messages: UnifiedMessage[], tools: UnifiedTool[]): Promise<UnifiedResponse>;
+  abstract chatCompletion(
+    params: UnifiedChatCompletionParams
+  ): Promise<UnifiedResponse>;
+  abstract chatCompletionStream(
+    params: UnifiedChatCompletionParams
+  ): AsyncIterable<UnifiedChunk>;
+  abstract chatCompletionWithTools(
+    messages: UnifiedMessage[],
+    tools: UnifiedTool[]
+  ): Promise<UnifiedResponse>;
   abstract getAvailableTools(): UnifiedTool[];
   abstract validateConfig(): boolean;
   abstract testConnection(): Promise<boolean>;
@@ -151,7 +160,9 @@ export abstract class BaseAIClientAdapter implements UnifiedAIClient {
   protected handleError(error: any): never {
     if (error.response) {
       // HTTP错误
-      throw new Error(`API Error ${error.response.status}: ${error.response.data?.message || error.message}`);
+      throw new Error(
+        `API Error ${error.response.status}: ${error.response.data?.message || error.message}`
+      );
     } else if (error.request) {
       // 网络错误
       throw new Error(`Network Error: ${error.message}`);

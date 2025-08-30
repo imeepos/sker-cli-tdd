@@ -77,14 +77,31 @@ export class FileContext implements Context {
   public get isTextFile(): boolean {
     if (this.mimeType) {
       const mimeStr = this.mimeType.toString();
-      return mimeStr.startsWith('text/') || 
-             mimeStr === 'application/json' ||
-             mimeStr === 'application/javascript' ||
-             mimeStr === 'application/xml';
+      return (
+        mimeStr.startsWith('text/') ||
+        mimeStr === 'application/json' ||
+        mimeStr === 'application/javascript' ||
+        mimeStr === 'application/xml'
+      );
     }
-    
+
     // 基于扩展名的简单判断
-    const textExtensions = ['.txt', '.md', '.js', '.ts', '.jsx', '.tsx', '.json', '.xml', '.html', '.css', '.scss', '.less', '.yaml', '.yml'];
+    const textExtensions = [
+      '.txt',
+      '.md',
+      '.js',
+      '.ts',
+      '.jsx',
+      '.tsx',
+      '.json',
+      '.xml',
+      '.html',
+      '.css',
+      '.scss',
+      '.less',
+      '.yaml',
+      '.yml',
+    ];
     return textExtensions.includes(this.extension.toLowerCase());
   }
 
@@ -133,7 +150,9 @@ export class FileContext implements Context {
       this.lastModified = stats.mtime;
       this.createdTime = stats.birthtime;
     } catch (error) {
-      throw new Error(`无法加载文件信息 ${this.path}: ${(error as Error).message}`);
+      throw new Error(
+        `无法加载文件信息 ${this.path}: ${(error as Error).message}`
+      );
     }
   }
 
@@ -156,7 +175,7 @@ export class FileContext implements Context {
   async loadContent(encoding: BufferEncoding = 'utf8'): Promise<void> {
     try {
       this.content = await fs.promises.readFile(this.path, encoding);
-      
+
       // 计算文件内容的SHA256哈希
       if (this.content !== undefined) {
         const hash = crypto.createHash('sha256');
@@ -164,7 +183,9 @@ export class FileContext implements Context {
         this.hash = hash.digest('hex');
       }
     } catch (error) {
-      throw new Error(`无法加载文件内容 ${this.path}: ${(error as Error).message}`);
+      throw new Error(
+        `无法加载文件内容 ${this.path}: ${(error as Error).message}`
+      );
     }
   }
 
@@ -181,10 +202,12 @@ export class FileContext implements Context {
       // 检查MIME类型是否为已知的文本类型
       if (this.mimeType) {
         const mimeStr = this.mimeType.toString();
-        if (mimeStr.startsWith('text/') || 
-            mimeStr === 'application/json' ||
-            mimeStr === 'application/javascript' ||
-            mimeStr === 'application/xml') {
+        if (
+          mimeStr.startsWith('text/') ||
+          mimeStr === 'application/json' ||
+          mimeStr === 'application/javascript' ||
+          mimeStr === 'application/xml'
+        ) {
           return true;
         }
       }
@@ -203,7 +226,9 @@ export class FileContext implements Context {
 
       return true;
     } catch (error) {
-      console.warn(`无法检查文件类型 ${this.path}: ${(error as Error).message}`);
+      console.warn(
+        `无法检查文件类型 ${this.path}: ${(error as Error).message}`
+      );
       return false;
     }
   }
@@ -252,7 +277,7 @@ export class FileContext implements Context {
       '.sql': 'SQL',
       '.dockerfile': 'Dockerfile',
       '.gitignore': 'Git忽略文件',
-      '.env': '环境变量文件'
+      '.env': '环境变量文件',
     };
 
     return typeMap[ext] || '未知类型';
@@ -284,8 +309,15 @@ export class FileContext implements Context {
       summary += `, ${lines} 行`;
 
       // 对于代码文件，尝试提取更多信息
-      if (this.extension === '.ts' || this.extension === '.js' || this.extension === '.tsx' || this.extension === '.jsx') {
-        const functions = (this.content.match(/function\s+\w+|=>\s*{|:\s*\([^)]*\)\s*=>/g) || []).length;
+      if (
+        this.extension === '.ts' ||
+        this.extension === '.js' ||
+        this.extension === '.tsx' ||
+        this.extension === '.jsx'
+      ) {
+        const functions = (
+          this.content.match(/function\s+\w+|=>\s*{|:\s*\([^)]*\)\s*=>/g) || []
+        ).length;
         const classes = (this.content.match(/class\s+\w+/g) || []).length;
         if (functions > 0) summary += `, ${functions} 个函数`;
         if (classes > 0) summary += `, ${classes} 个类`;
@@ -324,8 +356,10 @@ export class FileContext implements Context {
     // 简单的路径包含检查
     const normalizedAncestorPath = path.normalize(ancestorContext.path);
     const normalizedCurrentPath = path.normalize(this.path);
-    
-    return normalizedCurrentPath.startsWith(normalizedAncestorPath + path.sep) ||
-           normalizedCurrentPath.startsWith(normalizedAncestorPath + '/');
+
+    return (
+      normalizedCurrentPath.startsWith(normalizedAncestorPath + path.sep) ||
+      normalizedCurrentPath.startsWith(normalizedAncestorPath + '/')
+    );
   }
 }

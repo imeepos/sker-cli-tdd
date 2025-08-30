@@ -51,7 +51,8 @@ async function main() {
 
     // 应用命令行选项覆盖
     if (options.model) config.model = options.model;
-    if (options.temperature !== undefined) config.temperature = options.temperature;
+    if (options.temperature !== undefined)
+      config.temperature = options.temperature;
     if (options.maxTokens !== undefined) config.maxTokens = options.maxTokens;
 
     // 验证配置
@@ -108,7 +109,7 @@ async function main() {
         // 输出token消耗统计
         const stats = streamChat.getStats();
         const storageStats = await streamChat.getStorageStats();
-        let msg = `📊 本次对话: ${stats.totalTokens} tokens 消息数量: ${stats.totalMessages} 条`
+        let msg = `📊 本次对话: ${stats.totalTokens} tokens 消息数量: ${stats.totalMessages} 条`;
         if (stats.totalToolCalls > 0) {
           msg += ` 工具调用: ${stats.totalToolCalls} 次`;
         }
@@ -118,7 +119,7 @@ async function main() {
           msg += ` 历史消息: ${storageStats.messages} 条`;
         }
         if (storageStats.sessions) {
-          msg += (` 历史会话: ${storageStats.sessions} 个`);
+          msg += ` 历史会话: ${storageStats.sessions} 个`;
         }
 
         console.log(msg);
@@ -132,7 +133,6 @@ async function main() {
       console.log(cli.getHelpText());
       process.exit(1);
     }
-
   } catch (error) {
     console.error(`❌ 启动失败: ${(error as Error).message}`);
     process.exit(1);
@@ -140,12 +140,12 @@ async function main() {
 }
 
 // 处理未捕获的异常
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   console.error('❌ 未捕获的异常:', error.message);
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason) => {
+process.on('unhandledRejection', reason => {
   console.error('❌ 未处理的 Promise 拒绝:', reason);
   process.exit(1);
 });
@@ -162,7 +162,7 @@ process.on('SIGTERM', () => {
 });
 
 // 直接启动程序（bin文件总是作为入口执行）
-main().catch((error) => {
+main().catch(error => {
   console.error('❌ 程序异常:', error.message);
   process.exit(1);
 });

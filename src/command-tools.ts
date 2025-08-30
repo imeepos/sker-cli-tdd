@@ -30,9 +30,7 @@ export class CommandToolsProvider {
    * @returns 所有命令工具的数组
    */
   getTools(): MCPTool[] {
-    return [
-      this.getExecuteCommandTool()
-    ];
+    return [this.getExecuteCommandTool()];
   }
 
   /**
@@ -53,13 +51,13 @@ export class CommandToolsProvider {
             stderr: result.stderr,
             exitCode: result.exitCode,
             command: result.command,
-            executionTime: result.executionTime
+            executionTime: result.executionTime,
           };
         } catch (error) {
           return {
             success: false,
             error: `命令执行失败: ${(error as Error).message}`,
-            command: params.command
+            command: params.command,
           };
         }
       },
@@ -68,11 +66,11 @@ export class CommandToolsProvider {
         properties: {
           command: {
             type: 'string',
-            description: '要执行的命令字符串'
-          }
+            description: '要执行的命令字符串',
+          },
         },
-        required: ['command']
-      }
+        required: ['command'],
+      },
     };
   }
 }

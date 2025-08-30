@@ -9,7 +9,10 @@ import os from 'os';
 
 describe('TodoStorage', () => {
   let todoStorage: TodoStorage;
-  const testDbPath = path.join(os.tmpdir(), `todo-test-${Date.now()}-${Math.random()}`);
+  const testDbPath = path.join(
+    os.tmpdir(),
+    `todo-test-${Date.now()}-${Math.random()}`
+  );
 
   beforeEach(async () => {
     todoStorage = new TodoStorage({ dbPath: testDbPath });
@@ -37,7 +40,7 @@ describe('TodoStorage', () => {
     it('应该能够获取TODO项目详情', async () => {
       const todoId = await todoStorage.addTodo('编写单元测试');
       const todo = await todoStorage.getTodo(todoId);
-      
+
       expect(todo).toBeDefined();
       expect(todo?.title).toBe('编写单元测试');
       expect(todo?.completed).toBe(false);
@@ -47,10 +50,10 @@ describe('TodoStorage', () => {
     it('应该能够列出所有TODO项目', async () => {
       await todoStorage.addTodo('任务1');
       await todoStorage.addTodo('任务2');
-      
+
       const todos = await todoStorage.listTodos();
       expect(todos).toHaveLength(2);
-      
+
       // 验证所有任务都存在，不依赖特定顺序
       const titles = todos.map(todo => todo.title);
       expect(titles).toContain('任务1');
@@ -60,7 +63,7 @@ describe('TodoStorage', () => {
     it('应该能够标记TODO为已完成', async () => {
       const todoId = await todoStorage.addTodo('需要完成的任务');
       await todoStorage.completeTodo(todoId);
-      
+
       const todo = await todoStorage.getTodo(todoId);
       expect(todo?.completed).toBe(true);
     });
@@ -70,7 +73,7 @@ describe('TodoStorage', () => {
     it('应该能够删除TODO项目', async () => {
       const todoId = await todoStorage.addTodo('待删除的任务');
       await todoStorage.deleteTodo(todoId);
-      
+
       const todo = await todoStorage.getTodo(todoId);
       expect(todo).toBeNull();
     });
@@ -78,9 +81,9 @@ describe('TodoStorage', () => {
     it('应该能够清空所有TODO项目', async () => {
       await todoStorage.addTodo('任务1');
       await todoStorage.addTodo('任务2');
-      
+
       await todoStorage.clear();
-      
+
       const todos = await todoStorage.listTodos();
       expect(todos).toHaveLength(0);
     });

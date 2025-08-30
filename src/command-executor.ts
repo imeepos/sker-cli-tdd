@@ -46,7 +46,11 @@ export class CommandExecutor {
    * @param toEncoding 目标编码
    * @returns 转换后的字符串
    */
-  private convertEncoding(buffer: Buffer, fromEncoding: string, toEncoding: string = 'utf8'): string {
+  private convertEncoding(
+    buffer: Buffer,
+    fromEncoding: string,
+    toEncoding: string = 'utf8'
+  ): string {
     if (fromEncoding === toEncoding || fromEncoding === 'utf8') {
       return buffer.toString('utf8');
     }
@@ -73,13 +77,13 @@ export class CommandExecutor {
     const startTime = Date.now();
     const systemEncoding = this.getSystemEncoding();
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       // 在Windows上使用cmd /c，在Unix上使用sh -c
       const shell = process.platform === 'win32' ? 'cmd' : 'sh';
       const shellFlag = process.platform === 'win32' ? '/c' : '-c';
 
       const child = spawn(shell, [shellFlag, command], {
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
 
       const stdoutChunks: Buffer[] = [];
@@ -96,7 +100,7 @@ export class CommandExecutor {
       });
 
       // 处理进程结束
-      child.on('close', (code) => {
+      child.on('close', code => {
         const executionTime = Date.now() - startTime;
 
         // 合并所有数据块
@@ -113,12 +117,12 @@ export class CommandExecutor {
           stderr,
           exitCode: code || 0,
           command,
-          executionTime
+          executionTime,
         });
       });
 
       // 处理错误
-      child.on('error', (error) => {
+      child.on('error', error => {
         const executionTime = Date.now() - startTime;
         resolve({
           success: false,
@@ -126,7 +130,7 @@ export class CommandExecutor {
           stderr: error.message,
           exitCode: 1,
           command,
-          executionTime
+          executionTime,
         });
       });
     });
@@ -139,14 +143,18 @@ export class CommandExecutor {
    * @param executionTime 执行时间
    * @returns CommandResult 错误结果
    */
-  private createErrorResult(command: string, errorMessage: string, executionTime: number): CommandResult {
+  private createErrorResult(
+    command: string,
+    errorMessage: string,
+    executionTime: number
+  ): CommandResult {
     return {
       success: false,
       stdout: '',
       stderr: errorMessage,
       exitCode: 1,
       command: command || '',
-      executionTime
+      executionTime,
     };
   }
 }

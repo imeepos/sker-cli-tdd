@@ -15,23 +15,47 @@ describe('ContextBuilder', () => {
 
   beforeEach(async () => {
     builder = new ContextBuilder();
-    
+
     // 创建临时测试目录结构
     testDirPath = path.join(__dirname, '..', 'test-build-dir');
     testSubDirPath = path.join(testDirPath, 'subdir');
 
     await fs.promises.mkdir(testDirPath, { recursive: true });
     await fs.promises.mkdir(testSubDirPath, { recursive: true });
-    
+
     // 创建各种类型的测试文件
-    await fs.promises.writeFile(path.join(testDirPath, 'test.ts'), 'typescript content', 'utf8');
-    await fs.promises.writeFile(path.join(testDirPath, 'test.js'), 'javascript content', 'utf8');
-    await fs.promises.writeFile(path.join(testDirPath, 'test.json'), '{"test": true}', 'utf8');
-    await fs.promises.writeFile(path.join(testDirPath, 'test.log'), 'log content', 'utf8');
-    await fs.promises.writeFile(path.join(testDirPath, 'sker.json'), '{"name": "test-project"}', 'utf8');
-    
+    await fs.promises.writeFile(
+      path.join(testDirPath, 'test.ts'),
+      'typescript content',
+      'utf8'
+    );
+    await fs.promises.writeFile(
+      path.join(testDirPath, 'test.js'),
+      'javascript content',
+      'utf8'
+    );
+    await fs.promises.writeFile(
+      path.join(testDirPath, 'test.json'),
+      '{"test": true}',
+      'utf8'
+    );
+    await fs.promises.writeFile(
+      path.join(testDirPath, 'test.log'),
+      'log content',
+      'utf8'
+    );
+    await fs.promises.writeFile(
+      path.join(testDirPath, 'sker.json'),
+      '{"name": "test-project"}',
+      'utf8'
+    );
+
     // 子目录文件
-    await fs.promises.writeFile(path.join(testSubDirPath, 'sub.ts'), 'sub typescript', 'utf8');
+    await fs.promises.writeFile(
+      path.join(testSubDirPath, 'sub.ts'),
+      'sub typescript',
+      'utf8'
+    );
   });
 
   afterEach(async () => {
@@ -72,10 +96,13 @@ describe('ContextBuilder', () => {
   describe('文件扩展名过滤', () => {
     it('应该能按包含扩展名过滤', async () => {
       const options: ContextBuilderOptions = {
-        includeExtensions: ['.ts', '.js']
+        includeExtensions: ['.ts', '.js'],
       };
 
-      const rootContext = await builder.buildFromDirectory(testDirPath, options);
+      const rootContext = await builder.buildFromDirectory(
+        testDirPath,
+        options
+      );
       const fileNames = rootContext.children
         .filter(child => child.type === 'file')
         .map(child => child.name);
@@ -87,10 +114,13 @@ describe('ContextBuilder', () => {
 
     it('应该能按排除扩展名过滤', async () => {
       const options: ContextBuilderOptions = {
-        excludeExtensions: ['.log', '.json']
+        excludeExtensions: ['.log', '.json'],
       };
 
-      const rootContext = await builder.buildFromDirectory(testDirPath, options);
+      const rootContext = await builder.buildFromDirectory(
+        testDirPath,
+        options
+      );
       const fileNames = rootContext.children
         .filter(child => child.type === 'file')
         .map(child => child.name);
@@ -104,10 +134,13 @@ describe('ContextBuilder', () => {
   describe('深度控制', () => {
     it('应该能限制扫描深度', async () => {
       const options: ContextBuilderOptions = {
-        maxDepth: 1
+        maxDepth: 1,
       };
 
-      const rootContext = await builder.buildFromDirectory(testDirPath, options);
+      const rootContext = await builder.buildFromDirectory(
+        testDirPath,
+        options
+      );
       const subDirContext = rootContext.findChild('subdir') as FolderContext;
 
       expect(subDirContext).toBeDefined();
@@ -125,20 +158,26 @@ describe('ContextBuilder', () => {
   describe('gitignore支持', () => {
     it('应该能创建不使用gitignore的构建器', async () => {
       const options: ContextBuilderOptions = {
-        respectGitignore: false
+        respectGitignore: false,
       };
 
-      const rootContext = await builder.buildFromDirectory(testDirPath, options);
+      const rootContext = await builder.buildFromDirectory(
+        testDirPath,
+        options
+      );
 
       expect(rootContext.children.length).toBeGreaterThan(0);
     });
 
     it('应该能处理不存在的gitignore文件', async () => {
       const options: ContextBuilderOptions = {
-        respectGitignore: true
+        respectGitignore: true,
       };
 
-      const rootContext = await builder.buildFromDirectory(testDirPath, options);
+      const rootContext = await builder.buildFromDirectory(
+        testDirPath,
+        options
+      );
 
       expect(rootContext.children.length).toBeGreaterThan(0);
     });
@@ -147,7 +186,9 @@ describe('ContextBuilder', () => {
   describe('默认选项', () => {
     it('无选项时应该包含所有文件', async () => {
       const rootContext = await builder.buildFromDirectory(testDirPath);
-      const fileCount = rootContext.children.filter(child => child.type === 'file').length;
+      const fileCount = rootContext.children.filter(
+        child => child.type === 'file'
+      ).length;
 
       expect(fileCount).toBeGreaterThan(3); // 应该包含所有测试文件
     });

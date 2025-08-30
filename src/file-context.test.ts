@@ -13,7 +13,11 @@ describe('FileContext', () => {
   beforeEach(async () => {
     // 创建临时测试文件
     testFilePath = path.join(__dirname, '..', 'test-temp-file.txt');
-    await fs.promises.writeFile(testFilePath, 'test content for file context', 'utf8');
+    await fs.promises.writeFile(
+      testFilePath,
+      'test content for file context',
+      'utf8'
+    );
   });
 
   afterEach(async () => {
@@ -59,7 +63,7 @@ describe('FileContext', () => {
 
     it('应该能处理文件不存在的情况', async () => {
       const fileContext = new FileContext('/nonexistent/file.txt');
-      
+
       await expect(fileContext.loadFileInfo()).rejects.toThrow();
     });
   });
@@ -101,7 +105,7 @@ describe('FileContext', () => {
   describe('MIME类型检测', () => {
     it('应该能检测TypeScript文件的MIME类型', () => {
       const fileContext = new FileContext('/test/file.ts');
-      
+
       // TypeScript文件可能被识别为不同的MIME类型
       expect(typeof fileContext.mimeType).toBe('string');
       expect(fileContext.mimeType).toBeTruthy();
@@ -109,7 +113,7 @@ describe('FileContext', () => {
 
     it('应该能检测JSON文件的MIME类型', () => {
       const fileContext = new FileContext('/test/config.json');
-      
+
       expect(fileContext.mimeType).toBe('application/json');
     });
   });
@@ -124,7 +128,7 @@ class MyClass {}`;
 
       try {
         await fs.promises.writeFile(testFile, testContent);
-        
+
         const fileContext = new FileContext(testFile);
         await fileContext.loadFileInfo();
         await fileContext.loadContent();
@@ -144,16 +148,18 @@ class MyClass {}`;
       const rootContext = new FileContext('/project');
 
       expect(fileContext.getFullPath()).toBe('/project/src/index.ts');
-      expect(fileContext.getRelativePath(rootContext)).toBe(path.relative('/project', '/project/src/index.ts'));
+      expect(fileContext.getRelativePath(rootContext)).toBe(
+        path.relative('/project', '/project/src/index.ts')
+      );
       expect(fileContext.isDescendantOf(rootContext)).toBe(true);
     });
 
     it('应该包含创建时间信息', async () => {
       const testFile = path.join(__dirname, '../test-created-time.txt');
-      
+
       try {
         await fs.promises.writeFile(testFile, 'test content');
-        
+
         const fileContext = new FileContext(testFile);
         await fileContext.loadFileInfo();
 

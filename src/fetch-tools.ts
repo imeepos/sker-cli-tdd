@@ -38,7 +38,7 @@ export interface FetchParams {
 export class FetchToolsProvider {
   private readonly defaultTimeout: number = 10000; // 10秒默认超时
   private readonly defaultHeaders: Record<string, string> = {
-    'User-Agent': 'Sker-CLI-TDD/1.0.0'
+    'User-Agent': 'Sker-CLI-TDD/1.0.0',
   };
 
   /**
@@ -46,10 +46,7 @@ export class FetchToolsProvider {
    * @returns 所有网络请求工具的数组
    */
   getTools(): MCPTool[] {
-    return [
-      this.getFetchUrlTool(),
-      this.getFetchJsonTool()
-    ];
+    return [this.getFetchUrlTool(), this.getFetchJsonTool()];
   }
 
   /**
@@ -62,13 +59,13 @@ export class FetchToolsProvider {
       description: '获取指定URL的内容',
       handler: async (params: FetchParams) => {
         const startTime = Date.now();
-        
+
         try {
           const response = await fetch(params.url, {
             method: params.method || 'GET',
             headers: { ...this.defaultHeaders, ...params.headers },
             body: params.body,
-            signal: AbortSignal.timeout(params.timeout || this.defaultTimeout)
+            signal: AbortSignal.timeout(params.timeout || this.defaultTimeout),
           });
 
           const responseTime = Date.now() - startTime;
@@ -81,16 +78,16 @@ export class FetchToolsProvider {
             statusText: response.statusText,
             headers: Object.fromEntries(response.headers.entries()),
             url: params.url,
-            responseTime
+            responseTime,
           };
         } catch (error) {
           const responseTime = Date.now() - startTime;
-          
+
           return {
             success: false,
             error: (error as Error).message,
             url: params.url,
-            responseTime
+            responseTime,
           };
         }
       },
@@ -98,13 +95,21 @@ export class FetchToolsProvider {
         type: 'object',
         properties: {
           url: { type: 'string', description: '要请求的URL地址' },
-          method: { type: 'string', description: 'HTTP方法（GET, POST等）', default: 'GET' },
+          method: {
+            type: 'string',
+            description: 'HTTP方法（GET, POST等）',
+            default: 'GET',
+          },
           headers: { type: 'object', description: '请求头' },
           body: { type: 'string', description: '请求体' },
-          timeout: { type: 'number', description: '超时时间（毫秒）', default: 10000 }
+          timeout: {
+            type: 'number',
+            description: '超时时间（毫秒）',
+            default: 10000,
+          },
         },
-        required: ['url']
-      }
+        required: ['url'],
+      },
     };
   }
 
@@ -118,18 +123,18 @@ export class FetchToolsProvider {
       description: '获取指定URL的JSON数据',
       handler: async (params: FetchParams) => {
         const startTime = Date.now();
-        
+
         try {
           const response = await fetch(params.url, {
             method: params.method || 'GET',
             headers: {
-              'Accept': 'application/json',
+              Accept: 'application/json',
               'Content-Type': 'application/json',
               ...this.defaultHeaders,
-              ...params.headers
+              ...params.headers,
             },
             body: params.body,
-            signal: AbortSignal.timeout(params.timeout || this.defaultTimeout)
+            signal: AbortSignal.timeout(params.timeout || this.defaultTimeout),
           });
 
           const responseTime = Date.now() - startTime;
@@ -142,16 +147,16 @@ export class FetchToolsProvider {
             statusText: response.statusText,
             headers: Object.fromEntries(response.headers.entries()),
             url: params.url,
-            responseTime
+            responseTime,
           };
         } catch (error) {
           const responseTime = Date.now() - startTime;
-          
+
           return {
             success: false,
             error: (error as Error).message,
             url: params.url,
-            responseTime
+            responseTime,
           };
         }
       },
@@ -159,13 +164,21 @@ export class FetchToolsProvider {
         type: 'object',
         properties: {
           url: { type: 'string', description: '要请求的JSON API地址' },
-          method: { type: 'string', description: 'HTTP方法（GET, POST等）', default: 'GET' },
+          method: {
+            type: 'string',
+            description: 'HTTP方法（GET, POST等）',
+            default: 'GET',
+          },
           headers: { type: 'object', description: '请求头' },
           body: { type: 'string', description: '请求体（JSON字符串）' },
-          timeout: { type: 'number', description: '超时时间（毫秒）', default: 10000 }
+          timeout: {
+            type: 'number',
+            description: '超时时间（毫秒）',
+            default: 10000,
+          },
         },
-        required: ['url']
-      }
+        required: ['url'],
+      },
     };
   }
 }

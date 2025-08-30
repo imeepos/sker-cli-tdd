@@ -3,7 +3,13 @@
  * 验证拆分后的模块能正确协作
  */
 
-import { ProjectInfo, FileContext, FolderContext, ContextBuilder, ContextBuilderOptions } from './context-new';
+import {
+  ProjectInfo,
+  FileContext,
+  FolderContext,
+  ContextBuilder,
+  ContextBuilderOptions,
+} from './context-new';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -13,37 +19,41 @@ describe('Context模块集成测试', () => {
   beforeEach(async () => {
     // 创建完整的测试项目结构
     testProjectPath = path.join(__dirname, '..', 'test-integration-project');
-    
+
     await fs.promises.mkdir(testProjectPath, { recursive: true });
-    await fs.promises.mkdir(path.join(testProjectPath, 'src'), { recursive: true });
-    await fs.promises.mkdir(path.join(testProjectPath, 'tests'), { recursive: true });
-    
+    await fs.promises.mkdir(path.join(testProjectPath, 'src'), {
+      recursive: true,
+    });
+    await fs.promises.mkdir(path.join(testProjectPath, 'tests'), {
+      recursive: true,
+    });
+
     // 创建项目配置文件
     const projectInfo: ProjectInfo = {
       name: 'integration-test-project',
       version: '1.0.0',
-      description: 'Integration test project'
+      description: 'Integration test project',
     };
     await fs.promises.writeFile(
       path.join(testProjectPath, 'sker.json'),
       JSON.stringify(projectInfo, null, 2),
       'utf8'
     );
-    
+
     // 创建源文件
     await fs.promises.writeFile(
       path.join(testProjectPath, 'src', 'index.ts'),
       'export const greeting = "Hello World";',
       'utf8'
     );
-    
+
     // 创建测试文件
     await fs.promises.writeFile(
       path.join(testProjectPath, 'tests', 'index.test.ts'),
       'import { greeting } from "../src/index";\ntest("greeting", () => expect(greeting).toBe("Hello World"));',
       'utf8'
     );
-    
+
     // 创建其他文件
     await fs.promises.writeFile(
       path.join(testProjectPath, 'package.json'),
@@ -64,10 +74,13 @@ describe('Context模块集成测试', () => {
     it('应该能构建完整的项目上下文树', async () => {
       const builder = new ContextBuilder();
       const options: ContextBuilderOptions = {
-        includeExtensions: ['.ts', '.js', '.json']
+        includeExtensions: ['.ts', '.js', '.json'],
       };
 
-      const rootContext = await builder.buildFromDirectory(testProjectPath, options);
+      const rootContext = await builder.buildFromDirectory(
+        testProjectPath,
+        options
+      );
 
       // 验证根目录
       expect(rootContext).toBeInstanceOf(FolderContext);
@@ -127,10 +140,13 @@ describe('Context模块集成测试', () => {
     it('应该支持深度限制', async () => {
       const builder = new ContextBuilder();
       const options: ContextBuilderOptions = {
-        maxDepth: 1
+        maxDepth: 1,
       };
 
-      const rootContext = await builder.buildFromDirectory(testProjectPath, options);
+      const rootContext = await builder.buildFromDirectory(
+        testProjectPath,
+        options
+      );
 
       // 应该有src和tests文件夹
       const srcContext = rootContext.findChild('src') as FolderContext;
@@ -143,15 +159,22 @@ describe('Context模块集成测试', () => {
     it('应该支持文件类型过滤', async () => {
       const builder = new ContextBuilder();
       const options: ContextBuilderOptions = {
-        includeExtensions: ['.ts']
+        includeExtensions: ['.ts'],
       };
 
-      const rootContext = await builder.buildFromDirectory(testProjectPath, options);
+      const rootContext = await builder.buildFromDirectory(
+        testProjectPath,
+        options
+      );
 
       // 应该包含TypeScript文件
       const allFiles = getAllFiles(rootContext);
-      const tsFiles = allFiles.filter((file: FileContext) => file.extension === '.ts');
-      const jsonFiles = allFiles.filter((file: FileContext) => file.extension === '.json');
+      const tsFiles = allFiles.filter(
+        (file: FileContext) => file.extension === '.ts'
+      );
+      const jsonFiles = allFiles.filter(
+        (file: FileContext) => file.extension === '.json'
+      );
 
       expect(tsFiles.length).toBeGreaterThan(0);
       expect(jsonFiles.length).toBe(0); // 应该被过滤掉
@@ -166,7 +189,6 @@ describe('Context模块集成测试', () => {
       expect(totalSize).toBeGreaterThan(0);
     });
   });
-
 });
 
 /**

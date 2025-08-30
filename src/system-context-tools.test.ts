@@ -18,10 +18,10 @@ describe('SystemContextToolsProvider', () => {
   describe('getTools', () => {
     it('应该返回系统上下文工具列表', () => {
       const tools = provider.getTools();
-      
+
       expect(Array.isArray(tools)).toBe(true);
       expect(tools.length).toBe(6);
-      
+
       // 检查是否包含所有预期的工具
       const toolNames = tools.map(tool => tool.name);
       expect(toolNames).toContain('get_system_context');
@@ -34,7 +34,7 @@ describe('SystemContextToolsProvider', () => {
 
     it('应该返回具有正确结构的工具', () => {
       const tools = provider.getTools();
-      
+
       tools.forEach(tool => {
         expect(tool).toHaveProperty('name');
         expect(tool).toHaveProperty('description');
@@ -52,10 +52,10 @@ describe('SystemContextToolsProvider', () => {
       tools.forEach(tool => {
         server.registerTool(tool);
       });
-      
+
       // 执行系统上下文获取
       const result = await server.executeTool('get_system_context', {});
-      
+
       expect(result.success).toBe(true);
       expect(result.context).toBeDefined();
       expect(result.context.os).toBeDefined();
@@ -70,9 +70,9 @@ describe('SystemContextToolsProvider', () => {
       tools.forEach(tool => {
         server.registerTool(tool);
       });
-      
+
       const result = await server.executeTool('get_system_context', {});
-      
+
       // 即使有错误，也应该有明确的响应结构
       expect(result).toHaveProperty('success');
       if (!result.success) {
@@ -87,9 +87,9 @@ describe('SystemContextToolsProvider', () => {
       tools.forEach(tool => {
         server.registerTool(tool);
       });
-      
+
       const result = await server.executeTool('get_system_summary', {});
-      
+
       expect(result.success).toBe(true);
       expect(result.summary).toBeDefined();
       expect(typeof result.summary).toBe('string');
@@ -104,9 +104,9 @@ describe('SystemContextToolsProvider', () => {
       tools.forEach(tool => {
         server.registerTool(tool);
       });
-      
+
       const result = await server.executeTool('get_os_info', {});
-      
+
       expect(result.success).toBe(true);
       expect(result.os).toBeDefined();
       expect(result.system).toBeDefined();
@@ -123,9 +123,9 @@ describe('SystemContextToolsProvider', () => {
       tools.forEach(tool => {
         server.registerTool(tool);
       });
-      
+
       const result = await server.executeTool('get_command_line_tools', {});
-      
+
       expect(result.success).toBe(true);
       expect(result.tools).toBeDefined();
       expect(Array.isArray(result.tools)).toBe(true);
@@ -141,9 +141,9 @@ describe('SystemContextToolsProvider', () => {
       tools.forEach(tool => {
         server.registerTool(tool);
       });
-      
+
       const result = await server.executeTool('get_shell_info', {});
-      
+
       expect(result.success).toBe(true);
       expect(result.shells).toBeDefined();
       expect(result.currentShell).toBeDefined();
@@ -160,9 +160,9 @@ describe('SystemContextToolsProvider', () => {
       tools.forEach(tool => {
         server.registerTool(tool);
       });
-      
+
       const result = await server.executeTool('get_network_info', {});
-      
+
       expect(result.success).toBe(true);
       expect(result.network).toBeDefined();
       expect(result.interfaceCount).toBeGreaterThan(0);

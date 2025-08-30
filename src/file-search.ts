@@ -141,21 +141,21 @@ export interface ExportOptions {
 
 /**
  * 文件搜索引擎
- * 
+ *
  * 基于FolderContext提供完整的文件搜索和过滤功能，
  * 包括名称搜索、内容搜索、模糊搜索、全文搜索等。
- * 
+ *
  * @example
  * ```typescript
  * const searchEngine = new FileSearchEngine();
  * const folderContext = new FolderContext('/path/to/project');
- * 
+ *
  * // 按名称搜索
  * const results = await searchEngine.searchByName(folderContext, 'index');
- * 
+ *
  * // 按内容搜索
  * const contentResults = await searchEngine.searchByContent(folderContext, 'export');
- * 
+ *
  * // 组合搜索
  * const combinedResults = await searchEngine.searchWithCriteria(folderContext, {
  *   name: 'test',
@@ -171,12 +171,15 @@ export class FileSearchEngine {
 
   /**
    * 按文件名搜索文件
-   * 
+   *
    * @param context 文件夹上下文
    * @param namePattern 文件名模式
    * @returns Promise，解析为搜索结果数组
    */
-  async searchByName(context: FolderContext, namePattern: string): Promise<SearchResult[]> {
+  async searchByName(
+    context: FolderContext,
+    namePattern: string
+  ): Promise<SearchResult[]> {
     const cacheKey = `name:${namePattern}`;
     if (this.cacheEnabled && this.searchCache.has(cacheKey)) {
       return this.searchCache.get(cacheKey)!;
@@ -184,63 +187,71 @@ export class FileSearchEngine {
 
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
-    
+
     for (const file of allFiles) {
       if (file.name.toLowerCase().includes(namePattern.toLowerCase())) {
         results.push({
           file,
           name: file.name,
           path: file.path,
-          score: this.calculateNameScore(file.name, namePattern)
+          score: this.calculateNameScore(file.name, namePattern),
         });
       }
     }
-    
+
     // 按得分排序
     results.sort((a, b) => (b.score || 0) - (a.score || 0));
-    
+
     if (this.cacheEnabled) {
       this.searchCache.set(cacheKey, results);
     }
-    
+
     return results;
   }
 
   /**
    * 按文件扩展名搜索文件
-   * 
+   *
    * @param context 文件夹上下文
    * @param extension 文件扩展名
    * @returns Promise，解析为搜索结果数组
    */
-  async searchByExtension(context: FolderContext, extension: string): Promise<SearchResult[]> {
+  async searchByExtension(
+    context: FolderContext,
+    extension: string
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
-    
-    const normalizedExt = extension.startsWith('.') ? extension : '.' + extension;
-    
+
+    const normalizedExt = extension.startsWith('.')
+      ? extension
+      : '.' + extension;
+
     for (const file of allFiles) {
       if (file.extension.toLowerCase() === normalizedExt.toLowerCase()) {
         results.push({
           file,
           name: file.name,
           path: file.path,
-          score: 1.0
+          score: 1.0,
         });
       }
     }
-    
+
     return results;
   }
 
   /**
    * 按文件内容搜索文件
-   * 
+   *
    * @param context 文件夹上下文
    * @param contentPattern 内容模式
    * @returns Promise，解析为搜索结果数组
    */
-  async searchByContent(context: FolderContext, contentPattern: string): Promise<SearchResult[]> {
+  async searchByContent(
+    context: FolderContext,
+    contentPattern: string
+  ): Promise<SearchResult[]> {
     const cacheKey = `content:${contentPattern}`;
     if (this.cacheEnabled && this.searchCache.has(cacheKey)) {
       return this.searchCache.get(cacheKey)!;
@@ -248,128 +259,144 @@ export class FileSearchEngine {
 
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
-    
+
     for (const file of allFiles) {
       try {
         // 只搜索文本文件
         if (file.isTextFile === false) continue;
-        
+
         if (!file.hasContent) {
           await file.loadContent();
         }
-        
-        if (file.content && file.content.toLowerCase().includes(contentPattern.toLowerCase())) {
+
+        if (
+          file.content &&
+          file.content.toLowerCase().includes(contentPattern.toLowerCase())
+        ) {
           results.push({
             file,
             name: file.name,
             path: file.path,
-            score: this.calculateContentScore(file.content, contentPattern)
+            score: this.calculateContentScore(file.content, contentPattern),
           });
         }
       } catch (error) {
         // 忽略无法读取的文件
       }
     }
-    
+
     // 按得分排序
     results.sort((a, b) => (b.score || 0) - (a.score || 0));
-    
+
     if (this.cacheEnabled) {
       this.searchCache.set(cacheKey, results);
     }
-    
+
     return results;
   }
 
   /**
    * 按正则表达式搜索文件名
-   * 
+   *
    * @param context 文件夹上下文
    * @param regex 正则表达式
    * @returns Promise，解析为搜索结果数组
    */
-  async searchByRegex(context: FolderContext, regex: RegExp): Promise<SearchResult[]> {
+  async searchByRegex(
+    context: FolderContext,
+    regex: RegExp
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
-    
+
     for (const file of allFiles) {
       if (regex.test(file.name)) {
         results.push({
           file,
           name: file.name,
           path: file.path,
-          score: 1.0
+          score: 1.0,
         });
       }
     }
-    
+
     return results;
   }
 
   /**
    * 按文件大小范围搜索文件
-   * 
+   *
    * @param context 文件夹上下文
    * @param sizeRange 大小范围
    * @returns Promise，解析为搜索结果数组
    */
-  async searchBySize(context: FolderContext, sizeRange: { min?: number; max?: number }): Promise<SearchResult[]> {
+  async searchBySize(
+    context: FolderContext,
+    sizeRange: { min?: number; max?: number }
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
-    
+
     for (const file of allFiles) {
       try {
         if (!file.size) {
           await file.loadFileInfo();
         }
-        
+
         const size = file.size || 0;
         const matchesMin = sizeRange.min === undefined || size >= sizeRange.min;
         const matchesMax = sizeRange.max === undefined || size <= sizeRange.max;
-        
+
         if (matchesMin && matchesMax) {
           results.push({
             file,
             name: file.name,
             path: file.path,
-            score: 1.0
+            score: 1.0,
           });
         }
       } catch (error) {
         // 忽略无法获取大小的文件
       }
     }
-    
+
     return results;
   }
 
   /**
    * 按修改时间搜索文件
-   * 
+   *
    * @param context 文件夹上下文
    * @param timeRange 时间范围
    * @returns Promise，解析为搜索结果数组
    */
-  async searchByModifiedTime(context: FolderContext, timeRange: { after?: Date; before?: Date }): Promise<SearchResult[]> {
+  async searchByModifiedTime(
+    context: FolderContext,
+    timeRange: { after?: Date; before?: Date }
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
-    
+
     for (const file of allFiles) {
       try {
         if (!file.modifiedTime) {
           await file.loadFileInfo();
         }
-        
+
         if (file.modifiedTime) {
-          const matchesAfter = timeRange.after === undefined || file.modifiedTime >= timeRange.after;
-          const matchesBefore = timeRange.before === undefined || file.modifiedTime <= timeRange.before;
-          
+          const matchesAfter =
+            timeRange.after === undefined ||
+            file.modifiedTime >= timeRange.after;
+          const matchesBefore =
+            timeRange.before === undefined ||
+            file.modifiedTime <= timeRange.before;
+
           if (matchesAfter && matchesBefore) {
             results.push({
               file,
               name: file.name,
               path: file.path,
-              score: 1.0
+              score: 1.0,
             });
           }
         }
@@ -377,7 +404,7 @@ export class FileSearchEngine {
         // 忽略无法获取修改时间的文件
       }
     }
-    
+
     return results;
   }
 
@@ -388,16 +415,16 @@ export class FileSearchEngine {
   private calculateNameScore(fileName: string, pattern: string): number {
     const lowerFileName = fileName.toLowerCase();
     const lowerPattern = pattern.toLowerCase();
-    
+
     // 完全匹配得分最高
     if (lowerFileName === lowerPattern) return 1.0;
-    
+
     // 开头匹配得分较高
     if (lowerFileName.startsWith(lowerPattern)) return 0.8;
-    
+
     // 包含匹配得分中等
     if (lowerFileName.includes(lowerPattern)) return 0.6;
-    
+
     return 0.0;
   }
 
@@ -408,23 +435,32 @@ export class FileSearchEngine {
    * @param criteria 搜索条件
    * @returns Promise，解析为搜索结果数组
    */
-  async searchWithCriteria(context: FolderContext, criteria: SearchCriteria): Promise<SearchResult[]> {
+  async searchWithCriteria(
+    context: FolderContext,
+    criteria: SearchCriteria
+  ): Promise<SearchResult[]> {
     let results: SearchResult[] = context.getAllFiles().map(file => ({
       file,
       name: file.name,
       path: file.path,
-      score: 1.0
+      score: 1.0,
     }));
 
     // 按名称过滤
     if (criteria.name) {
-      results = results.filter(r => r.name.toLowerCase().includes(criteria.name!.toLowerCase()));
+      results = results.filter(r =>
+        r.name.toLowerCase().includes(criteria.name!.toLowerCase())
+      );
     }
 
     // 按扩展名过滤
     if (criteria.extension) {
-      const ext = criteria.extension.startsWith('.') ? criteria.extension : '.' + criteria.extension;
-      results = results.filter(r => r.file.extension.toLowerCase() === ext.toLowerCase());
+      const ext = criteria.extension.startsWith('.')
+        ? criteria.extension
+        : '.' + criteria.extension;
+      results = results.filter(
+        r => r.file.extension.toLowerCase() === ext.toLowerCase()
+      );
     }
 
     // 按内容过滤
@@ -438,10 +474,18 @@ export class FileSearchEngine {
             await result.file.loadContent();
           }
 
-          if (result.file.content && result.file.content.toLowerCase().includes(criteria.contentPattern.toLowerCase())) {
+          if (
+            result.file.content &&
+            result.file.content
+              .toLowerCase()
+              .includes(criteria.contentPattern.toLowerCase())
+          ) {
             contentResults.push({
               ...result,
-              score: this.calculateContentScore(result.file.content, criteria.contentPattern)
+              score: this.calculateContentScore(
+                result.file.content,
+                criteria.contentPattern
+              ),
             });
           }
         } catch (error) {
@@ -461,13 +505,17 @@ export class FileSearchEngine {
           }
 
           const size = result.file.size || 0;
-          const matchesMin = criteria.sizeRange.min === undefined || size >= criteria.sizeRange.min;
-          const matchesMax = criteria.sizeRange.max === undefined || size <= criteria.sizeRange.max;
+          const matchesMin =
+            criteria.sizeRange.min === undefined ||
+            size >= criteria.sizeRange.min;
+          const matchesMax =
+            criteria.sizeRange.max === undefined ||
+            size <= criteria.sizeRange.max;
 
           if (matchesMin && matchesMax) {
             sizeResults.push({
               ...result,
-              score: 1.0
+              score: 1.0,
             });
           }
         } catch (error) {
@@ -487,18 +535,22 @@ export class FileSearchEngine {
    * @param query 查询字符串
    * @returns Promise，解析为搜索结果数组
    */
-  async fuzzySearch(context: FolderContext, query: string): Promise<SearchResult[]> {
+  async fuzzySearch(
+    context: FolderContext,
+    query: string
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
 
     for (const file of allFiles) {
       const score = this.calculateFuzzyScore(file.name, query);
-      if (score > 0.3) { // 只返回得分较高的结果
+      if (score > 0.3) {
+        // 只返回得分较高的结果
         results.push({
           file,
           name: file.name,
           path: file.path,
-          score
+          score,
         });
       }
     }
@@ -516,7 +568,10 @@ export class FileSearchEngine {
    * @param query 查询字符串
    * @returns Promise，解析为搜索结果数组
    */
-  async fullTextSearch(context: FolderContext, query: string): Promise<SearchResult[]> {
+  async fullTextSearch(
+    context: FolderContext,
+    query: string
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
 
@@ -535,7 +590,7 @@ export class FileSearchEngine {
               file,
               name: file.name,
               path: file.path,
-              score
+              score,
             });
           }
         }
@@ -558,7 +613,11 @@ export class FileSearchEngine {
    * @param options 排序选项
    * @returns Promise，解析为搜索结果数组
    */
-  async searchAndSort(context: FolderContext, query: string, options: SortOptions): Promise<SearchResult[]> {
+  async searchAndSort(
+    context: FolderContext,
+    query: string,
+    options: SortOptions
+  ): Promise<SearchResult[]> {
     const results = await this.searchByName(context, query);
 
     return this.sortResults(results, options);
@@ -572,9 +631,16 @@ export class FileSearchEngine {
    * @param options 分页选项
    * @returns Promise，解析为分页结果
    */
-  async searchWithPagination(context: FolderContext, query: string, options: PaginationOptions): Promise<PaginatedResults> {
+  async searchWithPagination(
+    context: FolderContext,
+    query: string,
+    options: PaginationOptions
+  ): Promise<PaginatedResults> {
     // 使用正则表达式搜索所有文件
-    const allResults = await this.searchByRegex(context, new RegExp(query, 'i'));
+    const allResults = await this.searchByRegex(
+      context,
+      new RegExp(query, 'i')
+    );
 
     const total = allResults.length;
     const totalPages = Math.ceil(total / options.pageSize);
@@ -587,7 +653,7 @@ export class FileSearchEngine {
       total,
       page: options.page,
       pageSize: options.pageSize,
-      totalPages
+      totalPages,
     };
   }
 
@@ -602,7 +668,11 @@ export class FileSearchEngine {
     let score = 0;
     let queryIndex = 0;
 
-    for (let i = 0; i < lowerText.length && queryIndex < lowerQuery.length; i++) {
+    for (
+      let i = 0;
+      i < lowerText.length && queryIndex < lowerQuery.length;
+      i++
+    ) {
       if (lowerText[i] === lowerQuery[queryIndex]) {
         score += 1;
         queryIndex++;
@@ -610,7 +680,9 @@ export class FileSearchEngine {
     }
 
     // 归一化得分
-    return queryIndex === lowerQuery.length ? score / Math.max(text.length, query.length) : 0;
+    return queryIndex === lowerQuery.length
+      ? score / Math.max(text.length, query.length)
+      : 0;
   }
 
   /**
@@ -629,14 +701,17 @@ export class FileSearchEngine {
       totalScore += matches;
     }
 
-    return totalScore / content.length * 1000; // 归一化
+    return (totalScore / content.length) * 1000; // 归一化
   }
 
   /**
    * 排序结果
    * @private
    */
-  private sortResults(results: SearchResult[], options: SortOptions): SearchResult[] {
+  private sortResults(
+    results: SearchResult[],
+    options: SortOptions
+  ): SearchResult[] {
     return results.sort((a, b) => {
       let comparison = 0;
 
@@ -668,7 +743,10 @@ export class FileSearchEngine {
    * @param fileType 文件类型
    * @returns Promise，解析为搜索结果数组
    */
-  async filterByType(context: FolderContext, fileType: string): Promise<SearchResult[]> {
+  async filterByType(
+    context: FolderContext,
+    fileType: string
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
 
@@ -680,7 +758,7 @@ export class FileSearchEngine {
           file,
           name: file.name,
           path: file.path,
-          score: 1.0
+          score: 1.0,
         });
       }
     }
@@ -695,7 +773,10 @@ export class FileSearchEngine {
    * @param pathPattern 路径模式
    * @returns Promise，解析为搜索结果数组
    */
-  async filterByPath(context: FolderContext, pathPattern: string): Promise<SearchResult[]> {
+  async filterByPath(
+    context: FolderContext,
+    pathPattern: string
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
 
@@ -705,7 +786,7 @@ export class FileSearchEngine {
           file,
           name: file.name,
           path: file.path,
-          score: 1.0
+          score: 1.0,
         });
       }
     }
@@ -720,7 +801,10 @@ export class FileSearchEngine {
    * @param options 过滤选项
    * @returns Promise，解析为搜索结果数组
    */
-  async filterWithExclusions(context: FolderContext, options: FilterOptions): Promise<SearchResult[]> {
+  async filterWithExclusions(
+    context: FolderContext,
+    options: FilterOptions
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
 
@@ -752,7 +836,7 @@ export class FileSearchEngine {
           file,
           name: file.name,
           path: file.path,
-          score: 1.0
+          score: 1.0,
         });
       }
     }
@@ -767,7 +851,10 @@ export class FileSearchEngine {
    * @param options 过滤选项
    * @returns Promise，解析为搜索结果数组
    */
-  async filterWithInclusions(context: FolderContext, options: FilterOptions): Promise<SearchResult[]> {
+  async filterWithInclusions(
+    context: FolderContext,
+    options: FilterOptions
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
 
@@ -802,7 +889,7 @@ export class FileSearchEngine {
           file,
           name: file.name,
           path: file.path,
-          score: 1.0
+          score: 1.0,
         });
       }
     }
@@ -817,7 +904,10 @@ export class FileSearchEngine {
    * @param filterFn 过滤函数
    * @returns Promise，解析为搜索结果数组
    */
-  async filterWithCustomFunction(context: FolderContext, filterFn: (file: FileContext) => boolean): Promise<SearchResult[]> {
+  async filterWithCustomFunction(
+    context: FolderContext,
+    filterFn: (file: FileContext) => boolean
+  ): Promise<SearchResult[]> {
     const allFiles = context.getAllFiles();
     const results: SearchResult[] = [];
 
@@ -827,7 +917,7 @@ export class FileSearchEngine {
           file,
           name: file.name,
           path: file.path,
-          score: 1.0
+          score: 1.0,
         });
       }
     }
@@ -841,23 +931,23 @@ export class FileSearchEngine {
    */
   private getExtensionsByType(fileType: string): string[] {
     const typeMap: Record<string, string[]> = {
-      'javascript': ['.js', '.jsx', '.ts', '.tsx'],
-      'python': ['.py', '.pyw', '.pyx'],
-      'java': ['.java', '.class', '.jar'],
-      'c': ['.c', '.h'],
-      'cpp': ['.cpp', '.cxx', '.cc', '.hpp', '.hxx'],
-      'csharp': ['.cs'],
-      'php': ['.php', '.phtml'],
-      'ruby': ['.rb', '.rbw'],
-      'go': ['.go'],
-      'rust': ['.rs'],
-      'swift': ['.swift'],
-      'kotlin': ['.kt', '.kts'],
-      'scala': ['.scala'],
-      'text': ['.txt', '.md', '.rst'],
-      'config': ['.json', '.yaml', '.yml', '.xml', '.toml', '.ini'],
-      'image': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg'],
-      'document': ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+      javascript: ['.js', '.jsx', '.ts', '.tsx'],
+      python: ['.py', '.pyw', '.pyx'],
+      java: ['.java', '.class', '.jar'],
+      c: ['.c', '.h'],
+      cpp: ['.cpp', '.cxx', '.cc', '.hpp', '.hxx'],
+      csharp: ['.cs'],
+      php: ['.php', '.phtml'],
+      ruby: ['.rb', '.rbw'],
+      go: ['.go'],
+      rust: ['.rs'],
+      swift: ['.swift'],
+      kotlin: ['.kt', '.kts'],
+      scala: ['.scala'],
+      text: ['.txt', '.md', '.rst'],
+      config: ['.json', '.yaml', '.yml', '.xml', '.toml', '.ini'],
+      image: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg'],
+      document: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'],
     };
 
     return typeMap[fileType.toLowerCase()] || [];
@@ -920,7 +1010,7 @@ export class FileSearchEngine {
       files: allFiles,
       content: contentIndex,
       metadata,
-      buildTime: new Date()
+      buildTime: new Date(),
     };
 
     return this.searchIndex;
@@ -953,7 +1043,7 @@ export class FileSearchEngine {
         file,
         name: file.name,
         path: file.path,
-        score: this.calculateIndexScore(file, words)
+        score: this.calculateIndexScore(file, words),
       });
     }
 
@@ -994,12 +1084,20 @@ export class FileSearchEngine {
    * @param options 高亮选项
    * @returns Promise，解析为搜索结果数组
    */
-  async searchWithHighlight(context: FolderContext, query: string, options: HighlightOptions): Promise<SearchResult[]> {
+  async searchWithHighlight(
+    context: FolderContext,
+    query: string,
+    options: HighlightOptions
+  ): Promise<SearchResult[]> {
     const results = await this.searchByContent(context, query);
 
     for (const result of results) {
       if (result.file.content) {
-        result.highlights = this.generateHighlights(result.file.content, query, options);
+        result.highlights = this.generateHighlights(
+          result.file.content,
+          query,
+          options
+        );
       }
     }
 
@@ -1013,7 +1111,10 @@ export class FileSearchEngine {
    * @param query 查询字符串
    * @returns Promise，解析为建议数组
    */
-  async getSuggestions(context: FolderContext, query: string): Promise<string[]> {
+  async getSuggestions(
+    context: FolderContext,
+    query: string
+  ): Promise<string[]> {
     const allFiles = context.getAllFiles();
     const suggestions = new Set<string>();
 
@@ -1033,7 +1134,10 @@ export class FileSearchEngine {
     // 基于内容生成建议
     const words = await this.extractAllWords(context);
     for (const word of words) {
-      if (word.toLowerCase().includes(query.toLowerCase()) && word.length > query.length) {
+      if (
+        word.toLowerCase().includes(query.toLowerCase()) &&
+        word.length > query.length
+      ) {
         suggestions.add(word);
       }
     }
@@ -1048,7 +1152,10 @@ export class FileSearchEngine {
    * @param query 查询字符串
    * @returns Promise，解析为搜索统计
    */
-  async getSearchStatistics(context: FolderContext, query: string): Promise<SearchStatistics> {
+  async getSearchStatistics(
+    context: FolderContext,
+    query: string
+  ): Promise<SearchStatistics> {
     const startTime = Date.now();
     const results = await this.searchByName(context, query);
     const searchTime = Date.now() - startTime;
@@ -1070,7 +1177,7 @@ export class FileSearchEngine {
       matchedFiles: results.length,
       searchTime,
       fileTypes,
-      pathDistribution
+      pathDistribution,
     };
   }
 
@@ -1081,7 +1188,10 @@ export class FileSearchEngine {
    * @param options 导出选项
    * @returns Promise，解析为导出字符串
    */
-  async exportResults(results: SearchResult[], options: ExportOptions): Promise<string> {
+  async exportResults(
+    results: SearchResult[],
+    options: ExportOptions
+  ): Promise<string> {
     switch (options.format) {
       case 'json':
         return this.exportToJson(results, options);
@@ -1099,9 +1209,7 @@ export class FileSearchEngine {
    * @private
    */
   private extractWords(content: string): string[] {
-    return content
-      .toLowerCase()
-      .match(/\b\w+\b/g) || [];
+    return content.toLowerCase().match(/\b\w+\b/g) || [];
   }
 
   /**
@@ -1119,14 +1227,18 @@ export class FileSearchEngine {
       score += matches;
     }
 
-    return score / content.length * 1000;
+    return (score / content.length) * 1000;
   }
 
   /**
    * 生成高亮信息
    * @private
    */
-  private generateHighlights(content: string, query: string, options: HighlightOptions): string[] {
+  private generateHighlights(
+    content: string,
+    query: string,
+    options: HighlightOptions
+  ): string[] {
     const lines = content.split('\n');
     const highlights: string[] = [];
     const queryLower = query.toLowerCase();
@@ -1164,7 +1276,8 @@ export class FileSearchEngine {
         if (file.content) {
           const fileWords = this.extractWords(file.content);
           for (const word of fileWords) {
-            if (word.length > 2) { // 只包含长度大于2的单词
+            if (word.length > 2) {
+              // 只包含长度大于2的单词
               words.add(word);
             }
           }
@@ -1181,17 +1294,24 @@ export class FileSearchEngine {
    * 导出为JSON格式
    * @private
    */
-  private exportToJson(results: SearchResult[], options: ExportOptions): string {
+  private exportToJson(
+    results: SearchResult[],
+    options: ExportOptions
+  ): string {
     const exportData = results.map(result => ({
       name: result.name,
       path: result.path,
       score: result.score,
-      ...(options.includeContent && result.file.content ? { content: result.file.content } : {}),
-      ...(options.includeMetadata ? {
-        size: result.file.size,
-        extension: result.file.extension,
-        modifiedTime: result.file.modifiedTime
-      } : {})
+      ...(options.includeContent && result.file.content
+        ? { content: result.file.content }
+        : {}),
+      ...(options.includeMetadata
+        ? {
+            size: result.file.size,
+            extension: result.file.extension,
+            modifiedTime: result.file.modifiedTime,
+          }
+        : {}),
     }));
 
     return JSON.stringify(exportData, null, 2);
@@ -1213,7 +1333,7 @@ export class FileSearchEngine {
       const row = [
         `"${result.name}"`,
         `"${result.path}"`,
-        result.score?.toString() || '0'
+        result.score?.toString() || '0',
       ];
 
       if (options.includeMetadata) {
@@ -1277,7 +1397,8 @@ export class FileSearchEngine {
     const lowerContent = content.toLowerCase();
     const lowerPattern = pattern.toLowerCase();
 
-    const matches = (lowerContent.match(new RegExp(lowerPattern, 'g')) || []).length;
+    const matches = (lowerContent.match(new RegExp(lowerPattern, 'g')) || [])
+      .length;
     const contentLength = content.length;
 
     // 基于匹配次数和内容长度计算得分
