@@ -220,12 +220,17 @@ export class ChangeDebouncer extends EventEmitter {
     // 清空待处理变更
     this.pendingChanges.clear();
 
-    // 发送批处理事件
-    try {
-      this.emit('batch', batch);
-    } catch (error) {
-      // 即使监听器抛出异常，也不应该影响防抖器的工作
-      this.emit('error', error);
+    // 发送批处理事件 - 安全地调用所有监听器
+    const listeners = this.listeners('batch');
+    for (const listener of listeners) {
+      try {
+        if (typeof listener === 'function') {
+          listener(batch);
+        }
+      } catch (error) {
+        // 即使监听器抛出异常，也不应该影响防抖器的工作
+        this.emit('error', error);
+      }
     }
   }
 

@@ -544,13 +544,9 @@ custom-ignored/
           JSON.stringify({ name: 'test-project' })
         );
 
-        // 使用ContextBuilder扫描，这样会自动标记isProjectRoot
+        // 直接扫描测试目录，避免扫描父目录导致超时
         const builder = new ContextBuilder();
-        const parentDir = path.dirname(testDir);
-        const rootContext = await builder.buildFromDirectory(parentDir);
-        const folderContext = rootContext.findChild(
-          path.basename(testDir)
-        ) as FolderContext;
+        const folderContext = await builder.buildFromDirectory(testDir);
 
         expect(folderContext).toBeDefined();
         expect(folderContext.isProjectRoot).toBe(true);

@@ -384,6 +384,12 @@ describe('ChangeDebouncer 变更事件防抖器', () => {
 
     it('应该在监听器抛出异常时继续工作', async () => {
       const normalEvents: DebouncedBatch[] = [];
+      const errors: Error[] = [];
+
+      // 添加错误监听器来捕获异常
+      debouncer.on('error', (error: Error) => {
+        errors.push(error);
+      });
 
       // 添加一个会抛出异常的监听器
       debouncer.on('batch', () => {
@@ -408,6 +414,9 @@ describe('ChangeDebouncer 变更事件防抖器', () => {
 
       // 正常监听器应该仍然收到事件
       expect(normalEvents.length).toBe(1);
+      // 应该捕获到异常
+      expect(errors.length).toBe(1);
+      expect(errors[0]!.message).toBe('测试异常');
     });
   });
 });
