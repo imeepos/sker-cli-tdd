@@ -363,10 +363,10 @@ describe('IPC Server IPC服务器', () => {
       });
     });
 
-    it.skip('应该在心跳超时后断开客户端连接', (done) => {
+    it.skip('应该在心跳超时后断开客户端连接', async () => {
       // 为单独测试创建新的唯一socket路径
       const uniqueSocketPath = process.platform === 'win32' 
-        ? `\\\\.\\pipe\\test-heartbeat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        ? `\\\\.\\pipe\\test-hb-${Math.random().toString(36).substr(2, 6)}`
         : path.join(os.tmpdir(), `test-heartbeat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.sock`);
       
       // 创建新的服务器实例，不影响全局server变量
@@ -377,18 +377,38 @@ describe('IPC Server IPC服务器', () => {
         connectionTimeout: 150 // 短超时用于测试
       });
 
-      testServer.start().then(() => {
-        testServer.on('client-disconnected', (_clientId: string, reason: string) => {
-          expect(reason).toBe('connection timeout');
-          testServer.stop().then(() => done());
+      let client: net.Socket | null = null;
+      
+      try {
+        await testServer.start();
+        
+        // 使用Promise来处理异步事件
+        const disconnectPromise = new Promise<string>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Test timeout: client disconnect event not received'));
+          }, 5000);
+          
+          testServer.on('client-disconnected', (_clientId: string, reason: string) => {
+            clearTimeout(timeout);
+            resolve(reason);
+          });
         });
 
-        const client = net.createConnection(uniqueSocketPath);
+        client = net.createConnection(uniqueSocketPath);
         client.on('connect', () => {
           // 不响应心跳，等待超时
         });
-      });
-    }, 20000);
+        
+        const reason = await disconnectPromise;
+        expect(reason).toBe('connection timeout');
+      } finally {
+        // 确保清理资源
+        if (client) {
+          client.destroy();
+        }
+        await testServer.stop();
+      }
+    }, 10000);
   });
 
   describe('统计信息', () => {

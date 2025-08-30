@@ -314,6 +314,9 @@ export class IPCClient extends EventEmitter {
     super();
 
     // 验证配置参数
+    if (!config.socketPath) {
+      throw new Error('Socket路径不能为空');
+    }
     if (config.maxConnections !== undefined && config.maxConnections <= 0) {
       throw new Error('最大连接数必须大于0');
     }
@@ -328,7 +331,7 @@ export class IPCClient extends EventEmitter {
 
     this.config = {
       socketPath: config.socketPath,
-      maxConnections: config.maxConnections ?? 5,
+      maxConnections: config.maxConnections ?? 10,
       connectionTimeout: config.connectionTimeout ?? 10000,
       requestTimeout: config.requestTimeout ?? 30000,
       retryAttempts: config.retryAttempts ?? 3,
