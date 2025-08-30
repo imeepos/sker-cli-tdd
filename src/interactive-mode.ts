@@ -155,19 +155,7 @@ export class InteractiveMode {
       const toolsHelp = this.toolManager.getAllToolsHelp();
       console.log(toolsHelp);
     } else if (this.isSessionCommand(command)) {
-      const sessions = await this.streamChat.listSessions(10);
-      if (sessions.length === 0) {
-        console.log('📂 暂无保存的会话');
-      } else {
-        console.log('\n📂 最近的会话:');
-        sessions.forEach((session, index) => {
-          const date = new Date(session.updatedAt).toLocaleString();
-          console.log(`  ${index + 1}. ${session.name} (ID: ${session.id})`);
-          console.log(
-            `     更新时间: ${date}, 消息数: ${session.messageCount}`
-          );
-        });
-      }
+      await this.listSavedSessions();
     } else if (this.isNewSessionCommand(command)) {
       const parts = command.split(' ');
       const sessionName =
@@ -338,8 +326,19 @@ export class InteractiveMode {
   /**
    * 列出保存的会话
    */
-  listSavedSessions(): string[] {
-    // 这里应该实现实际的会话列表逻辑，现在只是模拟
-    return [];
+  async listSavedSessions(): Promise<void> {
+    const sessions = await this.streamChat.listSessions(10);
+    if (sessions.length === 0) {
+      console.log('📂 暂无保存的会话');
+    } else {
+      console.log('\n📂 最近的会话:');
+      sessions.forEach((session, index) => {
+        const date = new Date(session.updatedAt).toLocaleString();
+        console.log(`  ${index + 1}. ${session.name} (ID: ${session.id})`);
+        console.log(
+          `     更新时间: ${date}, 消息数: ${session.messageCount}`
+        );
+      });
+    }
   }
 }

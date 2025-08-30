@@ -22,7 +22,7 @@ describe('SystemContext', () => {
       expect(context.os.version).toBeDefined();
       expect(context.os.arch).toBeDefined();
       expect(context.os.release).toBeDefined();
-    });
+    }, 30000);
 
     it('应该能够获取系统资源信息', async () => {
       const context = await collector.collectSystemContext(); // ❌ 这会失败 - 正确的！

@@ -26,6 +26,7 @@ describe('交互式模式 - 错误处理修复', () => {
       getConversationHistory: jest.fn().mockReturnValue([]),
       clearHistory: jest.fn(),
       setRealTimeOutput: jest.fn(),
+      listSessions: jest.fn().mockResolvedValue([]),
       getStats: jest.fn().mockReturnValue({
         totalMessages: 0,
         totalTokens: 0,
@@ -159,10 +160,12 @@ describe('交互式模式 - 错误处理修复', () => {
       expect(typeof result).toBe('boolean');
     });
 
-    it('应该能够列出保存的会话', () => {
-      const sessions = interactiveMode.listSavedSessions();
+    it('应该能够列出保存的会话', async () => {
+      mockStreamChat.listSessions = jest.fn().mockResolvedValue([]);
+      
+      await interactiveMode.listSavedSessions();
 
-      expect(Array.isArray(sessions)).toBe(true);
+      expect(mockStreamChat.listSessions).toHaveBeenCalledWith(10);
     });
   });
 });

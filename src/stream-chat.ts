@@ -356,11 +356,6 @@ export class StreamChat {
    */
   private convertToUnifiedMessages(messages: any[]): UnifiedMessage[] {
     return messages.map(msg => {
-      // 如果已经是统一格式，直接返回
-      if (msg.role && msg.content && !msg.tool_calls && !msg.tool_call_id) {
-        return msg as UnifiedMessage;
-      }
-
       // 转换OpenAI格式到统一格式
       const unifiedMsg: UnifiedMessage = {
         role: msg.role === 'developer' ? 'system' : msg.role,
