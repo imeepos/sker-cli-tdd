@@ -5,6 +5,7 @@
 
 import { MCPAIClient, MCPAIConfig } from './mcp-ai-client';
 import { ConfigManager } from './config-manager';
+import { CLIDaemon } from './cli-daemon';
 
 /**
  * CLI 配置接口
@@ -32,6 +33,7 @@ export interface CLIOptions {
  */
 export class CLI {
   private aiClient?: MCPAIClient;
+  private cliDaemon?: CLIDaemon;
 
   /**
    * 设置 AI 客户端
@@ -218,6 +220,9 @@ export class CLI {
 
 使用方法:
   sker [选项] [消息]
+  sker daemon <命令> [选项]
+  sker watch <命令> <项目路径> [选项]
+  sker context <命令> <项目路径> [选项]
 
 选项:
   --model <model>           指定模型 (默认: gpt-4)
@@ -227,6 +232,19 @@ export class CLI {
   --interactive, -i         交互式模式
   --help, -h               显示帮助信息
   --version, -v            显示版本信息
+
+守护进程命令:
+  sker daemon start         启动守护进程
+  sker daemon stop          停止守护进程
+  sker daemon status        查看守护进程状态
+
+文件监听命令:
+  sker watch enable <路径>   启用文件监听
+  sker watch disable <路径>  禁用文件监听
+
+上下文命令:
+  sker context refresh <路径>  刷新上下文缓存
+  sker context clear <路径>    清除上下文缓存
 
 内置工具:
   🗂️  文件工具:         文件读写、搜索、权限管理
@@ -257,6 +275,202 @@ TODO工具使用示例:
    */
   getVersion(): string {
     return '1.0.0';
+  }
+
+  /**
+   * 初始化CLI守护进程管理器
+   */
+  private initializeCLIDaemon(): void {
+    if (!this.cliDaemon) {
+      const homeDir = require('os').homedir();
+      const skerDir = require('path').join(homeDir, '.sker');
+      
+      this.cliDaemon = new CLIDaemon({
+        socketPath: require('path').join(skerDir, 'daemon.sock'),
+        pidFile: require('path').join(skerDir, 'daemon.pid'),
+        logFile: require('path').join(skerDir, 'daemon.log')
+      });
+    }
+  }
+
+  /**
+   * 处理守护进程命令
+   */
+  async handleDaemonCommand(args: string[]): Promise<void> {
+    this.initializeCLIDaemon();
+    
+    if (args.length < 2) {
+      console.log(this.cliDaemon!.getDaemonHelp());
+      return;
+    }
+
+    const action = args[1];
+    const options = this.parseDaemonOptions(args.slice(2));
+
+    switch (action) {
+      case 'start':
+        const startResult = await this.cliDaemon!.startDaemon(options);
+        console.log(startResult.success ? `✅ ${startResult.message}` : `❌ ${startResult.message}`);
+        break;
+      
+      case 'stop':
+        const stopResult = await this.cliDaemon!.stopDaemon(options);
+        console.log(stopResult.success ? `✅ ${stopResult.message}` : `❌ ${stopResult.message}`);
+        break;
+      
+      case 'status':
+        const status = await this.cliDaemon!.getDaemonStatus();
+        this.displayDaemonStatus(status);
+        break;
+      
+      default:
+        console.log(`❌ 未知的守护进程命令: ${action}`);
+        console.log(this.cliDaemon!.getDaemonHelp());
+    }
+  }
+
+  /**
+   * 处理监听命令
+   */
+  async handleWatchCommand(args: string[]): Promise<void> {
+    this.initializeCLIDaemon();
+    
+    if (args.length < 3) {
+      console.log(this.cliDaemon!.getWatchHelp());
+      return;
+    }
+
+    const action = args[1];
+    const projectPath = args[2] || '';
+    const options = this.parseWatchOptions(args.slice(3));
+
+    switch (action) {
+      case 'enable':
+        const enableResult = await this.cliDaemon!.enableWatch(projectPath, options);
+        console.log(enableResult.success ? `✅ ${enableResult.message}` : `❌ ${enableResult.message}`);
+        break;
+      
+      case 'disable':
+        const disableResult = await this.cliDaemon!.disableWatch(projectPath);
+        console.log(disableResult.success ? `✅ ${disableResult.message}` : `❌ ${disableResult.message}`);
+        break;
+      
+      default:
+        console.log(`❌ 未知的监听命令: ${action}`);
+        console.log(this.cliDaemon!.getWatchHelp());
+    }
+  }
+
+  /**
+   * 处理上下文命令
+   */
+  async handleContextCommand(args: string[]): Promise<void> {
+    this.initializeCLIDaemon();
+    
+    if (args.length < 3) {
+      console.log(this.cliDaemon!.getContextHelp());
+      return;
+    }
+
+    const action = args[1];
+    const projectPath = args[2] || '';
+    const options = this.parseContextOptions(args.slice(3));
+
+    switch (action) {
+      case 'refresh':
+        const refreshResult = await this.cliDaemon!.refreshContext(projectPath, options);
+        console.log(refreshResult.success ? `✅ ${refreshResult.message}` : `❌ ${refreshResult.message}`);
+        if (refreshResult.success) {
+          console.log(`   处理文件: ${refreshResult.filesProcessed}个`);
+          console.log(`   耗时: ${refreshResult.totalTime}ms`);
+        }
+        break;
+      
+      case 'clear':
+        const clearResult = await this.cliDaemon!.clearContext(projectPath);
+        console.log(clearResult.success ? `✅ ${clearResult.message}` : `❌ ${clearResult.message}`);
+        if (clearResult.success) {
+          console.log(`   清除项目: ${clearResult.itemsCleared}个`);
+        }
+        break;
+      
+      default:
+        console.log(`❌ 未知的上下文命令: ${action}`);
+        console.log(this.cliDaemon!.getContextHelp());
+    }
+  }
+
+  /**
+   * 解析守护进程选项
+   */
+  private parseDaemonOptions(args: string[]): any {
+    const options: any = {};
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      switch (arg) {
+        case '--background':
+          options.background = true;
+          break;
+        case '--force':
+          options.force = true;
+          break;
+      }
+    }
+    return options;
+  }
+
+  /**
+   * 解析监听选项
+   */
+  private parseWatchOptions(args: string[]): any {
+    const options: any = {};
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      switch (arg) {
+        case '--debounce':
+          options.debounceMs = parseInt(args[++i] || '0', 10);
+          break;
+      }
+    }
+    return options;
+  }
+
+  /**
+   * 解析上下文选项
+   */
+  private parseContextOptions(args: string[]): any {
+    const options: any = {};
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      switch (arg) {
+        case '--force':
+          options.force = true;
+          break;
+        case '--patterns':
+          options.patterns = [args[++i]];
+          break;
+        case '--exclude':
+          options.exclude = [args[++i]];
+          break;
+      }
+    }
+    return options;
+  }
+
+  /**
+   * 显示守护进程状态
+   */
+  private displayDaemonStatus(status: any): void {
+    console.log('\n📊 守护进程状态:');
+    console.log(`状态: ${status.isRunning ? '✅ 运行中' : '❌ 未运行'}`);
+    if (status.isRunning) {
+      console.log(`进程ID: ${status.pid}`);
+      console.log(`运行时长: ${status.uptime}秒`);
+      console.log(`内存使用: ${status.memoryUsage}MB`);
+      console.log(`监听项目: ${status.projectCount}个`);
+      console.log(`健康状态: ${status.health.isHealthy ? '✅ 健康' : '⚠️ 异常'}`);
+      console.log(`最后检查: ${status.health.lastCheck.toLocaleString()}`);
+    }
   }
 
   /**
