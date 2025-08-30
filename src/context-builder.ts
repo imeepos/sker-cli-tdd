@@ -369,13 +369,24 @@ export class ContextBuilder {
     try {
       const affectedFiles: string[] = [changeEvent.path];
       let updatedContext: Context | undefined;
+      let operationResult: FileContext | FolderContext | null | undefined;
 
       switch (changeEvent.type) {
         case 'add':
-          updatedContext = await this.handleFileAdd(changeEvent.path) || undefined;
+          operationResult = await this.handleFileAdd(changeEvent.path);
+          updatedContext = operationResult || undefined;
+          // 对于添加操作，如果文件不存在应该失败
+          if (operationResult === null) {
+            throw new Error(`无法添加文件：文件不存在或无法访问 ${changeEvent.path}`);
+          }
           break;
         case 'change':
-          updatedContext = await this.handleFileModify(changeEvent.path) || undefined;
+          operationResult = await this.handleFileModify(changeEvent.path);
+          updatedContext = operationResult || undefined;
+          // 对于修改操作，如果文件不存在应该失败
+          if (operationResult === null) {
+            throw new Error(`无法修改文件：文件不存在或无法访问 ${changeEvent.path}`);
+          }
           // 获取受影响的依赖文件
           const dependentFiles = await this.getAffectedFiles(changeEvent.path);
           affectedFiles.push(...dependentFiles);
@@ -384,7 +395,8 @@ export class ContextBuilder {
           updatedContext = await this.handleFileDelete(changeEvent.path);
           break;
         case 'addDir':
-          updatedContext = await this.handleDirectoryAdd(changeEvent.path) || undefined;
+          operationResult = await this.handleDirectoryAdd(changeEvent.path);
+          updatedContext = operationResult || undefined;
           break;
         case 'unlinkDir':
           updatedContext = await this.handleDirectoryDelete(changeEvent.path);

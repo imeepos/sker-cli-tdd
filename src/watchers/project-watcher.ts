@@ -115,11 +115,13 @@ export class ProjectWatcher extends EventEmitter {
       ignoreInitial: true, // 忽略初始扫描以提高测试性能
       followSymlinks: false,
       awaitWriteFinish: {
-        stabilityThreshold: 100, // 降低稳定性阈值以提高测试性能
-        pollInterval: 10
+        stabilityThreshold: 200, // 增加稳定性阈值确保事件可靠触发
+        pollInterval: 50
       },
       depth: this.config.maxDepth,
-      usePolling: false
+      usePolling: process.platform === 'win32', // Windows下使用轮询模式提高可靠性
+      interval: 100, // 轮询间隔
+      binaryInterval: 300 // 二进制文件轮询间隔
     });
 
     // 绑定事件处理器
