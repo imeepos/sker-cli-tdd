@@ -20,7 +20,10 @@ export interface ToolResponse {
 /**
  * 工具处理器类型
  */
-export type ToolHandler<TParams = Record<string, unknown>, TResult = ToolResponse> = (params: TParams) => Promise<TResult>;
+export type ToolHandler<
+  TParams = Record<string, unknown>,
+  TResult = ToolResponse,
+> = (params: TParams) => Promise<TResult>;
 
 /**
  * 基础工具提供者抽象类
@@ -64,11 +67,14 @@ export abstract class BaseToolProvider implements ToolProvider {
           if (errorMessage.includes('缺少必需参数')) {
             return this.createErrorResponse(error as Error);
           }
-          const skerError = ErrorFactory.toolExecutionFailed(name, error as Error);
+          const skerError = ErrorFactory.toolExecutionFailed(
+            name,
+            error as Error
+          );
           return this.createSkerErrorResponse(skerError);
         }
       },
-      schema
+      schema,
     };
   }
 
@@ -78,10 +84,12 @@ export abstract class BaseToolProvider implements ToolProvider {
    * @param data 响应数据
    * @returns 成功响应对象
    */
-  protected createSuccessResponse(data: Record<string, any> = {}): ToolResponse {
+  protected createSuccessResponse(
+    data: Record<string, any> = {}
+  ): ToolResponse {
     return {
       success: true,
-      ...data
+      ...data,
     };
   }
 
@@ -94,7 +102,7 @@ export abstract class BaseToolProvider implements ToolProvider {
   protected createErrorResponse(error: Error): ToolResponse {
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 
@@ -113,7 +121,7 @@ export abstract class BaseToolProvider implements ToolProvider {
       userMessage: error.getUserMessage(),
       retryable: error.isRetryable(),
       timestamp: error.timestamp.toISOString(),
-      ...(error.context && { context: error.context })
+      ...(error.context && { context: error.context }),
     };
   }
 
@@ -124,10 +132,13 @@ export abstract class BaseToolProvider implements ToolProvider {
    * @param error 错误对象
    * @returns 带前缀的错误响应
    */
-  protected createErrorResponseWithContext(operation: string, error: Error): ToolResponse {
+  protected createErrorResponseWithContext(
+    operation: string,
+    error: Error
+  ): ToolResponse {
     return {
       success: false,
-      error: `${operation}失败: ${error.message}`
+      error: `${operation}失败: ${error.message}`,
     };
   }
 
@@ -138,12 +149,17 @@ export abstract class BaseToolProvider implements ToolProvider {
    * @param requiredFields 必需字段列表
    * @throws Error 如果缺少必需参数
    */
-  protected validateRequiredParams(params: Record<string, unknown>, requiredFields: string[]): void {
+  protected validateRequiredParams(
+    params: Record<string, unknown>,
+    requiredFields: string[]
+  ): void {
     try {
       TypeValidator.validateRequiredFields(params, requiredFields, 'params');
     } catch (error) {
       if (error instanceof ValidationError) {
-        throw new Error(`缺少必需参数: ${error.fieldName.replace('params.', '')}`);
+        throw new Error(
+          `缺少必需参数: ${error.fieldName.replace('params.', '')}`
+        );
       }
       throw error;
     }
@@ -156,15 +172,18 @@ export abstract class BaseToolProvider implements ToolProvider {
    * @param requiredFields 必需字段列表
    * @throws SkerError 如果缺少必需参数
    */
-  protected validateRequiredParamsWithSkerError(params: Record<string, unknown>, requiredFields: string[]): void {
+  protected validateRequiredParamsWithSkerError(
+    params: Record<string, unknown>,
+    requiredFields: string[]
+  ): void {
     try {
       TypeValidator.validateRequiredFields(params, requiredFields, 'params');
     } catch (error) {
       if (error instanceof ValidationError) {
         const fieldName = error.fieldName.replace('params.', '');
-        throw ErrorFactory.invalidParams(fieldName, { 
+        throw ErrorFactory.invalidParams(fieldName, {
           operation: 'parameter_validation',
-          metadata: { providedParams: Object.keys(params) }
+          metadata: { providedParams: Object.keys(params) },
         });
       }
       throw error;
@@ -181,7 +200,7 @@ export abstract class BaseToolProvider implements ToolProvider {
   protected createStringParam(description: string): Record<string, unknown> {
     return {
       type: 'string',
-      description
+      description,
     };
   }
 
@@ -193,13 +212,13 @@ export abstract class BaseToolProvider implements ToolProvider {
    * @returns 完整的JSON Schema
    */
   protected createObjectSchema(
-    properties: Record<string, unknown>, 
+    properties: Record<string, unknown>,
     requiredFields: string[] = []
   ): Record<string, unknown> {
     return {
       type: 'object',
       properties,
-      required: requiredFields
+      required: requiredFields,
     };
   }
 
@@ -210,11 +229,14 @@ export abstract class BaseToolProvider implements ToolProvider {
    * @param enumValues 枚举值列表
    * @returns 枚举参数Schema
    */
-  protected createEnumParam(description: string, enumValues: string[]): Record<string, unknown> {
+  protected createEnumParam(
+    description: string,
+    enumValues: string[]
+  ): Record<string, unknown> {
     return {
       type: 'string',
       enum: enumValues,
-      description
+      description,
     };
   }
 
@@ -225,11 +247,14 @@ export abstract class BaseToolProvider implements ToolProvider {
    * @param itemType 数组项类型
    * @returns 数组参数Schema
    */
-  protected createArrayParam(description: string, itemType: Record<string, unknown> = { type: 'string' }): Record<string, unknown> {
+  protected createArrayParam(
+    description: string,
+    itemType: Record<string, unknown> = { type: 'string' }
+  ): Record<string, unknown> {
     return {
       type: 'array',
       items: itemType,
-      description
+      description,
     };
   }
 
@@ -241,7 +266,7 @@ export abstract class BaseToolProvider implements ToolProvider {
    * @returns 操作结果
    */
   protected async safeExecute<T>(
-    operation: string, 
+    operation: string,
     asyncFn: () => Promise<T>
   ): Promise<ToolResponse> {
     try {

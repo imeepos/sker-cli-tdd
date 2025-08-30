@@ -44,7 +44,7 @@ export class FileToolsProvider implements ToolProvider {
       this.getSearchFilesTool(),
       this.getSearchContentTool(),
       this.getCheckPermissionsTool(),
-      this.getSetPermissionsTool()
+      this.getSetPermissionsTool(),
     ];
   }
 
@@ -58,16 +58,19 @@ export class FileToolsProvider implements ToolProvider {
       handler: async (params: { path: string; encoding?: BufferEncoding }) => {
         try {
           const fileContext = new FileContext(params.path);
-          const content = await this.fileOperations.readFile(fileContext, params.encoding);
+          const content = await this.fileOperations.readFile(
+            fileContext,
+            params.encoding
+          );
           return {
             success: true,
             content,
-            path: params.path
+            path: params.path,
           };
         } catch (error) {
           return {
             success: false,
-            error: `无法读取文件 ${params.path}: ${(error as Error).message}`
+            error: `无法读取文件 ${params.path}: ${(error as Error).message}`,
           };
         }
       },
@@ -75,10 +78,10 @@ export class FileToolsProvider implements ToolProvider {
         type: 'object',
         properties: {
           path: { type: 'string', description: '文件路径' },
-          encoding: { type: 'string', description: '编码格式，默认为utf8' }
+          encoding: { type: 'string', description: '编码格式，默认为utf8' },
         },
-        required: ['path']
-      }
+        required: ['path'],
+      },
     };
   }
 
@@ -89,19 +92,27 @@ export class FileToolsProvider implements ToolProvider {
     return {
       name: 'write_file',
       description: '写入文件内容',
-      handler: async (params: { path: string; content: string; encoding?: BufferEncoding }) => {
+      handler: async (params: {
+        path: string;
+        content: string;
+        encoding?: BufferEncoding;
+      }) => {
         try {
           const fileContext = new FileContext(params.path);
-          await this.fileOperations.writeFile(fileContext, params.content, params.encoding);
+          await this.fileOperations.writeFile(
+            fileContext,
+            params.content,
+            params.encoding
+          );
           return {
             success: true,
             path: params.path,
-            message: '文件写入成功'
+            message: '文件写入成功',
           };
         } catch (error) {
           return {
             success: false,
-            error: `无法写入文件 ${params.path}: ${(error as Error).message}`
+            error: `无法写入文件 ${params.path}: ${(error as Error).message}`,
           };
         }
       },
@@ -110,10 +121,10 @@ export class FileToolsProvider implements ToolProvider {
         properties: {
           path: { type: 'string', description: '文件路径' },
           content: { type: 'string', description: '文件内容' },
-          encoding: { type: 'string', description: '编码格式，默认为utf8' }
+          encoding: { type: 'string', description: '编码格式，默认为utf8' },
         },
-        required: ['path', 'content']
-      }
+        required: ['path', 'content'],
+      },
     };
   }
 
@@ -124,22 +135,26 @@ export class FileToolsProvider implements ToolProvider {
     return {
       name: 'create_file',
       description: '创建新文件',
-      handler: async (params: { path: string; content?: string; encoding?: BufferEncoding }) => {
+      handler: async (params: {
+        path: string;
+        content?: string;
+        encoding?: BufferEncoding;
+      }) => {
         try {
           const fileContext = await this.fileOperations.createFile(
-            params.path, 
-            params.content || '', 
+            params.path,
+            params.content || '',
             params.encoding
           );
           return {
             success: true,
             path: fileContext.path,
-            message: '文件创建成功'
+            message: '文件创建成功',
           };
         } catch (error) {
           return {
             success: false,
-            error: `无法创建文件 ${params.path}: ${(error as Error).message}`
+            error: `无法创建文件 ${params.path}: ${(error as Error).message}`,
           };
         }
       },
@@ -148,10 +163,10 @@ export class FileToolsProvider implements ToolProvider {
         properties: {
           path: { type: 'string', description: '文件路径' },
           content: { type: 'string', description: '文件内容，默认为空' },
-          encoding: { type: 'string', description: '编码格式，默认为utf8' }
+          encoding: { type: 'string', description: '编码格式，默认为utf8' },
         },
-        required: ['path']
-      }
+        required: ['path'],
+      },
     };
   }
 
@@ -169,22 +184,22 @@ export class FileToolsProvider implements ToolProvider {
           return {
             success: true,
             path: params.path,
-            message: '文件删除成功'
+            message: '文件删除成功',
           };
         } catch (error) {
           return {
             success: false,
-            error: `无法删除文件 ${params.path}: ${(error as Error).message}`
+            error: `无法删除文件 ${params.path}: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: '文件路径' }
+          path: { type: 'string', description: '文件路径' },
         },
-        required: ['path']
-      }
+        required: ['path'],
+      },
     };
   }
 
@@ -198,17 +213,20 @@ export class FileToolsProvider implements ToolProvider {
       handler: async (params: { sourcePath: string; destPath: string }) => {
         try {
           const sourceContext = new FileContext(params.sourcePath);
-          const destContext = await this.fileOperations.copyFile(sourceContext, params.destPath);
+          const destContext = await this.fileOperations.copyFile(
+            sourceContext,
+            params.destPath
+          );
           return {
             success: true,
             sourcePath: params.sourcePath,
             destPath: destContext.path,
-            message: '文件复制成功'
+            message: '文件复制成功',
           };
         } catch (error) {
           return {
             success: false,
-            error: `无法复制文件 ${params.sourcePath} 到 ${params.destPath}: ${(error as Error).message}`
+            error: `无法复制文件 ${params.sourcePath} 到 ${params.destPath}: ${(error as Error).message}`,
           };
         }
       },
@@ -216,10 +234,10 @@ export class FileToolsProvider implements ToolProvider {
         type: 'object',
         properties: {
           sourcePath: { type: 'string', description: '源文件路径' },
-          destPath: { type: 'string', description: '目标文件路径' }
+          destPath: { type: 'string', description: '目标文件路径' },
         },
-        required: ['sourcePath', 'destPath']
-      }
+        required: ['sourcePath', 'destPath'],
+      },
     };
   }
 
@@ -233,17 +251,20 @@ export class FileToolsProvider implements ToolProvider {
       handler: async (params: { sourcePath: string; destPath: string }) => {
         try {
           const sourceContext = new FileContext(params.sourcePath);
-          const destContext = await this.fileOperations.moveFile(sourceContext, params.destPath);
+          const destContext = await this.fileOperations.moveFile(
+            sourceContext,
+            params.destPath
+          );
           return {
             success: true,
             sourcePath: params.sourcePath,
             destPath: destContext.path,
-            message: '文件移动成功'
+            message: '文件移动成功',
           };
         } catch (error) {
           return {
             success: false,
-            error: `无法移动文件 ${params.sourcePath} 到 ${params.destPath}: ${(error as Error).message}`
+            error: `无法移动文件 ${params.sourcePath} 到 ${params.destPath}: ${(error as Error).message}`,
           };
         }
       },
@@ -251,10 +272,10 @@ export class FileToolsProvider implements ToolProvider {
         type: 'object',
         properties: {
           sourcePath: { type: 'string', description: '源文件路径' },
-          destPath: { type: 'string', description: '目标文件路径' }
+          destPath: { type: 'string', description: '目标文件路径' },
         },
-        required: ['sourcePath', 'destPath']
-      }
+        required: ['sourcePath', 'destPath'],
+      },
     };
   }
 
@@ -268,22 +289,27 @@ export class FileToolsProvider implements ToolProvider {
       handler: async (params: { directory: string; pattern: string }) => {
         try {
           const builder = new ContextBuilder();
-          const folderContext = await builder.buildFromDirectory(params.directory);
-          const results = await this.fileSearch.searchByName(folderContext, params.pattern);
+          const folderContext = await builder.buildFromDirectory(
+            params.directory
+          );
+          const results = await this.fileSearch.searchByName(
+            folderContext,
+            params.pattern
+          );
           return {
             success: true,
             files: results.map(result => ({
               name: result.name,
               path: result.path,
-              score: result.score
+              score: result.score,
             })),
             directory: params.directory,
-            pattern: params.pattern
+            pattern: params.pattern,
           };
         } catch (error) {
           return {
             success: false,
-            error: `搜索文件失败: ${(error as Error).message}`
+            error: `搜索文件失败: ${(error as Error).message}`,
           };
         }
       },
@@ -291,10 +317,10 @@ export class FileToolsProvider implements ToolProvider {
         type: 'object',
         properties: {
           directory: { type: 'string', description: '搜索目录' },
-          pattern: { type: 'string', description: '文件名模式' }
+          pattern: { type: 'string', description: '文件名模式' },
         },
-        required: ['directory', 'pattern']
-      }
+        required: ['directory', 'pattern'],
+      },
     };
   }
 
@@ -308,22 +334,27 @@ export class FileToolsProvider implements ToolProvider {
       handler: async (params: { directory: string; query: string }) => {
         try {
           const builder = new ContextBuilder();
-          const folderContext = await builder.buildFromDirectory(params.directory);
-          const results = await this.fileSearch.searchByContent(folderContext, params.query);
+          const folderContext = await builder.buildFromDirectory(
+            params.directory
+          );
+          const results = await this.fileSearch.searchByContent(
+            folderContext,
+            params.query
+          );
           return {
             success: true,
             matches: results.map(result => ({
               name: result.name,
               path: result.path,
-              score: result.score
+              score: result.score,
             })),
             directory: params.directory,
-            query: params.query
+            query: params.query,
           };
         } catch (error) {
           return {
             success: false,
-            error: `搜索内容失败: ${(error as Error).message}`
+            error: `搜索内容失败: ${(error as Error).message}`,
           };
         }
       },
@@ -331,10 +362,10 @@ export class FileToolsProvider implements ToolProvider {
         type: 'object',
         properties: {
           directory: { type: 'string', description: '搜索目录' },
-          query: { type: 'string', description: '搜索查询' }
+          query: { type: 'string', description: '搜索查询' },
         },
-        required: ['directory', 'query']
-      }
+        required: ['directory', 'query'],
+      },
     };
   }
 
@@ -348,7 +379,8 @@ export class FileToolsProvider implements ToolProvider {
       handler: async (params: { path: string }) => {
         try {
           const fileContext = new FileContext(params.path);
-          const permissions = await this.filePermissions.getPermissions(fileContext);
+          const permissions =
+            await this.filePermissions.getPermissions(fileContext);
           return {
             success: true,
             path: params.path,
@@ -360,23 +392,23 @@ export class FileToolsProvider implements ToolProvider {
               owner: permissions.owner,
               group: permissions.group,
               size: permissions.size,
-              mtime: permissions.mtime
-            }
+              mtime: permissions.mtime,
+            },
           };
         } catch (error) {
           return {
             success: false,
-            error: `检查权限失败: ${(error as Error).message}`
+            error: `检查权限失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: '文件路径' }
+          path: { type: 'string', description: '文件路径' },
         },
-        required: ['path']
-      }
+        required: ['path'],
+      },
     };
   }
 
@@ -395,12 +427,12 @@ export class FileToolsProvider implements ToolProvider {
             success: true,
             path: params.path,
             mode: params.mode,
-            message: '权限设置成功'
+            message: '权限设置成功',
           };
         } catch (error) {
           return {
             success: false,
-            error: `设置权限失败: ${(error as Error).message}`
+            error: `设置权限失败: ${(error as Error).message}`,
           };
         }
       },
@@ -408,10 +440,10 @@ export class FileToolsProvider implements ToolProvider {
         type: 'object',
         properties: {
           path: { type: 'string', description: '文件路径' },
-          mode: { type: 'number', description: '权限模式（八进制）' }
+          mode: { type: 'number', description: '权限模式（八进制）' },
         },
-        required: ['path', 'mode']
-      }
+        required: ['path', 'mode'],
+      },
     };
   }
 }

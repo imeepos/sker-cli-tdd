@@ -44,7 +44,10 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static validateString(value: unknown, fieldName: string): asserts value is string {
+  static validateString(
+    value: unknown,
+    fieldName: string
+  ): asserts value is string {
     if (typeof value !== 'string') {
       throw new ValidationError(fieldName, 'string', getActualType(value));
     }
@@ -56,7 +59,10 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static validateNumber(value: unknown, fieldName: string): asserts value is number {
+  static validateNumber(
+    value: unknown,
+    fieldName: string
+  ): asserts value is number {
     if (typeof value !== 'number' || isNaN(value)) {
       throw new ValidationError(fieldName, 'number', getActualType(value));
     }
@@ -68,7 +74,10 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static validateBoolean(value: unknown, fieldName: string): asserts value is boolean {
+  static validateBoolean(
+    value: unknown,
+    fieldName: string
+  ): asserts value is boolean {
     if (typeof value !== 'boolean') {
       throw new ValidationError(fieldName, 'boolean', getActualType(value));
     }
@@ -80,7 +89,10 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static validateArray(value: unknown, fieldName: string): asserts value is unknown[] {
+  static validateArray(
+    value: unknown,
+    fieldName: string
+  ): asserts value is unknown[] {
     if (!Array.isArray(value)) {
       throw new ValidationError(fieldName, 'array', getActualType(value));
     }
@@ -92,7 +104,10 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static validateObject(value: unknown, fieldName: string): asserts value is Record<string, unknown> {
+  static validateObject(
+    value: unknown,
+    fieldName: string
+  ): asserts value is Record<string, unknown> {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       throw new ValidationError(fieldName, 'object', getActualType(value));
     }
@@ -104,9 +119,16 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static validateOptionalString(value: unknown, fieldName: string): asserts value is string | undefined {
+  static validateOptionalString(
+    value: unknown,
+    fieldName: string
+  ): asserts value is string | undefined {
     if (value !== undefined && typeof value !== 'string') {
-      throw new ValidationError(fieldName, 'string | undefined', getActualType(value));
+      throw new ValidationError(
+        fieldName,
+        'string | undefined',
+        getActualType(value)
+      );
     }
   }
 
@@ -116,9 +138,16 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static validateOptionalNumber(value: unknown, fieldName: string): asserts value is number | undefined {
+  static validateOptionalNumber(
+    value: unknown,
+    fieldName: string
+  ): asserts value is number | undefined {
     if (value !== undefined && (typeof value !== 'number' || isNaN(value))) {
-      throw new ValidationError(fieldName, 'number | undefined', getActualType(value));
+      throw new ValidationError(
+        fieldName,
+        'number | undefined',
+        getActualType(value)
+      );
     }
   }
 
@@ -128,9 +157,19 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static validateOptionalObject(value: unknown, fieldName: string): asserts value is Record<string, unknown> | undefined {
-    if (value !== undefined && (typeof value !== 'object' || value === null || Array.isArray(value))) {
-      throw new ValidationError(fieldName, 'object | undefined', getActualType(value));
+  static validateOptionalObject(
+    value: unknown,
+    fieldName: string
+  ): asserts value is Record<string, unknown> | undefined {
+    if (
+      value !== undefined &&
+      (typeof value !== 'object' || value === null || Array.isArray(value))
+    ) {
+      throw new ValidationError(
+        fieldName,
+        'object | undefined',
+        getActualType(value)
+      );
     }
   }
 
@@ -141,9 +180,17 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果值不在枚举中
    */
-  static validateEnum<T extends string>(value: unknown, validValues: readonly T[], fieldName: string): asserts value is T {
+  static validateEnum<T extends string>(
+    value: unknown,
+    validValues: readonly T[],
+    fieldName: string
+  ): asserts value is T {
     if (typeof value !== 'string' || !validValues.includes(value as T)) {
-      throw new ValidationError(fieldName, `enum(${validValues.join('|')})`, getActualType(value));
+      throw new ValidationError(
+        fieldName,
+        `enum(${validValues.join('|')})`,
+        getActualType(value)
+      );
     }
   }
 
@@ -154,13 +201,17 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果对象不符合Schema
    */
-  static validateObjectSchema(value: unknown, schema: Record<string, string>, fieldName: string): void {
+  static validateObjectSchema(
+    value: unknown,
+    schema: Record<string, string>,
+    fieldName: string
+  ): void {
     this.validateObject(value, fieldName);
-    
+
     for (const [key, expectedType] of Object.entries(schema)) {
       const fieldValue = (value as Record<string, unknown>)[key];
       const fieldPath = `${fieldName}.${key}`;
-      
+
       switch (expectedType) {
         case 'string':
           this.validateString(fieldValue, fieldPath);
@@ -178,7 +229,11 @@ export class TypeValidator {
           this.validateObject(fieldValue, fieldPath);
           break;
         default:
-          throw new ValidationError(fieldPath, expectedType, getActualType(fieldValue));
+          throw new ValidationError(
+            fieldPath,
+            expectedType,
+            getActualType(fieldValue)
+          );
       }
     }
   }
@@ -190,12 +245,16 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果数组元素类型不匹配
    */
-  static validateArrayOfType(value: unknown, elementType: string, fieldName: string): void {
+  static validateArrayOfType(
+    value: unknown,
+    elementType: string,
+    fieldName: string
+  ): void {
     this.validateArray(value, fieldName);
-    
+
     (value as unknown[]).forEach((element, index) => {
       const elementPath = `${fieldName}[${index}]`;
-      
+
       switch (elementType) {
         case 'string':
           this.validateString(element, elementPath);
@@ -211,7 +270,11 @@ export class TypeValidator {
           break;
         default:
           if (typeof element !== elementType) {
-            throw new ValidationError(elementPath, elementType, getActualType(element));
+            throw new ValidationError(
+              elementPath,
+              elementType,
+              getActualType(element)
+            );
           }
       }
     });
@@ -224,14 +287,24 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果缺少必需字段
    */
-  static validateRequiredFields(value: unknown, requiredFields: string[], fieldName: string): void {
+  static validateRequiredFields(
+    value: unknown,
+    requiredFields: string[],
+    fieldName: string
+  ): void {
     this.validateObject(value, fieldName);
-    
+
     for (const field of requiredFields) {
-      if (!(field in (value as Record<string, unknown>)) || 
-          (value as Record<string, unknown>)[field] === undefined ||
-          (value as Record<string, unknown>)[field] === null) {
-        throw new ValidationError(`${fieldName}.${field}`, 'defined', 'undefined');
+      if (
+        !(field in (value as Record<string, unknown>)) ||
+        (value as Record<string, unknown>)[field] === undefined ||
+        (value as Record<string, unknown>)[field] === null
+      ) {
+        throw new ValidationError(
+          `${fieldName}.${field}`,
+          'defined',
+          'undefined'
+        );
       }
     }
   }
@@ -242,7 +315,10 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static assertIsString(value: unknown, fieldName: string): asserts value is string {
+  static assertIsString(
+    value: unknown,
+    fieldName: string
+  ): asserts value is string {
     this.validateString(value, fieldName);
   }
 
@@ -252,7 +328,10 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static assertIsNumber(value: unknown, fieldName: string): asserts value is number {
+  static assertIsNumber(
+    value: unknown,
+    fieldName: string
+  ): asserts value is number {
     this.validateNumber(value, fieldName);
   }
 
@@ -262,7 +341,10 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果类型不匹配
    */
-  static assertIsObject(value: unknown, fieldName: string): asserts value is Record<string, unknown> {
+  static assertIsObject(
+    value: unknown,
+    fieldName: string
+  ): asserts value is Record<string, unknown> {
     this.validateObject(value, fieldName);
   }
 
@@ -273,9 +355,17 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果验证失败
    */
-  static validateCustom<T>(value: T, validator: (value: T) => boolean, fieldName: string): void {
+  static validateCustom<T>(
+    value: T,
+    validator: (value: T) => boolean,
+    fieldName: string
+  ): void {
     if (!validator(value)) {
-      throw new ValidationError(fieldName, 'custom validation', getActualType(value));
+      throw new ValidationError(
+        fieldName,
+        'custom validation',
+        getActualType(value)
+      );
     }
   }
 
@@ -286,13 +376,17 @@ export class TypeValidator {
    * @param fieldName 字段名称（用于错误消息）
    * @throws ValidationError 如果验证失败
    */
-  static validateNestedObject(value: unknown, schema: Record<string, any>, fieldName: string): void {
+  static validateNestedObject(
+    value: unknown,
+    schema: Record<string, any>,
+    fieldName: string
+  ): void {
     this.validateObject(value, fieldName);
-    
+
     for (const [key, subSchema] of Object.entries(schema)) {
       const fieldValue = (value as Record<string, unknown>)[key];
       const fieldPath = `${fieldName}.${key}`;
-      
+
       if (typeof subSchema === 'string') {
         // 简单类型验证
         switch (subSchema) {

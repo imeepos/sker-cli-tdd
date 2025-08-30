@@ -110,11 +110,14 @@ export class ToolManager {
   /**
    * 执行工具
    */
-  async executeTool(name: string, args: Record<string, unknown>): Promise<unknown> {
+  async executeTool(
+    name: string,
+    args: Record<string, unknown>
+  ): Promise<unknown> {
     // 验证工具名称和参数
     TypeValidator.validateString(name, 'toolName');
     TypeValidator.validateObject(args, 'toolArgs');
-    
+
     this.executionCount++;
     try {
       const result = await this.mcpServer.executeTool(name, args);
@@ -130,10 +133,14 @@ export class ToolManager {
    */
   async executeTools(toolCalls: ToolCall[]): Promise<unknown[]> {
     TypeValidator.validateArray(toolCalls, 'toolCalls');
-    
+
     const results: unknown[] = [];
     for (const toolCall of toolCalls) {
-      TypeValidator.validateObjectSchema(toolCall, { name: 'string', args: 'object' }, 'toolCall');
+      TypeValidator.validateObjectSchema(
+        toolCall,
+        { name: 'string', args: 'object' },
+        'toolCall'
+      );
       const result = await this.executeTool(toolCall.name, toolCall.args);
       results.push(result);
     }
@@ -143,7 +150,11 @@ export class ToolManager {
   /**
    * 创建工具工作空间
    */
-  createToolWorkspace(workspace: { id: string; name: string; description: string }): void {
+  createToolWorkspace(workspace: {
+    id: string;
+    name: string;
+    description: string;
+  }): void {
     this.workspaceManager.createWorkspace(workspace);
     this.mcpServer.setWorkspaceManager(this.workspaceManager);
   }
@@ -180,13 +191,16 @@ export class ToolManager {
 
     let help = `工具: ${tool.name}\n`;
     help += `描述: ${tool.description}\n`;
-    
+
     if (tool.schema && tool.schema['properties']) {
       help += `参数:\n`;
       const properties = tool.schema['properties'] as Record<string, unknown>;
       for (const [key, value] of Object.entries(properties)) {
         const prop = value as Record<string, unknown>;
-        const description = typeof prop['description'] === 'string' ? prop['description'] : '无描述';
+        const description =
+          typeof prop['description'] === 'string'
+            ? prop['description']
+            : '无描述';
         help += `  - ${key}: ${description}\n`;
       }
     }
@@ -200,7 +214,7 @@ export class ToolManager {
   getAllToolsHelp(): string {
     const tools = this.getAvailableTools();
     let help = `可用工具 (${tools.length} 个):\n\n`;
-    
+
     tools.forEach(tool => {
       help += `${tool.name}: ${tool.description}\n`;
     });
@@ -213,12 +227,13 @@ export class ToolManager {
    */
   getToolStats(): ToolStats {
     const totalTools = this.getAvailableTools().length;
-    const successRate = this.executionCount > 0 ? this.successCount / this.executionCount : 0;
+    const successRate =
+      this.executionCount > 0 ? this.successCount / this.executionCount : 0;
 
     return {
       totalTools,
       totalExecutions: this.executionCount,
-      successRate
+      successRate,
     };
   }
 

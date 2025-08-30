@@ -69,6 +69,7 @@ async function cliTodoExample() {
         priority: 'low',
         tags: ['性能', '优化']
       });
+      console.log('✅ 第三个TODO添加结果:', result3);
 
       // 3. 列出所有TODO
       console.log('2️⃣ 列出所有TODO项目：');

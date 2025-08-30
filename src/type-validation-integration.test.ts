@@ -21,15 +21,18 @@ describe('类型验证集成测试', () => {
             '测试工具',
             async (params: { name: string; count: number }) => {
               this.validateRequiredParams(params, ['name', 'count']);
-              return this.createSuccessResponse({ 
-                message: `Hello ${params.name}, count: ${params.count}` 
+              return this.createSuccessResponse({
+                message: `Hello ${params.name}, count: ${params.count}`,
               });
             },
-            this.createObjectSchema({
-              name: this.createStringParam('名称参数'),
-              count: { type: 'number', description: '计数参数' }
-            }, ['name', 'count'])
-          )
+            this.createObjectSchema(
+              {
+                name: this.createStringParam('名称参数'),
+                count: { type: 'number', description: '计数参数' },
+              },
+              ['name', 'count']
+            )
+          ),
         ];
       }
     }
@@ -43,7 +46,7 @@ describe('类型验证集成测试', () => {
       // 有效参数应该成功
       const validParams = { name: 'test', count: 5 };
       const result = await testTool!.handler(validParams);
-      
+
       expect(result.success).toBe(true);
       expect(result['message']).toContain('Hello test');
     });
@@ -57,19 +60,22 @@ describe('类型验证集成测试', () => {
       // 缺少必需参数应该失败
       const invalidParams = { name: 'test' }; // 缺少count
       const result = await testTool!.handler(invalidParams as any);
-      
+
       expect(result.success).toBe(false);
       expect(result.error).toContain('缺少必需参数');
     });
 
     it('应该创建类型安全的Schema', () => {
       const provider = new TestToolProvider();
-      
+
       const stringParam = provider['createStringParam']('测试字符串');
       expect(stringParam['type']).toBe('string');
       expect(stringParam['description']).toBe('测试字符串');
 
-      const enumParam = provider['createEnumParam']('状态', ['pending', 'completed']);
+      const enumParam = provider['createEnumParam']('状态', [
+        'pending',
+        'completed',
+      ]);
       expect(enumParam['type']).toBe('string');
       expect(enumParam['enum']).toEqual(['pending', 'completed']);
 
@@ -96,35 +102,37 @@ describe('类型验证集成测试', () => {
         schema: {
           type: 'object',
           properties: {
-            message: { type: 'string', description: '要回显的消息' }
+            message: { type: 'string', description: '要回显的消息' },
           },
-          required: ['message']
-        }
+          required: ['message'],
+        },
       });
     });
 
     it('应该验证工具执行参数', async () => {
       // 有效参数应该成功
-      const result = await toolManager.executeTool('echo-tool', { message: 'hello' });
+      const result = await toolManager.executeTool('echo-tool', {
+        message: 'hello',
+      });
       expect(result).toEqual({ echo: 'hello' });
     });
 
     it('应该拒绝无效的工具名称', async () => {
-      await expect(toolManager.executeTool(123 as any, {}))
-        .rejects
-        .toThrow(ValidationError);
+      await expect(toolManager.executeTool(123 as any, {})).rejects.toThrow(
+        ValidationError
+      );
     });
 
     it('应该拒绝无效的工具参数', async () => {
-      await expect(toolManager.executeTool('echo-tool', 'invalid-params' as any))
-        .rejects
-        .toThrow(ValidationError);
+      await expect(
+        toolManager.executeTool('echo-tool', 'invalid-params' as any)
+      ).rejects.toThrow(ValidationError);
     });
 
     it('应该验证批量工具调用', async () => {
       const toolCalls: ToolCall[] = [
         { name: 'echo-tool', args: { message: 'hello1' } },
-        { name: 'echo-tool', args: { message: 'hello2' } }
+        { name: 'echo-tool', args: { message: 'hello2' } },
       ];
 
       const results = await toolManager.executeTools(toolCalls);
@@ -136,12 +144,12 @@ describe('类型验证集成测试', () => {
     it('应该拒绝无效的工具调用格式', async () => {
       const invalidToolCalls = [
         { name: 'echo-tool' }, // 缺少args
-        { args: { message: 'hello' } } // 缺少name
+        { args: { message: 'hello' } }, // 缺少name
       ];
 
-      await expect(toolManager.executeTools(invalidToolCalls as any))
-        .rejects
-        .toThrow(ValidationError);
+      await expect(
+        toolManager.executeTools(invalidToolCalls as any)
+      ).rejects.toThrow(ValidationError);
     });
   });
 
@@ -152,7 +160,7 @@ describe('类型验证集成测试', () => {
         version: '1.0.0',
         description: 'Test project',
         author: 'Test Author', // 额外属性应该是基础类型
-        repository: 'https://github.com/test/repo'
+        repository: 'https://github.com/test/repo',
       };
 
       expect(validProject.name).toBe('test-project');
@@ -165,7 +173,7 @@ describe('类型验证集成测试', () => {
         name: 'test',
         count: 42, // number 类型
         active: true, // boolean 类型
-        tags: undefined // 可以是 undefined
+        tags: undefined, // 可以是 undefined
       };
 
       // TypeScript 编译时应该不允许复杂对象类型
@@ -185,7 +193,7 @@ describe('类型验证集成测试', () => {
         success: true,
         message: 'Operation successful',
         count: 42,
-        active: true
+        active: true,
       };
 
       expect(response.success).toBe(true);
@@ -203,7 +211,7 @@ describe('类型验证集成测试', () => {
       const errorResponse: ToolResponse = {
         success: false,
         error: 'Something went wrong',
-        code: 500
+        code: 500,
       };
 
       expect(errorResponse.success).toBe(false);

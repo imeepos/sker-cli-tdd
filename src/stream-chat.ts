@@ -48,10 +48,14 @@ export class StreamChat {
   private stats: ChatStats = {
     totalMessages: 0,
     totalTokens: 0,
-    totalToolCalls: 0
+    totalToolCalls: 0,
   };
 
-  constructor(aiClient: MCPAIClient, mcpServer: MCPServer, chatStorage?: ChatStorage) {
+  constructor(
+    aiClient: MCPAIClient,
+    mcpServer: MCPServer,
+    chatStorage?: ChatStorage
+  ) {
     this.aiClient = aiClient;
     this.mcpServer = mcpServer;
     this.chatStorage = chatStorage || new ChatStorage();
@@ -124,7 +128,8 @@ export class StreamChat {
       throw new Error('没有指定会话ID');
     }
 
-    const history = await this.chatStorage.getConversationHistory(targetSessionId);
+    const history =
+      await this.chatStorage.getConversationHistory(targetSessionId);
     this.conversationHistory = this.convertToUnifiedMessages(history);
     this.currentSessionId = targetSessionId;
   }
@@ -140,7 +145,7 @@ export class StreamChat {
 
     const userMessage: UnifiedMessage = {
       role: 'user',
-      content: message
+      content: message,
     };
 
     // 添加到对话历史
@@ -151,8 +156,10 @@ export class StreamChat {
     await this.chatStorage.saveMessage('user', message, this.currentSessionId);
 
     try {
-      const stream = this.aiClient.chatCompletionStream([...this.conversationHistory]);
-      
+      const stream = this.aiClient.chatCompletionStream([
+        ...this.conversationHistory,
+      ]);
+
       let fullContent = '';
       let tokenCount = 0;
 
@@ -161,7 +168,7 @@ export class StreamChat {
         if (content) {
           fullContent += content;
           tokenCount++;
-          
+
           // 实时输出
           if (this.realTimeOutput) {
             process.stdout.write(content);
@@ -172,20 +179,25 @@ export class StreamChat {
       // 添加助手响应到对话历史
       const assistantMessage: UnifiedMessage = {
         role: 'assistant',
-        content: fullContent
+        content: fullContent,
       };
       this.conversationHistory.push(assistantMessage);
       this.stats.totalMessages++;
       this.stats.totalTokens += tokenCount;
 
       // 保存助手消息到数据库
-      await this.chatStorage.saveMessage('assistant', fullContent, this.currentSessionId, {
-        tokens: tokenCount
-      });
+      await this.chatStorage.saveMessage(
+        'assistant',
+        fullContent,
+        this.currentSessionId,
+        {
+          tokens: tokenCount,
+        }
+      );
 
       return {
         content: fullContent,
-        tokens: tokenCount
+        tokens: tokenCount,
       };
     } catch (error) {
       throw error;
@@ -203,7 +215,7 @@ export class StreamChat {
 
     const userMessage: UnifiedMessage = {
       role: 'user',
-      content: message
+      content: message,
     };
 
     // 添加到对话历史
@@ -215,7 +227,9 @@ export class StreamChat {
 
     try {
       // 首先进行带工具调用的聊天完成
-      const response = await this.aiClient.chatCompletionWithTools([...this.conversationHistory]);
+      const response = await this.aiClient.chatCompletionWithTools([
+        ...this.conversationHistory,
+      ]);
       const assistantMessage = response.choices[0]?.message;
 
       if (!assistantMessage) {
@@ -240,7 +254,7 @@ export class StreamChat {
           const toolResultMessage: UnifiedMessage = {
             role: 'tool',
             content: JSON.stringify(toolResult),
-            toolCallId: toolCall.id
+            toolCallId: toolCall.id,
           };
           this.conversationHistory.push(toolResultMessage);
           this.stats.totalToolCalls++;
@@ -249,14 +263,16 @@ export class StreamChat {
             toolCalls.push({
               name: toolCall.function.name,
               arguments: JSON.parse(toolCall.function.arguments),
-              result: toolResult
+              result: toolResult,
             });
           }
         }
 
         // 获取最终的流式响应
-        const finalStream = this.aiClient.chatCompletionStream([...this.conversationHistory]);
-        
+        const finalStream = this.aiClient.chatCompletionStream([
+          ...this.conversationHistory,
+        ]);
+
         let finalContent = '';
         let tokenCount = 0;
 
@@ -265,7 +281,7 @@ export class StreamChat {
           if (content) {
             finalContent += content;
             tokenCount++;
-            
+
             if (this.realTimeOutput) {
               process.stdout.write(content);
             }
@@ -275,22 +291,27 @@ export class StreamChat {
         // 添加最终响应到对话历史
         const finalMessage: UnifiedMessage = {
           role: 'assistant',
-          content: finalContent
+          content: finalContent,
         };
         this.conversationHistory.push(finalMessage);
         this.stats.totalMessages++;
         this.stats.totalTokens += tokenCount;
 
         // 保存最终助手消息到数据库
-        await this.chatStorage.saveMessage('assistant', finalContent, this.currentSessionId, {
-          tokens: tokenCount,
-          toolCalls
-        });
+        await this.chatStorage.saveMessage(
+          'assistant',
+          finalContent,
+          this.currentSessionId,
+          {
+            tokens: tokenCount,
+            toolCalls,
+          }
+        );
 
         return {
           content: finalContent,
           tokens: tokenCount,
-          toolCalls
+          toolCalls,
         };
       } else {
         // 没有工具调用，直接返回助手消息
@@ -303,14 +324,19 @@ export class StreamChat {
         }
 
         // 保存助手消息到数据库
-        await this.chatStorage.saveMessage('assistant', content, this.currentSessionId, {
-          tokens: content.length
-        });
+        await this.chatStorage.saveMessage(
+          'assistant',
+          content,
+          this.currentSessionId,
+          {
+            tokens: content.length,
+          }
+        );
 
         return {
           content,
           tokens: content.length,
-          toolCalls
+          toolCalls,
         };
       }
     } catch (error) {
@@ -330,11 +356,6 @@ export class StreamChat {
    */
   private convertToUnifiedMessages(messages: any[]): UnifiedMessage[] {
     return messages.map(msg => {
-      // 如果已经是统一格式，直接返回
-      if (msg.role && msg.content && !msg.tool_calls && !msg.tool_call_id) {
-        return msg as UnifiedMessage;
-      }
-
       // 转换OpenAI格式到统一格式
       const unifiedMsg: UnifiedMessage = {
         role: msg.role === 'developer' ? 'system' : msg.role,
@@ -422,7 +443,7 @@ export class StreamChat {
     this.stats = {
       totalMessages: 0,
       totalTokens: 0,
-      totalToolCalls: 0
+      totalToolCalls: 0,
     };
   }
 }

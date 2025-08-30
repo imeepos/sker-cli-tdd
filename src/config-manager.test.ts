@@ -13,7 +13,7 @@ describe('ConfigManager', () => {
   beforeEach(() => {
     // 保存原始环境变量
     originalEnv = { ...process.env };
-    
+
     // 清除所有相关环境变量以避免.env文件干扰
     delete process.env['AI_API_KEY'];
     delete process.env['AI_MODEL'];
@@ -23,13 +23,13 @@ describe('ConfigManager', () => {
     delete process.env['MQ_HOST'];
     delete process.env['MQ_PORT'];
     delete process.env['AGENT_ID'];
-    
+
     // 重置ConfigManager单例
     ConfigManager.reset();
 
     // 设置测试环境
     process.env['NODE_ENV'] = 'test';
-    
+
     // 设置测试环境变量
     process.env['AI_API_KEY'] = 'test-api-key';
     process.env['AI_MODEL'] = 'gpt-3.5-turbo';
@@ -49,7 +49,7 @@ describe('ConfigManager', () => {
     it('应该返回同一个实例', () => {
       const instance1 = ConfigManager.getInstance();
       const instance2 = ConfigManager.getInstance();
-      
+
       expect(instance1).toBe(instance2);
     });
 
@@ -57,7 +57,7 @@ describe('ConfigManager', () => {
       const instance1 = ConfigManager.getInstance();
       ConfigManager.reset();
       const instance2 = ConfigManager.getInstance();
-      
+
       expect(instance1).not.toBe(instance2);
     });
   });
@@ -73,7 +73,7 @@ describe('ConfigManager', () => {
         temperature: 0.5,
         maxTokens: 1500,
         baseURL: undefined,
-        provider: 'openai'
+        provider: 'openai',
       });
     });
 
@@ -92,48 +92,48 @@ describe('ConfigManager', () => {
 
     it('应该在缺少API密钥时抛出SkerError', () => {
       delete process.env['AI_API_KEY'];
-      
+
       const manager = ConfigManager.getInstance();
-      
+
       expect(() => manager.getAIConfig()).toThrow(SkerError);
       expect(() => manager.getAIConfig()).toThrow(/AI_API_KEY/);
     });
 
     it('应该验证temperature范围', () => {
       const manager = ConfigManager.getInstance();
-      
+
       expect(() => {
         manager.setConfig('aiConfig', {
           provider: `openai`,
           apiKey: 'test-key',
           model: 'gpt-4',
-          temperature: 3.0 // 超出范围
+          temperature: 3.0, // 超出范围
         });
       }).toThrow(SkerError);
     });
 
     it('应该验证maxTokens', () => {
       const manager = ConfigManager.getInstance();
-      
+
       expect(() => {
         manager.setConfig('aiConfig', {
           provider: `anthropic`,
           apiKey: 'test-key',
           model: 'gpt-4',
-          maxTokens: -1 // 无效值
+          maxTokens: -1, // 无效值
         });
       }).toThrow(SkerError);
     });
 
     it('应该验证baseURL格式', () => {
       const manager = ConfigManager.getInstance();
-      
+
       expect(() => {
         manager.setConfig('aiConfig', {
           provider: `openai`,
           apiKey: 'test-key',
           model: 'gpt-4',
-          baseURL: 'invalid-url'
+          baseURL: 'invalid-url',
         });
       }).toThrow(SkerError);
     });
@@ -143,7 +143,7 @@ describe('ConfigManager', () => {
     it('应该从环境变量加载MQ配置', () => {
       process.env['MQ_USERNAME'] = 'test-user';
       process.env['MQ_PASSWORD'] = 'test-pass';
-      
+
       const manager = ConfigManager.getInstance();
       const config = manager.getMQConfig();
 
@@ -152,7 +152,7 @@ describe('ConfigManager', () => {
         port: 5672,
         username: 'test-user',
         password: 'test-pass',
-        agentId: 'test-agent'
+        agentId: 'test-agent',
       });
       expect(config.url).toContain('amqp://test-user:test-pass@test-host:5672');
     });
@@ -174,16 +174,16 @@ describe('ConfigManager', () => {
 
     it('应该生成唯一的Agent ID', async () => {
       delete process.env['AGENT_ID'];
-      
+
       const manager1 = ConfigManager.getInstance();
       const config1 = manager1.getMQConfig();
-      
+
       // 添加小延迟确保不同的时间戳
       await new Promise(resolve => setTimeout(resolve, 5));
-      
+
       ConfigManager.reset();
       delete process.env['AGENT_ID']; // 确保重置后还是没有AGENT_ID
-      
+
       const manager2 = ConfigManager.getInstance();
       const config2 = manager2.getMQConfig();
 
@@ -194,7 +194,7 @@ describe('ConfigManager', () => {
 
     it('应该验证必需的配置项', () => {
       const manager = ConfigManager.getInstance();
-      
+
       expect(() => {
         manager.setConfig('mq', {
           url: 'amqp://localhost',
@@ -204,14 +204,14 @@ describe('ConfigManager', () => {
           password: 'pass',
           taskQueue: 'tasks',
           resultQueue: 'results',
-          agentId: 'agent-1'
+          agentId: 'agent-1',
         });
       }).toThrow(SkerError);
     });
 
     it('应该验证端口范围', () => {
       const manager = ConfigManager.getInstance();
-      
+
       expect(() => {
         manager.setConfig('mq', {
           url: 'amqp://localhost',
@@ -221,7 +221,7 @@ describe('ConfigManager', () => {
           password: 'pass',
           taskQueue: 'tasks',
           resultQueue: 'results',
-          agentId: 'agent-1'
+          agentId: 'agent-1',
         });
       }).toThrow(SkerError);
     });
@@ -237,7 +237,7 @@ describe('ConfigManager', () => {
 
     it('应该支持环境变量覆盖', () => {
       process.env['DATABASE_PATH'] = '/custom/path/db.sqlite';
-      
+
       const manager = ConfigManager.getInstance();
       const config = manager.getDatabaseConfig();
 
@@ -258,18 +258,18 @@ describe('ConfigManager', () => {
   describe('配置合并和覆盖', () => {
     it('应该支持配置合并', () => {
       const manager = ConfigManager.getInstance();
-      
+
       // 先获取原始配置
       const originalConfig = manager.getAIConfig();
-      
+
       // 合并部分配置
-      manager.mergeConfig('aiConfig', { 
+      manager.mergeConfig('aiConfig', {
         temperature: 0.9,
-        maxTokens: 3000 
+        maxTokens: 3000,
       });
-      
+
       const mergedConfig = manager.getAIConfig();
-      
+
       expect(mergedConfig.apiKey).toBe(originalConfig.apiKey);
       expect(mergedConfig.model).toBe(originalConfig.model);
       expect(mergedConfig.temperature).toBe(0.9);
@@ -278,18 +278,18 @@ describe('ConfigManager', () => {
 
     it('应该支持完整配置替换', () => {
       const manager = ConfigManager.getInstance();
-      
+
       const newConfig: UnifiedAIConfig = {
         provider: `openai`,
         apiKey: 'new-key',
         model: 'gpt-4-turbo',
         temperature: 0.1,
-        maxTokens: 4000
+        maxTokens: 4000,
       };
-      
+
       manager.setConfig('aiConfig', newConfig);
       const config = manager.getAIConfig();
-      
+
       expect(config).toEqual(newConfig);
     });
   });
@@ -317,7 +317,7 @@ describe('ConfigManager', () => {
 
     it('应该检测无效的环境配置', () => {
       delete process.env['AI_API_KEY'];
-      
+
       const manager = ConfigManager.getInstance();
       const check = manager.checkRequiredEnvironment();
 
@@ -330,18 +330,18 @@ describe('ConfigManager', () => {
   describe('配置摘要', () => {
     it('应该返回不包含敏感信息的配置摘要', () => {
       const manager = ConfigManager.getInstance();
-      
+
       // 触发配置加载
       manager.getAIConfig();
       manager.getMQConfig();
-      
+
       const summary = manager.getConfigSummary();
 
       expect(summary['aiConfig']).toBeDefined();
       expect(summary['aiConfig']['hasApiKey']).toBe(true);
       expect(summary['aiConfig']['apiKey']).toBeUndefined(); // 不应该包含敏感信息
       expect(summary['aiConfig']['model']).toBe('gpt-3.5-turbo');
-      
+
       expect(summary['mq']).toBeDefined();
       expect(summary['mq']['host']).toBe('test-host');
       expect(summary['mq']['password']).toBeUndefined(); // 不应该包含敏感信息

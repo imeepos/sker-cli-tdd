@@ -12,47 +12,47 @@ export const ErrorCodes = {
   TOOL_NOT_FOUND: 'TOOL_NOT_FOUND',
   TOOL_EXECUTION_FAILED: 'TOOL_EXECUTION_FAILED',
   TOOL_INVALID_PARAMS: 'TOOL_INVALID_PARAMS',
-  
+
   // 配置相关错误
   CONFIG_INVALID: 'CONFIG_INVALID',
   CONFIG_MISSING: 'CONFIG_MISSING',
   CONFIG_PARSE_ERROR: 'CONFIG_PARSE_ERROR',
-  
+
   // 数据库相关错误
   DATABASE_ERROR: 'DATABASE_ERROR',
   DATABASE_CONNECTION_FAILED: 'DATABASE_CONNECTION_FAILED',
   DATABASE_OPERATION_FAILED: 'DATABASE_OPERATION_FAILED',
-  
+
   // 文件系统相关错误
   FILE_NOT_FOUND: 'FILE_NOT_FOUND',
   FILE_ACCESS_DENIED: 'FILE_ACCESS_DENIED',
   FILE_OPERATION_FAILED: 'FILE_OPERATION_FAILED',
-  
+
   // 网络相关错误
   NETWORK_ERROR: 'NETWORK_ERROR',
   API_ERROR: 'API_ERROR',
   CONNECTION_TIMEOUT: 'CONNECTION_TIMEOUT',
-  
+
   // MQ Agent相关错误
   AGENT_NOT_FOUND: 'AGENT_NOT_FOUND',
   AGENT_CONNECTION_FAILED: 'AGENT_CONNECTION_FAILED',
   TASK_EXECUTION_FAILED: 'TASK_EXECUTION_FAILED',
-  
+
   // AI相关错误
   AI_CLIENT_ERROR: 'AI_CLIENT_ERROR',
   AI_API_ERROR: 'AI_API_ERROR',
   AI_INVALID_RESPONSE: 'AI_INVALID_RESPONSE',
-  
+
   // 通用错误
   UNKNOWN_ERROR: 'UNKNOWN_ERROR',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
-  PERMISSION_DENIED: 'PERMISSION_DENIED'
+  PERMISSION_DENIED: 'PERMISSION_DENIED',
 } as const;
 
 /**
  * 错误代码类型
  */
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 
 /**
  * 错误严重程度枚举
@@ -61,7 +61,7 @@ export enum ErrorSeverity {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
 }
 
 /**
@@ -128,14 +128,15 @@ export class SkerError extends Error {
       timestamp: this.timestamp.toISOString(),
       stack: this.stack,
       ...(this.cause && {
-        cause: this.cause instanceof SkerError 
-          ? this.cause.toJSON() 
-          : {
-              name: this.cause.name,
-              message: this.cause.message,
-              stack: this.cause.stack
-            }
-      })
+        cause:
+          this.cause instanceof SkerError
+            ? this.cause.toJSON()
+            : {
+                name: this.cause.name,
+                message: this.cause.message,
+                stack: this.cause.stack,
+              },
+      }),
     };
   }
 
@@ -168,7 +169,7 @@ export class SkerError extends Error {
       [ErrorCodes.AI_INVALID_RESPONSE]: 'AI响应无效',
       [ErrorCodes.UNKNOWN_ERROR]: '未知错误',
       [ErrorCodes.VALIDATION_ERROR]: '输入验证失败',
-      [ErrorCodes.PERMISSION_DENIED]: '权限不足'
+      [ErrorCodes.PERMISSION_DENIED]: '权限不足',
     };
 
     return userMessages[this.code] || this.message;
@@ -198,7 +199,7 @@ export class SkerError extends Error {
       ErrorCodes.CONNECTION_TIMEOUT,
       ErrorCodes.DATABASE_CONNECTION_FAILED,
       ErrorCodes.API_ERROR,
-      ErrorCodes.AGENT_CONNECTION_FAILED
+      ErrorCodes.AGENT_CONNECTION_FAILED,
     ];
 
     return retryableErrors.includes(this.code);
@@ -224,7 +225,11 @@ export class ErrorFactory {
   /**
    * 创建工具执行失败错误
    */
-  static toolExecutionFailed(toolName: string, cause?: Error, context?: ErrorContext): SkerError {
+  static toolExecutionFailed(
+    toolName: string,
+    cause?: Error,
+    context?: ErrorContext
+  ): SkerError {
     return new SkerError(
       ErrorCodes.TOOL_EXECUTION_FAILED,
       `工具 "${toolName}" 执行失败`,
@@ -246,7 +251,11 @@ export class ErrorFactory {
   /**
    * 创建配置错误
    */
-  static configError(configKey: string, cause?: Error, context?: ErrorContext): SkerError {
+  static configError(
+    configKey: string,
+    cause?: Error,
+    context?: ErrorContext
+  ): SkerError {
     return new SkerError(
       ErrorCodes.CONFIG_INVALID,
       `配置项 "${configKey}" 无效`,
@@ -257,7 +266,11 @@ export class ErrorFactory {
   /**
    * 创建数据库错误
    */
-  static databaseError(operation: string, cause?: Error, context?: ErrorContext): SkerError {
+  static databaseError(
+    operation: string,
+    cause?: Error,
+    context?: ErrorContext
+  ): SkerError {
     return new SkerError(
       ErrorCodes.DATABASE_ERROR,
       `数据库操作 "${operation}" 失败`,
@@ -268,24 +281,34 @@ export class ErrorFactory {
   /**
    * 创建文件操作错误
    */
-  static fileError(path: string, operation: string, cause?: Error, context?: ErrorContext): SkerError {
-    const code = cause?.message.includes('ENOENT') 
-      ? ErrorCodes.FILE_NOT_FOUND 
+  static fileError(
+    path: string,
+    operation: string,
+    cause?: Error,
+    context?: ErrorContext
+  ): SkerError {
+    const code = cause?.message.includes('ENOENT')
+      ? ErrorCodes.FILE_NOT_FOUND
       : cause?.message.includes('EACCES')
-      ? ErrorCodes.FILE_ACCESS_DENIED
-      : ErrorCodes.FILE_OPERATION_FAILED;
+        ? ErrorCodes.FILE_ACCESS_DENIED
+        : ErrorCodes.FILE_OPERATION_FAILED;
 
-    return new SkerError(
-      code,
-      `文件操作失败: ${operation} "${path}"`,
-      { severity: ErrorSeverity.MEDIUM, cause, context }
-    );
+    return new SkerError(code, `文件操作失败: ${operation} "${path}"`, {
+      severity: ErrorSeverity.MEDIUM,
+      cause,
+      context,
+    });
   }
 
   /**
    * 创建Agent错误
    */
-  static agentError(agentId: string, operation: string, cause?: Error, context?: ErrorContext): SkerError {
+  static agentError(
+    agentId: string,
+    operation: string,
+    cause?: Error,
+    context?: ErrorContext
+  ): SkerError {
     return new SkerError(
       ErrorCodes.AGENT_NOT_FOUND,
       `Agent "${agentId}" ${operation}失败`,
@@ -296,16 +319,16 @@ export class ErrorFactory {
   /**
    * 包装原生错误为SkerError
    */
-  static wrap(error: Error, code: ErrorCode = ErrorCodes.UNKNOWN_ERROR, context?: ErrorContext): SkerError {
+  static wrap(
+    error: Error,
+    code: ErrorCode = ErrorCodes.UNKNOWN_ERROR,
+    context?: ErrorContext
+  ): SkerError {
     if (error instanceof SkerError) {
       return error;
     }
 
-    return new SkerError(
-      code,
-      error.message,
-      { cause: error, context }
-    );
+    return new SkerError(code, error.message, { cause: error, context });
   }
 }
 
@@ -318,10 +341,12 @@ export class ErrorUtils {
    */
   static formatForLog(error: Error): string {
     if (error instanceof SkerError) {
-      const context = error.context ? ` [${JSON.stringify(error.context)}]` : '';
+      const context = error.context
+        ? ` [${JSON.stringify(error.context)}]`
+        : '';
       return `[${error.code}:${error.severity}] ${error.message}${context}`;
     }
-    
+
     return `[${ErrorCodes.UNKNOWN_ERROR}] ${error.message}`;
   }
 
@@ -330,7 +355,10 @@ export class ErrorUtils {
    */
   static shouldLog(error: Error): boolean {
     if (error instanceof SkerError) {
-      return error.severity === ErrorSeverity.HIGH || error.severity === ErrorSeverity.CRITICAL;
+      return (
+        error.severity === ErrorSeverity.HIGH ||
+        error.severity === ErrorSeverity.CRITICAL
+      );
     }
     return true;
   }

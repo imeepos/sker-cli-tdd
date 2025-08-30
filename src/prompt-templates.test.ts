@@ -17,9 +17,13 @@ describe('全局提示词模板加载器', () => {
   beforeEach(() => {
     promptManager = new MCPPromptManager();
     provider = new PromptTemplatesProvider(promptManager);
-    
+
     // 使用临时目录进行测试
-    testPromptsDir = path.join(os.tmpdir(), 'sker-test-prompts', Date.now().toString());
+    testPromptsDir = path.join(
+      os.tmpdir(),
+      'sker-test-prompts',
+      Date.now().toString()
+    );
   });
 
   afterEach(async () => {
@@ -37,10 +41,13 @@ describe('全局提示词模板加载器', () => {
 
     it('应该能够创建全局提示词目录', async () => {
       // ❌ 这会失败，因为ensureGlobalPromptsDirectory方法还没有正确实现
-      const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
-      
+      const testProvider = new TestablePromptTemplatesProvider(
+        promptManager,
+        testPromptsDir
+      );
+
       await testProvider.ensureGlobalPromptsDirectory();
-      
+
       expect(fs.existsSync(testPromptsDir)).toBe(true);
     });
   });
@@ -65,7 +72,10 @@ describe('全局提示词模板加载器', () => {
         templateContent
       );
 
-      const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
+      const testProvider = new TestablePromptTemplatesProvider(
+        promptManager,
+        testPromptsDir
+      );
 
       // ❌ 这会失败，因为需要重新实现Markdown文件加载
       await testProvider.loadTemplateFromFile('code-review.md');
@@ -92,7 +102,10 @@ describe('全局提示词模板加载器', () => {
         templateContent
       );
 
-      const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
+      const testProvider = new TestablePromptTemplatesProvider(
+        promptManager,
+        testPromptsDir
+      );
 
       // ❌ 这会失败，因为需要实现从Markdown解析参数的功能
       await testProvider.loadTemplateFromFile('analyze-code.md');
@@ -111,8 +124,14 @@ describe('全局提示词模板加载器', () => {
     it('应该加载目录中的所有Markdown模板文件', async () => {
       // 创建多个测试Markdown模板文件
       const templates = [
-        { name: 'code-review', content: '请审查以下代码：\n\n```{{language}}\n{{code}}\n```' },
-        { name: 'bug-fix', content: '请帮助修复这个bug：\n\n问题描述：{{description}}' }
+        {
+          name: 'code-review',
+          content: '请审查以下代码：\n\n```{{language}}\n{{code}}\n```',
+        },
+        {
+          name: 'bug-fix',
+          content: '请帮助修复这个bug：\n\n问题描述：{{description}}',
+        },
       ];
 
       await fs.promises.mkdir(testPromptsDir, { recursive: true });
@@ -124,7 +143,10 @@ describe('全局提示词模板加载器', () => {
         );
       }
 
-      const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
+      const testProvider = new TestablePromptTemplatesProvider(
+        promptManager,
+        testPromptsDir
+      );
 
       // ❌ 这会失败，因为需要重新实现Markdown文件加载
       await testProvider.loadAllTemplates();
@@ -145,13 +167,16 @@ describe('全局提示词模板加载器', () => {
           {
             name: 'value',
             description: '测试值',
-            required: true
-          }
-        ]
+            required: true,
+          },
+        ],
       };
 
-      const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
-      
+      const testProvider = new TestablePromptTemplatesProvider(
+        promptManager,
+        testPromptsDir
+      );
+
       // 测试保存为Markdown格式
       await testProvider.saveTemplate(testTemplate, 'md');
 
@@ -163,7 +188,10 @@ describe('全局提示词模板加载器', () => {
     });
 
     it('应该创建默认模板文件', async () => {
-      const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
+      const testProvider = new TestablePromptTemplatesProvider(
+        promptManager,
+        testPromptsDir
+      );
 
       await testProvider.createDefaultTemplates();
 
@@ -183,18 +211,26 @@ describe('全局提示词模板加载器', () => {
         'invalid json content'
       );
 
-      const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
-      
+      const testProvider = new TestablePromptTemplatesProvider(
+        promptManager,
+        testPromptsDir
+      );
+
       // 应该不抛出异常，而是优雅地处理错误
-      await expect(testProvider.loadTemplateFromFile('invalid.json')).resolves.not.toThrow();
-      
+      await expect(
+        testProvider.loadTemplateFromFile('invalid.json')
+      ).resolves.not.toThrow();
+
       // 无效文件不应该被加载
       expect(promptManager.getPrompt('invalid')).toBeUndefined();
     });
 
     it('应该在没有模板文件时创建示例文件', async () => {
       // 使用空目录
-      const testProvider = new TestablePromptTemplatesProvider(promptManager, testPromptsDir);
+      const testProvider = new TestablePromptTemplatesProvider(
+        promptManager,
+        testPromptsDir
+      );
 
       // ❌ 这会失败，因为需要重新实现创建示例文件的逻辑
       await testProvider.loadAllTemplates();

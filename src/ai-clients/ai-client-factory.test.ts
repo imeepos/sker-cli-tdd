@@ -41,7 +41,9 @@ describe('AIClientFactory', () => {
         model: 'test-model',
       } as any;
 
-      expect(() => AIClientFactory.create(config)).toThrow('Unsupported AI provider: unsupported');
+      expect(() => AIClientFactory.create(config)).toThrow(
+        'Unsupported AI provider: unsupported'
+      );
     });
   });
 
@@ -53,7 +55,9 @@ describe('AIClientFactory', () => {
         model: 'gpt-3.5-turbo',
       } as any;
 
-      expect(() => AIClientFactory.create(invalidConfig)).toThrow('API key is required');
+      expect(() => AIClientFactory.create(invalidConfig)).toThrow(
+        'API key is required'
+      );
     });
 
     it('应该验证温度范围', () => {
@@ -64,7 +68,9 @@ describe('AIClientFactory', () => {
         temperature: 3.0, // 超出范围
       };
 
-      expect(() => AIClientFactory.create(invalidConfig)).toThrow('Temperature must be between 0 and 2');
+      expect(() => AIClientFactory.create(invalidConfig)).toThrow(
+        'Temperature must be between 0 and 2'
+      );
     });
 
     it('应该验证最大令牌数', () => {
@@ -75,7 +81,9 @@ describe('AIClientFactory', () => {
         maxTokens: -100, // 负数
       };
 
-      expect(() => AIClientFactory.create(invalidConfig)).toThrow('Max tokens must be positive');
+      expect(() => AIClientFactory.create(invalidConfig)).toThrow(
+        'Max tokens must be positive'
+      );
     });
   });
 
@@ -101,8 +109,6 @@ describe('AIClientFactory', () => {
       expect(client.provider).toBeDefined();
       expect(client.config).toBeDefined();
     });
-
-
   });
 
   describe('工厂管理', () => {
@@ -115,7 +121,9 @@ describe('AIClientFactory', () => {
     it('应该检查提供商是否已注册', () => {
       expect(AIClientFactory.isProviderRegistered('openai')).toBe(true);
       expect(AIClientFactory.isProviderRegistered('anthropic')).toBe(true);
-      expect(AIClientFactory.isProviderRegistered('unsupported' as any)).toBe(false);
+      expect(AIClientFactory.isProviderRegistered('unsupported' as any)).toBe(
+        false
+      );
     });
 
     it('应该能够创建多个客户端实例', () => {
@@ -153,7 +161,10 @@ describe('AIClientFactory', () => {
         },
       ];
 
-      const clients = AIClientFactory.createWithFailover(primaryConfig, fallbackConfigs);
+      const clients = AIClientFactory.createWithFailover(
+        primaryConfig,
+        fallbackConfigs
+      );
       expect(clients).toHaveLength(2);
       expect(clients[0]?.provider).toBe('openai');
       expect(clients[1]?.provider).toBe('anthropic');

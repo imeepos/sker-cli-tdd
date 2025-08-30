@@ -19,13 +19,13 @@ class TestToolProvider extends BaseToolProvider {
         this.testToolHandler.bind(this),
         this.createObjectSchema(
           {
-            message: this.createStringParam('测试消息')
+            message: this.createStringParam('测试消息'),
           },
           ['message']
         )
       ),
       this.createTool(
-        'error_tool', 
+        'error_tool',
         '错误测试工具',
         this.errorToolHandler.bind(this),
         this.createObjectSchema({})
@@ -35,15 +35,17 @@ class TestToolProvider extends BaseToolProvider {
         'SkerError测试工具',
         this.skerErrorToolHandler.bind(this),
         this.createObjectSchema({})
-      )
+      ),
     ];
   }
 
-  private async testToolHandler(params: { message: string }): Promise<ToolResponse> {
+  private async testToolHandler(params: {
+    message: string;
+  }): Promise<ToolResponse> {
     this.validateRequiredParams(params, ['message']);
-    return this.createSuccessResponse({ 
+    return this.createSuccessResponse({
       message: `收到消息: ${params.message}`,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -53,7 +55,7 @@ class TestToolProvider extends BaseToolProvider {
 
   private async skerErrorToolHandler(_params: any): Promise<ToolResponse> {
     throw new SkerError(ErrorCodes.VALIDATION_ERROR, 'SkerError测试错误', {
-      severity: ErrorSeverity.HIGH
+      severity: ErrorSeverity.HIGH,
     });
   }
 }
@@ -81,42 +83,42 @@ describe('BaseToolProvider', () => {
     it('应该正确处理成功的工具调用', async () => {
       const tools = provider.getTools();
       const testTool = tools.find(t => t.name === 'test_tool');
-      
+
       const result = await testTool?.handler({ message: '你好' });
-      
+
       expect(result).toEqual({
         success: true,
         message: '收到消息: 你好',
-        timestamp: expect.any(Number)
+        timestamp: expect.any(Number),
       });
     });
 
     it('应该正确处理工具调用中的普通错误', async () => {
       const tools = provider.getTools();
       const errorTool = tools.find(t => t.name === 'error_tool');
-      
+
       const result = await errorTool?.handler({});
-      
+
       expect(result).toMatchObject({
         success: false,
         code: ErrorCodes.TOOL_EXECUTION_FAILED,
         severity: ErrorSeverity.HIGH,
-        retryable: false
+        retryable: false,
       });
     });
 
     it('应该正确处理SkerError', async () => {
       const tools = provider.getTools();
       const skerErrorTool = tools.find(t => t.name === 'sker_error_tool');
-      
+
       const result = await skerErrorTool?.handler({});
-      
+
       expect(result).toMatchObject({
         success: false,
         code: ErrorCodes.VALIDATION_ERROR,
         severity: ErrorSeverity.HIGH,
         userMessage: '输入验证失败',
-        retryable: false
+        retryable: false,
       });
     });
   });
@@ -124,18 +126,18 @@ describe('BaseToolProvider', () => {
   describe('createSuccessResponse', () => {
     it('应该创建标准成功响应', () => {
       const response = provider['createSuccessResponse']({ data: 'test' });
-      
+
       expect(response).toEqual({
         success: true,
-        data: 'test'
+        data: 'test',
       });
     });
 
     it('应该创建空的成功响应', () => {
       const response = provider['createSuccessResponse']();
-      
+
       expect(response).toEqual({
-        success: true
+        success: true,
       });
     });
   });
@@ -144,10 +146,10 @@ describe('BaseToolProvider', () => {
     it('应该创建标准错误响应', () => {
       const error = new Error('测试错误消息');
       const response = provider['createErrorResponse'](error);
-      
+
       expect(response).toEqual({
         success: false,
-        error: '测试错误消息'
+        error: '测试错误消息',
       });
     });
   });
@@ -155,11 +157,14 @@ describe('BaseToolProvider', () => {
   describe('createErrorResponseWithContext', () => {
     it('应该创建带上下文的错误响应', () => {
       const error = new Error('连接超时');
-      const response = provider['createErrorResponseWithContext']('数据库操作', error);
-      
+      const response = provider['createErrorResponseWithContext'](
+        '数据库操作',
+        error
+      );
+
       expect(response).toEqual({
         success: false,
-        error: '数据库操作失败: 连接超时'
+        error: '数据库操作失败: 连接超时',
       });
     });
   });
@@ -167,7 +172,10 @@ describe('BaseToolProvider', () => {
   describe('validateRequiredParams', () => {
     it('应该通过有效参数验证', () => {
       expect(() => {
-        provider['validateRequiredParams']({ name: 'test', value: 123 }, ['name', 'value']);
+        provider['validateRequiredParams']({ name: 'test', value: 123 }, [
+          'name',
+          'value',
+        ]);
       }).not.toThrow();
     });
 
@@ -187,44 +195,48 @@ describe('BaseToolProvider', () => {
   describe('Schema创建方法', () => {
     it('应该创建字符串参数Schema', () => {
       const schema = provider['createStringParam']('测试字符串');
-      
+
       expect(schema).toEqual({
         type: 'string',
-        description: '测试字符串'
+        description: '测试字符串',
       });
     });
 
     it('应该创建枚举参数Schema', () => {
-      const schema = provider['createEnumParam']('优先级', ['low', 'medium', 'high']);
-      
+      const schema = provider['createEnumParam']('优先级', [
+        'low',
+        'medium',
+        'high',
+      ]);
+
       expect(schema).toEqual({
         type: 'string',
         enum: ['low', 'medium', 'high'],
-        description: '优先级'
+        description: '优先级',
       });
     });
 
     it('应该创建数组参数Schema', () => {
       const schema = provider['createArrayParam']('标签数组');
-      
+
       expect(schema).toEqual({
         type: 'array',
         items: { type: 'string' },
-        description: '标签数组'
+        description: '标签数组',
       });
     });
 
     it('应该创建对象Schema', () => {
       const properties = {
         name: { type: 'string', description: '名称' },
-        age: { type: 'number', description: '年龄' }
+        age: { type: 'number', description: '年龄' },
       };
       const schema = provider['createObjectSchema'](properties, ['name']);
-      
+
       expect(schema).toEqual({
         type: 'object',
         properties,
-        required: ['name']
+        required: ['name'],
       });
     });
   });
@@ -237,7 +249,7 @@ describe('BaseToolProvider', () => {
 
       expect(result).toEqual({
         success: true,
-        result: { data: '成功' }
+        result: { data: '成功' },
       });
     });
 
@@ -248,7 +260,7 @@ describe('BaseToolProvider', () => {
 
       expect(result).toEqual({
         success: false,
-        error: '测试操作失败: 操作失败'
+        error: '测试操作失败: 操作失败',
       });
     });
   });

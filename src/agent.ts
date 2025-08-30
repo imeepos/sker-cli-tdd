@@ -174,7 +174,9 @@ export class MQAgent {
       const message = JSON.parse(messageData);
       return message as TaskMessage;
     } catch (error) {
-      throw new Error(`Failed to parse task message: ${(error as Error).message}`);
+      throw new Error(
+        `Failed to parse task message: ${(error as Error).message}`
+      );
     }
   }
 
@@ -213,7 +215,10 @@ export class MQAgent {
         result = await this.processAITask(taskMessage);
       } else {
         // 直接执行工具
-        result = await this.toolManager.executeTool(taskMessage.type, taskMessage.payload);
+        result = await this.toolManager.executeTool(
+          taskMessage.type,
+          taskMessage.payload
+        );
       }
 
       return {
@@ -223,7 +228,7 @@ export class MQAgent {
         to: taskMessage.from,
         success: true,
         result: result,
-        timestamp: startTime
+        timestamp: startTime,
       };
     } catch (error) {
       return {
@@ -233,7 +238,7 @@ export class MQAgent {
         to: taskMessage.from,
         success: false,
         error: (error as Error).message,
-        timestamp: startTime
+        timestamp: startTime,
       };
     }
   }
@@ -254,12 +259,12 @@ export class MQAgent {
         role: 'system',
         content: `你是一个智能Agent，可以调用各种工具来完成任务。
 当前可用的工具包括：文件操作、命令执行、网络请求、系统信息查询等。
-请根据用户的指令，智能选择合适的工具来完成任务。`
+请根据用户的指令，智能选择合适的工具来完成任务。`,
       },
       {
         role: 'user',
-        content: `任务指令：${instruction}${context ? `\n上下文：${context}` : ''}`
-      }
+        content: `任务指令：${instruction}${context ? `\n上下文：${context}` : ''}`,
+      },
     ];
 
     // 使用AI处理对话并执行工具调用
@@ -277,7 +282,7 @@ export class MQAgent {
     conversationMessages.push({
       role: 'assistant',
       content: assistantMessage.content || '',
-      toolCalls: assistantMessage.toolCalls
+      toolCalls: assistantMessage.toolCalls,
     });
 
     // 处理工具调用
@@ -293,7 +298,7 @@ export class MQAgent {
           conversationMessages.push({
             role: 'tool',
             content: JSON.stringify(toolResult),
-            toolCallId: toolCall.id
+            toolCallId: toolCall.id,
           });
 
           toolCallsExecuted++;
@@ -302,27 +307,29 @@ export class MQAgent {
           conversationMessages.push({
             role: 'tool',
             content: JSON.stringify({ error: (error as Error).message }),
-            toolCallId: toolCall.id
+            toolCallId: toolCall.id,
           });
         }
       }
 
       // 如果有工具调用，获取最终响应
       if (toolCallsExecuted > 0) {
-        const finalResponse = await this.aiClient.chatCompletion(conversationMessages);
+        const finalResponse =
+          await this.aiClient.chatCompletion(conversationMessages);
         const finalMessage = finalResponse.choices[0]?.message;
 
         if (finalMessage) {
           conversationMessages.push({
             role: 'assistant',
-            content: finalMessage.content || ''
+            content: finalMessage.content || '',
           });
         }
 
         return {
-          aiResponse: finalMessage?.content || assistantMessage.content || 'AI处理完成',
+          aiResponse:
+            finalMessage?.content || assistantMessage.content || 'AI处理完成',
           toolCallsExecuted,
-          conversationMessages
+          conversationMessages,
         };
       }
     }
@@ -330,7 +337,7 @@ export class MQAgent {
     return {
       aiResponse: assistantMessage.content || 'AI处理完成',
       toolCallsExecuted,
-      conversationMessages
+      conversationMessages,
     };
   }
 
@@ -344,7 +351,10 @@ export class MQAgent {
 
     try {
       const messageData = JSON.stringify(taskResult);
-      return await this.mqConnection.publish(this.config.resultQueue, messageData);
+      return await this.mqConnection.publish(
+        this.config.resultQueue,
+        messageData
+      );
     } catch (error) {
       // 在测试环境下不输出错误，避免测试噪音
       if (!this.configManager.isTestEnvironment()) {
@@ -363,15 +373,18 @@ export class MQAgent {
     }
 
     try {
-      this.mqConnection.subscribe(this.config.taskQueue, async (messageData: string) => {
-        try {
-          const taskMessage = this.parseTaskMessage(messageData);
-          await this.processTask(taskMessage);
-        } catch (error) {
-          console.error('Failed to process task:', error);
+      this.mqConnection.subscribe(
+        this.config.taskQueue,
+        async (messageData: string) => {
+          try {
+            const taskMessage = this.parseTaskMessage(messageData);
+            await this.processTask(taskMessage);
+          } catch (error) {
+            console.error('Failed to process task:', error);
+          }
         }
-      });
-      
+      );
+
       this.isListening = true;
       return true;
     } catch (error) {
@@ -395,10 +408,10 @@ export class MQAgent {
     try {
       // 执行任务
       const result = await this.executeTask(taskMessage);
-      
+
       // 发送结果
       const sent = await this.sendResult(result);
-      
+
       return sent;
     } catch (error) {
       console.error('Failed to process task:', error);
@@ -419,7 +432,7 @@ export class MQAgent {
       agentId: this.config.agentId,
       isConnected: this.isConnected(),
       isListening: this.isListening,
-      config: this.config
+      config: this.config,
     };
   }
 }

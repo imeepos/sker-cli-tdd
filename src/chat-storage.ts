@@ -53,17 +53,19 @@ export interface QueryOptions {
 export class ChatStorage extends DatabaseService {
   private messagesDb: any;
   private sessionsDb: any;
-  
+
   constructor(config: DatabaseConfig = {}) {
     // 设置默认路径和子级数据库
     const chatConfig = {
       ...config,
-      dbPath: config.dbPath || require('path').join(require('os').homedir(), '.sker-ai', 'chat-db'),
-      sublevels: ['messages', 'sessions']
+      dbPath:
+        config.dbPath ||
+        require('path').join(require('os').homedir(), '.sker-ai', 'chat-db'),
+      sublevels: ['messages', 'sessions'],
     };
-    
+
     super(chatConfig);
-    
+
     this.messagesDb = this.getSublevel('messages');
     this.sessionsDb = this.getSublevel('sessions');
   }
@@ -93,7 +95,7 @@ export class ChatStorage extends DatabaseService {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       messageCount: 0,
-      totalTokens: 0
+      totalTokens: 0,
     };
 
     await this.sessionsDb.put(sessionId, session);
@@ -116,7 +118,7 @@ export class ChatStorage extends DatabaseService {
       role,
       content,
       sessionId,
-      metadata
+      metadata,
     };
 
     // 保存消息
@@ -147,7 +149,9 @@ export class ChatStorage extends DatabaseService {
     for (const message of history) {
       await this.saveMessage(
         message.role as 'user' | 'assistant' | 'system',
-        typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
+        typeof message.content === 'string'
+          ? message.content
+          : JSON.stringify(message.content),
         sessionId
       );
     }
@@ -181,17 +185,24 @@ export class ChatStorage extends DatabaseService {
    * 查询消息
    */
   async queryMessages(options: QueryOptions = {}): Promise<ChatMessage[]> {
-    const { sessionId, startTime, endTime, limit = 100, offset = 0, role } = options;
+    const {
+      sessionId,
+      startTime,
+      endTime,
+      limit = 100,
+      offset = 0,
+      role,
+    } = options;
 
     // 先获取所有消息并按时间戳排序，然后应用过滤条件
     const allMessages: ChatMessage[] = [];
     for await (const [, message] of this.messagesDb.iterator()) {
       allMessages.push(message);
     }
-    
+
     // 按时间戳排序
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
-    
+
     // 应用过滤条件
     const filteredMessages = allMessages.filter(message => {
       if (sessionId && message.sessionId !== sessionId) return false;
@@ -200,7 +211,7 @@ export class ChatStorage extends DatabaseService {
       if (role && message.role !== role) return false;
       return true;
     });
-    
+
     // 应用 offset 和 limit
     const startIndex = offset;
     const endIndex = startIndex + limit;
@@ -210,7 +221,10 @@ export class ChatStorage extends DatabaseService {
   /**
    * 获取会话的所有消息
    */
-  async getSessionMessages(sessionId: string, limit?: number): Promise<ChatMessage[]> {
+  async getSessionMessages(
+    sessionId: string,
+    limit?: number
+  ): Promise<ChatMessage[]> {
     return this.queryMessages({ sessionId, limit });
   }
 
@@ -221,18 +235,18 @@ export class ChatStorage extends DatabaseService {
     sessionId: string
   ): Promise<OpenAI.Chat.Completions.ChatCompletionMessageParam[]> {
     const messages = await this.getSessionMessages(sessionId);
-    
+
     return messages.map(msg => {
       if (msg.role === 'tool') {
         return {
           role: msg.role,
           content: msg.content,
-          tool_call_id: 'default_tool_call_id'
+          tool_call_id: 'default_tool_call_id',
         };
       }
       return {
         role: msg.role as 'user' | 'assistant' | 'system',
-        content: msg.content
+        content: msg.content,
       };
     });
   }
@@ -269,7 +283,7 @@ export class ChatStorage extends DatabaseService {
     for (const message of messages) {
       await this.deleteMessage(message.id);
     }
-    
+
     // 删除会话记录
     await this.sessionsDb.del(sessionId);
   }
@@ -291,7 +305,7 @@ export class ChatStorage extends DatabaseService {
     const stats = await this.getStats();
     return {
       totalMessages: stats['messages'] || 0,
-      totalSessions: stats['sessions'] || 0
+      totalSessions: stats['sessions'] || 0,
     };
   }
 }

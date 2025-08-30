@@ -5,6 +5,7 @@
  */
 
 import { ContextBuilder, FolderContext, FileContext, ContextBuilderOptions } from '../src/index.js';
+import type { Context } from '../src/context-base.js';
 
 /**
  * Context功能使用示例
@@ -154,10 +155,10 @@ function analyzeProjectStructure(context: FolderContext): void {
     console.log(`   ✅ 发现 src 目录 - 包含 ${srcFolder.children.length} 个项目`);
     
     // 分析源代码文件类型
-    const tsFiles = srcFolder.children.filter(child => 
+    const tsFiles = srcFolder.children.filter((child: Context) => 
       child.type === 'file' && (child as FileContext).extension === '.ts'
     );
-    const testFiles = srcFolder.children.filter(child => 
+    const testFiles = srcFolder.children.filter((child: Context) => 
       child.type === 'file' && child.name.includes('.test.')
     );
     
@@ -170,7 +171,7 @@ function analyzeProjectStructure(context: FolderContext): void {
   }
 
   // 查找配置文件
-  const configFiles = context.children.filter(child => 
+  const configFiles = context.children.filter((child: Context) => 
     child.type === 'file' && (
       child.name.includes('config') || 
       child.name.startsWith('.') ||
@@ -181,7 +182,7 @@ function analyzeProjectStructure(context: FolderContext): void {
   
   if (configFiles.length > 0) {
     console.log(`   ⚙️  配置文件: ${configFiles.length} 个`);
-    configFiles.slice(0, 3).forEach(file => {
+    configFiles.slice(0, 3).forEach((file: Context) => {
       console.log(`      - ${file.name}`);
     });
     if (configFiles.length > 3) {

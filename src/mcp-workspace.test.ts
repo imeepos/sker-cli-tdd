@@ -9,16 +9,17 @@ import { MCPWorkspace, MCPWorkspaceManager } from './mcp-workspace';
 describe('MCP 工作空间功能', () => {
   describe('工作空间接口定义', () => {
     it('应该定义 MCPWorkspace 接口', () => {
-      const workspace: MCPWorkspace = { // ❌ 会失败 - 接口不存在
+      const workspace: MCPWorkspace = {
+        // ❌ 会失败 - 接口不存在
         id: 'test-workspace',
         name: '测试工作空间',
         description: '用于测试的工作空间',
         isGlobal: false,
         tools: [],
         resources: [],
-        prompts: []
+        prompts: [],
       };
-      
+
       expect(workspace.id).toBe('test-workspace');
       expect(workspace.name).toBe('测试工作空间');
       expect(workspace.isGlobal).toBe(false);
@@ -45,10 +46,11 @@ describe('MCP 工作空间功能', () => {
     });
 
     it('应该创建新的工作空间', () => {
-      const workspace = workspaceManager.createWorkspace({ // ❌ 会失败
+      const workspace = workspaceManager.createWorkspace({
+        // ❌ 会失败
         id: 'project-a',
         name: '项目 A',
-        description: '项目 A 的工作空间'
+        description: '项目 A 的工作空间',
       });
 
       expect(workspace.id).toBe('project-a');
@@ -59,25 +61,31 @@ describe('MCP 工作空间功能', () => {
     it('应该获取所有工作空间', () => {
       workspaceManager.createWorkspace({
         id: 'workspace1',
-        name: '工作空间1'
+        name: '工作空间1',
       });
 
       workspaceManager.createWorkspace({
         id: 'workspace2',
-        name: '工作空间2'
+        name: '工作空间2',
       });
 
       const workspaces = workspaceManager.getAllWorkspaces(); // ❌ 会失败
       expect(workspaces).toHaveLength(3); // 包括全局工作空间
-      expect(workspaces.some((w: MCPWorkspace) => w.id === 'global')).toBe(true);
-      expect(workspaces.some((w: MCPWorkspace) => w.id === 'workspace1')).toBe(true);
-      expect(workspaces.some((w: MCPWorkspace) => w.id === 'workspace2')).toBe(true);
+      expect(workspaces.some((w: MCPWorkspace) => w.id === 'global')).toBe(
+        true
+      );
+      expect(workspaces.some((w: MCPWorkspace) => w.id === 'workspace1')).toBe(
+        true
+      );
+      expect(workspaces.some((w: MCPWorkspace) => w.id === 'workspace2')).toBe(
+        true
+      );
     });
 
     it('应该按 ID 获取工作空间', () => {
       const created = workspaceManager.createWorkspace({
         id: 'test-workspace',
-        name: '测试工作空间'
+        name: '测试工作空间',
       });
 
       const found = workspaceManager.getWorkspace('test-workspace'); // ❌ 会失败
@@ -92,19 +100,21 @@ describe('MCP 工作空间功能', () => {
     it('应该防止重复创建同 ID 的工作空间', () => {
       workspaceManager.createWorkspace({
         id: 'duplicate',
-        name: '第一个'
+        name: '第一个',
       });
 
-      expect(() => workspaceManager.createWorkspace({
-        id: 'duplicate',
-        name: '第二个'
-      })).toThrow('工作空间 "duplicate" 已存在');
+      expect(() =>
+        workspaceManager.createWorkspace({
+          id: 'duplicate',
+          name: '第二个',
+        })
+      ).toThrow('工作空间 "duplicate" 已存在');
     });
 
     it('应该删除工作空间', () => {
       workspaceManager.createWorkspace({
         id: 'to-delete',
-        name: '待删除的工作空间'
+        name: '待删除的工作空间',
       });
 
       const deleted = workspaceManager.deleteWorkspace('to-delete'); // ❌ 会失败
@@ -113,8 +123,9 @@ describe('MCP 工作空间功能', () => {
     });
 
     it('应该防止删除全局工作空间', () => {
-      expect(() => workspaceManager.deleteWorkspace('global'))
-        .toThrow('不能删除全局工作空间');
+      expect(() => workspaceManager.deleteWorkspace('global')).toThrow(
+        '不能删除全局工作空间'
+      );
     });
   });
 
@@ -128,14 +139,14 @@ describe('MCP 工作空间功能', () => {
     it('应该向工作空间添加工具', () => {
       const workspace = workspaceManager.createWorkspace({
         id: 'test-workspace',
-        name: '测试工作空间'
+        name: '测试工作空间',
       });
 
       const tool = {
         name: 'test-tool',
         description: '测试工具',
         inputSchema: { type: 'object', properties: {} },
-        handler: async () => ({ result: 'test' })
+        handler: async () => ({ result: 'test' }),
       };
 
       workspaceManager.addToolToWorkspace('test-workspace', tool); // ❌ 会失败
@@ -145,14 +156,14 @@ describe('MCP 工作空间功能', () => {
     it('应该向工作空间添加资源', () => {
       const workspace = workspaceManager.createWorkspace({
         id: 'test-workspace',
-        name: '测试工作空间'
+        name: '测试工作空间',
       });
 
       const resource = {
         uri: 'file://test.txt',
         name: '测试文件',
         mimeType: 'text/plain',
-        description: '测试资源'
+        description: '测试资源',
       };
 
       workspaceManager.addResourceToWorkspace('test-workspace', resource); // ❌ 会失败
@@ -162,16 +173,14 @@ describe('MCP 工作空间功能', () => {
     it('应该向工作空间添加提示词', () => {
       const workspace = workspaceManager.createWorkspace({
         id: 'test-workspace',
-        name: '测试工作空间'
+        name: '测试工作空间',
       });
 
       const prompt = {
         name: 'test-prompt',
         description: '测试提示词',
         template: '你好，{{name}}！',
-        arguments: [
-          { name: 'name', description: '名称', required: true }
-        ]
+        arguments: [{ name: 'name', description: '名称', required: true }],
       };
 
       workspaceManager.addPromptToWorkspace('test-workspace', prompt); // ❌ 会失败
@@ -181,14 +190,14 @@ describe('MCP 工作空间功能', () => {
     it('应该从工作空间移除资源', () => {
       const workspace = workspaceManager.createWorkspace({
         id: 'test-workspace',
-        name: '测试工作空间'
+        name: '测试工作空间',
       });
 
       const tool = {
         name: 'test-tool',
         description: '测试工具',
         inputSchema: { type: 'object', properties: {} },
-        handler: async () => ({ result: 'test' })
+        handler: async () => ({ result: 'test' }),
       };
 
       workspaceManager.addToolToWorkspace('test-workspace', tool);
@@ -216,7 +225,7 @@ describe('MCP 工作空间功能', () => {
     it('应该设置当前工作空间', () => {
       const workspace = workspaceManager.createWorkspace({
         id: 'current-workspace',
-        name: '当前工作空间'
+        name: '当前工作空间',
       });
 
       server.setWorkspaceManager(workspaceManager);
@@ -233,20 +242,20 @@ describe('MCP 工作空间功能', () => {
         name: 'global-tool',
         description: '全局工具',
         inputSchema: { type: 'object', properties: {} },
-        handler: async () => ({ result: 'global' })
+        handler: async () => ({ result: 'global' }),
       };
       workspaceManager.addToolToWorkspace('global', globalTool);
 
       // 创建工作空间并添加工具
       workspaceManager.createWorkspace({
         id: 'test-workspace',
-        name: '测试工作空间'
+        name: '测试工作空间',
       });
       const workspaceTool = {
         name: 'workspace-tool',
         description: '工作空间工具',
         inputSchema: { type: 'object', properties: {} },
-        handler: async () => ({ result: 'workspace' })
+        handler: async () => ({ result: 'workspace' }),
       };
       workspaceManager.addToolToWorkspace('test-workspace', workspaceTool);
 
@@ -261,8 +270,9 @@ describe('MCP 工作空间功能', () => {
     });
 
     it('应该在没有工作空间管理器时抛出错误', () => {
-      expect(() => server.setCurrentWorkspace('test'))
-        .toThrow('工作空间管理器未设置');
+      expect(() => server.setCurrentWorkspace('test')).toThrow(
+        '工作空间管理器未设置'
+      );
     });
 
     it('应该支持工作空间级别的工具执行', async () => {
@@ -271,14 +281,14 @@ describe('MCP 工作空间功能', () => {
       // 创建工作空间并添加工具
       workspaceManager.createWorkspace({
         id: 'test-workspace',
-        name: '测试工作空间'
+        name: '测试工作空间',
       });
 
       const tool = {
         name: 'workspace-tool',
         description: '工作空间工具',
         inputSchema: { type: 'object', properties: {} },
-        handler: async () => ({ result: 'workspace-result' })
+        handler: async () => ({ result: 'workspace-result' }),
       };
       workspaceManager.addToolToWorkspace('test-workspace', tool);
 

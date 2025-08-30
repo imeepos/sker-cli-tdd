@@ -11,7 +11,7 @@ import {
   UnifiedMessage,
   UnifiedResponse,
   UnifiedChunk,
-  AIProvider
+  AIProvider,
 } from './ai-clients/base/unified-types';
 
 /**
@@ -75,7 +75,9 @@ export class MCPAIClient {
   /**
    * 流式聊天完成
    */
-  async* chatCompletionStream(messages: UnifiedMessage[]): AsyncIterable<UnifiedChunk> {
+  async *chatCompletionStream(
+    messages: UnifiedMessage[]
+  ): AsyncIterable<UnifiedChunk> {
     const stream = this.aiClient.chatCompletionStream({
       messages,
       model: this.config.model,
@@ -91,7 +93,9 @@ export class MCPAIClient {
   /**
    * 带工具调用的聊天完成
    */
-  async chatCompletionWithTools(messages: UnifiedMessage[]): Promise<UnifiedResponse> {
+  async chatCompletionWithTools(
+    messages: UnifiedMessage[]
+  ): Promise<UnifiedResponse> {
     const tools = this.mcpServer.getTools().map((tool: any) => ({
       type: 'function' as const,
       function: {
@@ -107,7 +111,10 @@ export class MCPAIClient {
   /**
    * 执行工具调用
    */
-  async executeToolCall(toolName: string, parameters: Record<string, unknown>): Promise<any> {
+  async executeToolCall(
+    toolName: string,
+    parameters: Record<string, unknown>
+  ): Promise<any> {
     return this.mcpServer.executeTool(toolName, parameters);
   }
 
@@ -156,7 +163,11 @@ export class MCPAIClient {
     fallbackConfigs: MCPAIConfig[],
     mcpServer: MCPServer
   ): MCPAIClientWithFailover {
-    return new MCPAIClientWithFailover(primaryConfig, fallbackConfigs, mcpServer);
+    return new MCPAIClientWithFailover(
+      primaryConfig,
+      fallbackConfigs,
+      mcpServer
+    );
   }
 
   /**
@@ -185,21 +196,25 @@ export class MCPAIClientWithFailover extends MCPAIClient {
     // 创建故障转移客户端
     this.fallbackClients = [
       this,
-      ...fallbackConfigs.map(config => new MCPAIClient(config, mcpServer))
+      ...fallbackConfigs.map(config => new MCPAIClient(config, mcpServer)),
     ];
   }
 
   /**
    * 带故障转移的聊天完成
    */
-  override async chatCompletion(messages: UnifiedMessage[]): Promise<UnifiedResponse> {
+  override async chatCompletion(
+    messages: UnifiedMessage[]
+  ): Promise<UnifiedResponse> {
     return this.executeWithFailover(client => client.chatCompletion(messages));
   }
 
   /**
    * 带故障转移的流式聊天完成
    */
-  override async* chatCompletionStream(messages: UnifiedMessage[]): AsyncIterable<UnifiedChunk> {
+  override async *chatCompletionStream(
+    messages: UnifiedMessage[]
+  ): AsyncIterable<UnifiedChunk> {
     const currentClient = this.getCurrentClient();
     try {
       const stream = currentClient.chatCompletionStream(messages);
@@ -209,7 +224,8 @@ export class MCPAIClientWithFailover extends MCPAIClient {
     } catch (error) {
       // 流式请求失败时切换到下一个客户端
       if (this.switchToNextClient()) {
-        const fallbackStream = this.getCurrentClient().chatCompletionStream(messages);
+        const fallbackStream =
+          this.getCurrentClient().chatCompletionStream(messages);
         for await (const chunk of fallbackStream) {
           yield chunk;
         }
@@ -222,27 +238,40 @@ export class MCPAIClientWithFailover extends MCPAIClient {
   /**
    * 带故障转移的工具调用聊天完成
    */
-  override async chatCompletionWithTools(messages: UnifiedMessage[]): Promise<UnifiedResponse> {
-    return this.executeWithFailover(client => client.chatCompletionWithTools(messages));
+  override async chatCompletionWithTools(
+    messages: UnifiedMessage[]
+  ): Promise<UnifiedResponse> {
+    return this.executeWithFailover(client =>
+      client.chatCompletionWithTools(messages)
+    );
   }
 
   /**
    * 执行带故障转移的操作
    */
-  private async executeWithFailover<T>(operation: (client: MCPAIClient) => Promise<T>): Promise<T> {
+  private async executeWithFailover<T>(
+    operation: (client: MCPAIClient) => Promise<T>
+  ): Promise<T> {
     let lastError: Error | null = null;
 
     for (let i = 0; i < this.fallbackClients.length; i++) {
-      const client = this.fallbackClients[(this.currentClientIndex + i) % this.fallbackClients.length]!;
+      const client =
+        this.fallbackClients[
+          (this.currentClientIndex + i) % this.fallbackClients.length
+        ]!;
 
       try {
         const result = await operation(client);
         // 成功后更新当前客户端索引
-        this.currentClientIndex = (this.currentClientIndex + i) % this.fallbackClients.length;
+        this.currentClientIndex =
+          (this.currentClientIndex + i) % this.fallbackClients.length;
         return result;
       } catch (error) {
         lastError = error as Error;
-        console.warn(`AI provider ${client.provider} failed, trying next...`, error);
+        console.warn(
+          `AI provider ${client.provider} failed, trying next...`,
+          error
+        );
       }
     }
 
@@ -270,14 +299,18 @@ export class MCPAIClientWithFailover extends MCPAIClient {
   /**
    * 获取所有客户端状态
    */
-  async getClientsStatus(): Promise<Array<{ provider: AIProvider; available: boolean }>> {
+  async getClientsStatus(): Promise<
+    Array<{ provider: AIProvider; available: boolean }>
+  > {
     const results = await Promise.allSettled(
       this.fallbackClients.map(client => client.testConnection())
     );
 
     return this.fallbackClients.map((client, index) => ({
       provider: client.provider,
-      available: results[index]!.status === 'fulfilled' && (results[index] as PromiseFulfilledResult<boolean>).value,
+      available:
+        results[index]!.status === 'fulfilled' &&
+        (results[index] as PromiseFulfilledResult<boolean>).value,
     }));
   }
 }

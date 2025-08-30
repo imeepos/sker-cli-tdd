@@ -25,7 +25,7 @@ export class InteractiveMode {
   private sessionConfig: SessionConfig = {
     realTimeOutput: true,
     autoSave: false,
-    maxHistory: 50
+    maxHistory: 50,
   };
 
   constructor(streamChat: StreamChat, toolManager: ToolManager) {
@@ -141,7 +141,7 @@ export class InteractiveMode {
     } else if (this.isStatsCommand(command)) {
       const chatStats = this.streamChat.getStats();
       const toolStats = this.toolManager.getToolStats();
-      
+
       console.log(`
 📊 统计信息:
   消息总数: ${chatStats.totalMessages}
@@ -155,20 +155,11 @@ export class InteractiveMode {
       const toolsHelp = this.toolManager.getAllToolsHelp();
       console.log(toolsHelp);
     } else if (this.isSessionCommand(command)) {
-      const sessions = await this.streamChat.listSessions(10);
-      if (sessions.length === 0) {
-        console.log('📂 暂无保存的会话');
-      } else {
-        console.log('\n📂 最近的会话:');
-        sessions.forEach((session, index) => {
-          const date = new Date(session.updatedAt).toLocaleString();
-          console.log(`  ${index + 1}. ${session.name} (ID: ${session.id})`);
-          console.log(`     更新时间: ${date}, 消息数: ${session.messageCount}`);
-        });
-      }
+      await this.listSavedSessions();
     } else if (this.isNewSessionCommand(command)) {
       const parts = command.split(' ');
-      const sessionName = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
+      const sessionName =
+        parts.length > 1 ? parts.slice(1).join(' ') : undefined;
       const sessionId = await this.streamChat.createSession(sessionName);
       console.log(`✅ 创建新会话: ${sessionId}`);
     } else if (this.isLoadSessionCommand(command)) {
@@ -249,8 +240,8 @@ export class InteractiveMode {
           {
             type: 'input',
             name: 'message',
-            message: '你:'
-          }
+            message: '你:',
+          },
         ]);
 
         // 安全地获取 message 属性
@@ -297,7 +288,7 @@ export class InteractiveMode {
    */
   updateSessionConfig(config: Partial<SessionConfig>): void {
     this.sessionConfig = { ...this.sessionConfig, ...config };
-    
+
     if (config.realTimeOutput !== undefined) {
       this.streamChat.setRealTimeOutput(config.realTimeOutput);
     }
@@ -335,8 +326,19 @@ export class InteractiveMode {
   /**
    * 列出保存的会话
    */
-  listSavedSessions(): string[] {
-    // 这里应该实现实际的会话列表逻辑，现在只是模拟
-    return [];
+  async listSavedSessions(): Promise<void> {
+    const sessions = await this.streamChat.listSessions(10);
+    if (sessions.length === 0) {
+      console.log('📂 暂无保存的会话');
+    } else {
+      console.log('\n📂 最近的会话:');
+      sessions.forEach((session, index) => {
+        const date = new Date(session.updatedAt).toLocaleString();
+        console.log(`  ${index + 1}. ${session.name} (ID: ${session.id})`);
+        console.log(
+          `     更新时间: ${date}, 消息数: ${session.messageCount}`
+        );
+      });
+    }
   }
 }

@@ -45,16 +45,16 @@ export class InMemoryMQConnection implements MQConnection {
     }
 
     this.subscribers.set(queue, callback);
-    
+
     // 如果队列中已有消息，立即处理
     const messages = this.queues.get(queue) || [];
     messages.forEach(message => {
       setTimeout(() => callback(message), 0);
     });
-    
+
     // 清空已处理的消息
     this.queues.set(queue, []);
-    
+
     logInfo(`📡 Subscribed to queue: ${queue}`);
   }
 
@@ -119,7 +119,9 @@ export class RabbitMQConnection implements MQConnection {
       // await this.channel.assertQueue(this.config.taskQueue, { durable: true });
       // await this.channel.assertQueue(this.config.resultQueue, { durable: true });
 
-      logInfo(`✅ Connected to RabbitMQ at ${this.config.url} (mock implementation)`);
+      logInfo(
+        `✅ Connected to RabbitMQ at ${this.config.url} (mock implementation)`
+      );
       return true;
     } catch (error) {
       console.error('❌ Failed to connect to RabbitMQ:', error);
@@ -156,7 +158,10 @@ export class RabbitMQConnection implements MQConnection {
     //   }
     // });
 
-    logInfo(`📡 Subscribed to RabbitMQ queue: ${queue} (mock implementation)`, typeof callback === 'function' ? 'with callback' : 'no callback');
+    logInfo(
+      `📡 Subscribed to RabbitMQ queue: ${queue} (mock implementation)`,
+      typeof callback === 'function' ? 'with callback' : 'no callback'
+    );
   }
 
   async publish(queue: string, message: string): Promise<boolean> {
@@ -169,7 +174,10 @@ export class RabbitMQConnection implements MQConnection {
       //   persistent: true
       // });
 
-      logInfo(`📤 Published message to RabbitMQ queue: ${queue} (mock implementation)`, message.length > 0 ? 'with content' : 'empty');
+      logInfo(
+        `📤 Published message to RabbitMQ queue: ${queue} (mock implementation)`,
+        message.length > 0 ? 'with content' : 'empty'
+      );
       return true;
     } catch (error) {
       console.error('❌ Failed to publish message:', error);

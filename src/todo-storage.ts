@@ -39,17 +39,19 @@ export interface TodoQueryOptions {
  */
 export class TodoStorage extends DatabaseService {
   private todosDb: any;
-  
+
   constructor(config: DatabaseConfig = {}) {
     // 设置默认路径和子级数据库
     const todoConfig = {
       ...config,
-      dbPath: config.dbPath || require('path').join(require('os').homedir(), '.sker-ai', 'todo-db'),
-      sublevels: ['todos']
+      dbPath:
+        config.dbPath ||
+        require('path').join(require('os').homedir(), '.sker-ai', 'todo-db'),
+      sublevels: ['todos'],
     };
-    
+
     super(todoConfig);
-    
+
     this.todosDb = this.getSublevel('todos');
   }
 
@@ -67,14 +69,14 @@ export class TodoStorage extends DatabaseService {
   ): Promise<string> {
     const todoId = this.generateId('todo');
     const now = Date.now();
-    
+
     const todo: TodoItem = {
       id: todoId,
       title,
       completed: false,
       createdAt: now,
       updatedAt: now,
-      ...options
+      ...options,
     };
 
     await this.todosDb.put(todoId, todo);
@@ -111,11 +113,11 @@ export class TodoStorage extends DatabaseService {
       startDate,
       endDate,
       limit = 100,
-      offset = 0
+      offset = 0,
     } = options;
 
     const todos: TodoItem[] = [];
-    
+
     for await (const [, todo] of this.todosDb.iterator()) {
       // 应用过滤条件
       if (completed !== undefined && todo.completed !== completed) continue;
@@ -125,13 +127,13 @@ export class TodoStorage extends DatabaseService {
       if (tags && tags.length > 0) {
         if (!todo.tags || !tags.some(tag => todo.tags!.includes(tag))) continue;
       }
-      
+
       todos.push(todo);
     }
-    
+
     // 按创建时间排序
     todos.sort((a, b) => a.createdAt - b.createdAt);
-    
+
     // 应用分页
     return todos.slice(offset, offset + limit);
   }
@@ -156,7 +158,7 @@ export class TodoStorage extends DatabaseService {
     const updatedTodo: TodoItem = {
       ...todo,
       ...updates,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     };
 
     await this.todosDb.put(id, updatedTodo);
@@ -191,7 +193,7 @@ export class TodoStorage extends DatabaseService {
       total: todos.length,
       completed: 0,
       pending: 0,
-      byPriority: { low: 0, medium: 0, high: 0 }
+      byPriority: { low: 0, medium: 0, high: 0 },
     };
 
     todos.forEach(todo => {
@@ -200,7 +202,7 @@ export class TodoStorage extends DatabaseService {
       } else {
         stats.pending++;
       }
-      
+
       if (todo.priority) {
         stats.byPriority[todo.priority]++;
       }

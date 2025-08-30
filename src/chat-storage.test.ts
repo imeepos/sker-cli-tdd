@@ -14,7 +14,12 @@ describe('ChatStorage', () => {
 
   beforeEach(async () => {
     // 创建临时测试数据库路径
-    testDbPath = path.join(__dirname, '..', 'test-db', `test-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
+    testDbPath = path.join(
+      __dirname,
+      '..',
+      'test-db',
+      `test-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+    );
     chatStorage = new ChatStorage({ dbPath: testDbPath });
     await chatStorage.initialize();
   });
@@ -22,7 +27,7 @@ describe('ChatStorage', () => {
   afterEach(async () => {
     // 关闭数据库连接
     await chatStorage.close();
-    
+
     // 清理测试数据库文件
     try {
       await fs.rm(testDbPath, { recursive: true, force: true });
@@ -45,9 +50,9 @@ describe('ChatStorage', () => {
   describe('会话管理', () => {
     it('应该能够创建新会话', async () => {
       const sessionId = await chatStorage.createSession('测试会话');
-      
+
       expect(sessionId).toMatch(/^session_\d+_\w+$/);
-      
+
       const session = await chatStorage.getSession(sessionId);
       expect(session).toBeDefined();
       expect(session?.name).toBe('测试会话');
@@ -57,7 +62,7 @@ describe('ChatStorage', () => {
 
     it('应该能够创建默认名称的会话', async () => {
       const sessionId = await chatStorage.createSession();
-      
+
       const session = await chatStorage.getSession(sessionId);
       expect(session?.name).toMatch(/^对话 \d+/);
     });
@@ -79,9 +84,9 @@ describe('ChatStorage', () => {
 
     it('应该能够删除会话', async () => {
       const sessionId = await chatStorage.createSession('待删除会话');
-      
+
       await chatStorage.deleteSession(sessionId);
-      
+
       const session = await chatStorage.getSession(sessionId);
       expect(session).toBe(null);
     });
@@ -127,7 +132,9 @@ describe('ChatStorage', () => {
 
     it('应该能够更新会话统计信息', async () => {
       await chatStorage.saveMessage('user', 'Hello', sessionId, { tokens: 3 });
-      await chatStorage.saveMessage('assistant', 'Hi there!', sessionId, { tokens: 5 });
+      await chatStorage.saveMessage('assistant', 'Hi there!', sessionId, {
+        tokens: 5,
+      });
 
       const session = await chatStorage.getSession(sessionId);
       expect(session?.messageCount).toBe(2);
@@ -140,10 +147,14 @@ describe('ChatStorage', () => {
     });
 
     it('应该能够删除消息', async () => {
-      const messageId = await chatStorage.saveMessage('user', 'Test message', sessionId);
-      
+      const messageId = await chatStorage.saveMessage(
+        'user',
+        'Test message',
+        sessionId
+      );
+
       await chatStorage.deleteMessage(messageId);
-      
+
       const message = await chatStorage.getMessage(messageId);
       expect(message).toBe(null);
     });
@@ -160,8 +171,11 @@ describe('ChatStorage', () => {
     it('应该能够保存AI对话历史', async () => {
       const history: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
         { role: 'user', content: 'What is TypeScript?' },
-        { role: 'assistant', content: 'TypeScript is a superset of JavaScript...' },
-        { role: 'user', content: 'Give me an example' }
+        {
+          role: 'assistant',
+          content: 'TypeScript is a superset of JavaScript...',
+        },
+        { role: 'user', content: 'Give me an example' },
       ];
 
       // 逐个保存消息，确保时间戳顺序
@@ -170,7 +184,9 @@ describe('ChatStorage', () => {
         if (msg) {
           await chatStorage.saveMessage(
             msg.role as 'user' | 'assistant' | 'system',
-            typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+            typeof msg.content === 'string'
+              ? msg.content
+              : JSON.stringify(msg.content),
             sessionId
           );
           if (i < history.length - 1) {
@@ -231,7 +247,9 @@ describe('ChatStorage', () => {
     });
 
     it('应该能够按会话ID查询消息', async () => {
-      const messages = await chatStorage.queryMessages({ sessionId: sessionId1 });
+      const messages = await chatStorage.queryMessages({
+        sessionId: sessionId1,
+      });
       expect(messages).toHaveLength(2);
       expect(messages[0]?.content).toBe('会话1用户消息');
       expect(messages[1]?.content).toBe('会话1助手消息');
@@ -250,8 +268,11 @@ describe('ChatStorage', () => {
 
     it('应该能够使用偏移量查询', async () => {
       const allMessages = await chatStorage.queryMessages();
-      const offsetMessages = await chatStorage.queryMessages({ offset: 1, limit: 1 });
-      
+      const offsetMessages = await chatStorage.queryMessages({
+        offset: 1,
+        limit: 1,
+      });
+
       expect(offsetMessages).toHaveLength(1);
       expect(offsetMessages[0]?.id).toBe(allMessages[1]?.id);
     });

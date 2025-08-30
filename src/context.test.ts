@@ -15,9 +15,9 @@ describe('Context上下文功能', () => {
       const context: Context = {
         path: '/test/file.txt',
         name: 'file.txt',
-        type: 'file'
+        type: 'file',
       };
-      
+
       expect(context.path).toBe('/test/file.txt');
       expect(context.name).toBe('file.txt');
       expect(context.type).toBe('file');
@@ -28,7 +28,7 @@ describe('Context上下文功能', () => {
     it('应该创建文件上下文', () => {
       // ❌ 这会失败，因为FileContext类不存在
       const fileContext = new FileContext('/test/file.txt');
-      
+
       expect(fileContext.path).toBe('/test/file.txt');
       expect(fileContext.name).toBe('file.txt');
       expect(fileContext.type).toBe('file');
@@ -37,7 +37,7 @@ describe('Context上下文功能', () => {
 
     it('应该正确解析文件名', () => {
       const fileContext = new FileContext('/path/to/document.md');
-      
+
       expect(fileContext.name).toBe('document.md');
       expect(fileContext.extension).toBe('.md');
     });
@@ -133,7 +133,10 @@ module.exports = { hello };`;
       const binaryFile = path.join(__dirname, '../test-binary.bin');
 
       await fs.promises.writeFile(textFile, 'This is text content');
-      await fs.promises.writeFile(binaryFile, Buffer.from([0x00, 0x01, 0x02, 0x03]));
+      await fs.promises.writeFile(
+        binaryFile,
+        Buffer.from([0x00, 0x01, 0x02, 0x03])
+      );
 
       try {
         const textContext = new FileContext(textFile);
@@ -179,7 +182,7 @@ module.exports = { hello };`;
     it('应该创建文件夹上下文', () => {
       // ❌ 这会失败，因为FolderContext类不存在
       const folderContext = new FolderContext('/test/folder');
-      
+
       expect(folderContext.path).toBe('/test/folder');
       expect(folderContext.name).toBe('folder');
       expect(folderContext.type).toBe('folder');
@@ -189,9 +192,9 @@ module.exports = { hello };`;
     it('应该添加子级上下文', () => {
       const folderContext = new FolderContext('/test');
       const fileContext = new FileContext('/test/file.txt');
-      
+
       folderContext.addChild(fileContext);
-      
+
       expect(folderContext.children).toContain(fileContext);
       expect(fileContext.parent).toBe(folderContext);
     });
@@ -199,10 +202,10 @@ module.exports = { hello };`;
     it('应该移除子级上下文', () => {
       const folderContext = new FolderContext('/test');
       const fileContext = new FileContext('/test/file.txt');
-      
+
       folderContext.addChild(fileContext);
       folderContext.removeChild(fileContext);
-      
+
       expect(folderContext.children).not.toContain(fileContext);
       expect(fileContext.parent).toBeUndefined();
     });
@@ -210,12 +213,12 @@ module.exports = { hello };`;
     it('应该按名称查找子级上下文', () => {
       const folderContext = new FolderContext('/test');
       const fileContext = new FileContext('/test/file.txt');
-      
+
       folderContext.addChild(fileContext);
-      
+
       const found = folderContext.findChild('file.txt');
       expect(found).toBe(fileContext);
-      
+
       const notFound = folderContext.findChild('nonexistent.txt');
       expect(notFound).toBeUndefined();
     });
@@ -223,14 +226,19 @@ module.exports = { hello };`;
 
   describe('ContextBuilder上下文构建器', () => {
     const testDir = path.join(__dirname, '../test-context-dir');
-    
+
     beforeEach(async () => {
       // 创建测试目录结构
       await fs.promises.mkdir(testDir, { recursive: true });
-      await fs.promises.mkdir(path.join(testDir, 'subfolder'), { recursive: true });
+      await fs.promises.mkdir(path.join(testDir, 'subfolder'), {
+        recursive: true,
+      });
       await fs.promises.writeFile(path.join(testDir, 'file1.txt'), 'content1');
       await fs.promises.writeFile(path.join(testDir, 'file2.md'), 'content2');
-      await fs.promises.writeFile(path.join(testDir, 'subfolder', 'nested.js'), 'content3');
+      await fs.promises.writeFile(
+        path.join(testDir, 'subfolder', 'nested.js'),
+        'content3'
+      );
     });
 
     afterEach(async () => {
@@ -243,16 +251,16 @@ module.exports = { hello };`;
     it('应该创建上下文构建器', () => {
       // ❌ 这会失败，因为ContextBuilder类不存在
       const builder = new ContextBuilder();
-      
+
       expect(builder).toBeDefined();
     });
 
     it('应该扫描目录并构建上下文树', async () => {
       const builder = new ContextBuilder();
-      
+
       // ❌ 这会失败，因为buildFromDirectory方法不存在
       const rootContext = await builder.buildFromDirectory(testDir);
-      
+
       expect(rootContext).toBeInstanceOf(FolderContext);
       expect(rootContext.path).toBe(testDir);
       expect(rootContext.children.length).toBe(3); // file1.txt, file2.md, subfolder
@@ -261,12 +269,12 @@ module.exports = { hello };`;
     it('应该正确构建嵌套目录结构', async () => {
       const builder = new ContextBuilder();
       const rootContext = await builder.buildFromDirectory(testDir);
-      
+
       // 查找子文件夹
       const subfolder = rootContext.findChild('subfolder') as FolderContext;
       expect(subfolder).toBeInstanceOf(FolderContext);
       expect(subfolder.children.length).toBe(1); // nested.js
-      
+
       // 查找嵌套文件
       const nestedFile = subfolder.findChild('nested.js');
       expect(nestedFile).toBeInstanceOf(FileContext);
@@ -275,15 +283,15 @@ module.exports = { hello };`;
 
     it('应该支持文件过滤选项', async () => {
       const builder = new ContextBuilder();
-      
+
       // ❌ 这会失败，因为过滤选项不存在
       const rootContext = await builder.buildFromDirectory(testDir, {
         includeExtensions: ['.txt', '.md'],
-        excludeExtensions: ['.js']
+        excludeExtensions: ['.js'],
       });
-      
+
       expect(rootContext.children.length).toBe(3); // file1.txt, file2.md, subfolder
-      
+
       const subfolder = rootContext.findChild('subfolder') as FolderContext;
       expect(subfolder.children.length).toBe(0); // nested.js被过滤掉
     });
@@ -292,7 +300,7 @@ module.exports = { hello };`;
       const builder = new ContextBuilder();
 
       const rootContext = await builder.buildFromDirectory(testDir, {
-        maxDepth: 1
+        maxDepth: 1,
       });
 
       expect(rootContext.children.length).toBe(3);
@@ -313,20 +321,37 @@ ignored-folder/
 # 忽略特定文件
 ignored-file.txt
 `;
-      await fs.promises.writeFile(path.join(testDir, '.gitignore'), gitignoreContent);
+      await fs.promises.writeFile(
+        path.join(testDir, '.gitignore'),
+        gitignoreContent
+      );
 
       // 创建应该被忽略的文件和目录
-      await fs.promises.writeFile(path.join(testDir, 'debug.log'), 'log content');
-      await fs.promises.writeFile(path.join(testDir, 'temp.tmp'), 'temp content');
-      await fs.promises.writeFile(path.join(testDir, 'ignored-file.txt'), 'ignored content');
-      await fs.promises.mkdir(path.join(testDir, 'ignored-folder'), { recursive: true });
-      await fs.promises.writeFile(path.join(testDir, 'ignored-folder', 'file.txt'), 'content');
+      await fs.promises.writeFile(
+        path.join(testDir, 'debug.log'),
+        'log content'
+      );
+      await fs.promises.writeFile(
+        path.join(testDir, 'temp.tmp'),
+        'temp content'
+      );
+      await fs.promises.writeFile(
+        path.join(testDir, 'ignored-file.txt'),
+        'ignored content'
+      );
+      await fs.promises.mkdir(path.join(testDir, 'ignored-folder'), {
+        recursive: true,
+      });
+      await fs.promises.writeFile(
+        path.join(testDir, 'ignored-folder', 'file.txt'),
+        'content'
+      );
 
       const builder = new ContextBuilder();
 
       // ❌ 这会失败，因为respectGitignore选项不存在
       const rootContext = await builder.buildFromDirectory(testDir, {
-        respectGitignore: true
+        respectGitignore: true,
       });
 
       // 验证被忽略的文件不在结果中
@@ -347,18 +372,26 @@ ignored-file.txt
 *.custom
 custom-ignored/
 `;
-      await fs.promises.writeFile(path.join(testDir, '.customignore'), customIgnoreContent);
+      await fs.promises.writeFile(
+        path.join(testDir, '.customignore'),
+        customIgnoreContent
+      );
 
       // 创建应该被忽略的文件
-      await fs.promises.writeFile(path.join(testDir, 'test.custom'), 'custom content');
-      await fs.promises.mkdir(path.join(testDir, 'custom-ignored'), { recursive: true });
+      await fs.promises.writeFile(
+        path.join(testDir, 'test.custom'),
+        'custom content'
+      );
+      await fs.promises.mkdir(path.join(testDir, 'custom-ignored'), {
+        recursive: true,
+      });
 
       const builder = new ContextBuilder();
 
       // ❌ 这会失败，因为ignoreFile选项不存在
       const rootContext = await builder.buildFromDirectory(testDir, {
         respectGitignore: true,
-        ignoreFile: '.customignore'
+        ignoreFile: '.customignore',
       });
 
       // 验证被忽略的文件不在结果中
@@ -370,7 +403,7 @@ custom-ignored/
       const builder = new ContextBuilder();
 
       const rootContext = await builder.buildFromDirectory(testDir, {
-        respectGitignore: true
+        respectGitignore: true,
       });
 
       // 应该包含所有文件，因为没有ignore文件
@@ -380,12 +413,15 @@ custom-ignored/
     it('应该支持禁用gitignore功能', async () => {
       // 创建.gitignore文件
       const gitignoreContent = '*.txt';
-      await fs.promises.writeFile(path.join(testDir, '.gitignore'), gitignoreContent);
+      await fs.promises.writeFile(
+        path.join(testDir, '.gitignore'),
+        gitignoreContent
+      );
 
       const builder = new ContextBuilder();
 
       const rootContext = await builder.buildFromDirectory(testDir, {
-        respectGitignore: false // 明确禁用
+        respectGitignore: false, // 明确禁用
       });
 
       // 应该包含所有文件，包括被gitignore的文件
@@ -399,7 +435,7 @@ custom-ignored/
       const folderContext = new FolderContext('/test');
       const fileContext = new FileContext('/test/file.txt');
       folderContext.addChild(fileContext);
-      
+
       expect(fileContext.getFullPath()).toBe('/test/file.txt');
     });
 
@@ -407,11 +443,13 @@ custom-ignored/
       const rootContext = new FolderContext('/project');
       const subfolderContext = new FolderContext('/project/src');
       const fileContext = new FileContext('/project/src/index.ts');
-      
+
       rootContext.addChild(subfolderContext);
       subfolderContext.addChild(fileContext);
-      
-      expect(fileContext.getRelativePath(rootContext)).toBe(path.join('src', 'index.ts'));
+
+      expect(fileContext.getRelativePath(rootContext)).toBe(
+        path.join('src', 'index.ts')
+      );
     });
 
     it('应该检查上下文是否为祖先', () => {
@@ -444,7 +482,9 @@ custom-ignored/
       // ❌ 这会失败，因为getAllSubfolders方法还没有实现
       const subfolders = root.getAllSubfolders();
       expect(subfolders).toHaveLength(3); // src, tests, utils
-      expect(subfolders.map(f => f.name)).toEqual(expect.arrayContaining(['src', 'tests', 'utils']));
+      expect(subfolders.map(f => f.name)).toEqual(
+        expect.arrayContaining(['src', 'tests', 'utils'])
+      );
     });
 
     it('应该获取所有子文件的Context', () => {
@@ -466,7 +506,9 @@ custom-ignored/
       // ❌ 这会失败，因为getAllFiles方法还没有实现
       const allFiles = root.getAllFiles();
       expect(allFiles).toHaveLength(4); // index.ts, utils.ts, test.ts, README.md
-      expect(allFiles.map(f => f.name)).toEqual(expect.arrayContaining(['index.ts', 'utils.ts', 'test.ts', 'README.md']));
+      expect(allFiles.map(f => f.name)).toEqual(
+        expect.arrayContaining(['index.ts', 'utils.ts', 'test.ts', 'README.md'])
+      );
     });
 
     it('应该获取所有后代Context（文件和文件夹）', () => {
@@ -497,13 +539,18 @@ custom-ignored/
 
       try {
         await fs.promises.mkdir(testDir, { recursive: true });
-        await fs.promises.writeFile(skerJsonPath, JSON.stringify({ name: 'test-project' }));
+        await fs.promises.writeFile(
+          skerJsonPath,
+          JSON.stringify({ name: 'test-project' })
+        );
 
         // 使用ContextBuilder扫描，这样会自动标记isProjectRoot
         const builder = new ContextBuilder();
         const parentDir = path.dirname(testDir);
         const rootContext = await builder.buildFromDirectory(parentDir);
-        const folderContext = rootContext.findChild(path.basename(testDir)) as FolderContext;
+        const folderContext = rootContext.findChild(
+          path.basename(testDir)
+        ) as FolderContext;
 
         expect(folderContext).toBeDefined();
         expect(folderContext.isProjectRoot).toBe(true);
@@ -518,7 +565,10 @@ custom-ignored/
     });
 
     it('应该检测非项目目录（不包含sker.json）', async () => {
-      const testDir = path.join(os.tmpdir(), 'sker-test-non-project-' + Date.now());
+      const testDir = path.join(
+        os.tmpdir(),
+        'sker-test-non-project-' + Date.now()
+      );
 
       try {
         await fs.promises.mkdir(testDir, { recursive: true });
@@ -534,7 +584,10 @@ custom-ignored/
     });
 
     it('应该检测多子项目工作空间', async () => {
-      const workspaceDir = path.join(os.tmpdir(), 'sker-test-workspace-' + Date.now());
+      const workspaceDir = path.join(
+        os.tmpdir(),
+        'sker-test-workspace-' + Date.now()
+      );
       const project1Dir = path.join(workspaceDir, 'project1');
       const project2Dir = path.join(workspaceDir, 'project2');
       const sker1Path = path.join(project1Dir, 'sker.json');
@@ -543,8 +596,14 @@ custom-ignored/
       try {
         await fs.promises.mkdir(project1Dir, { recursive: true });
         await fs.promises.mkdir(project2Dir, { recursive: true });
-        await fs.promises.writeFile(sker1Path, JSON.stringify({ name: 'project1' }));
-        await fs.promises.writeFile(sker2Path, JSON.stringify({ name: 'project2' }));
+        await fs.promises.writeFile(
+          sker1Path,
+          JSON.stringify({ name: 'project1' })
+        );
+        await fs.promises.writeFile(
+          sker2Path,
+          JSON.stringify({ name: 'project2' })
+        );
 
         // 使用ContextBuilder扫描，这样会自动标记子项目的isProjectRoot
         const builder = new ContextBuilder();
@@ -557,7 +616,9 @@ custom-ignored/
         // getSubProjects方法应该仍然工作
         const subProjects = await workspaceContext.getSubProjects();
         expect(subProjects).toHaveLength(2);
-        expect(subProjects.map(p => p.name)).toEqual(expect.arrayContaining(['project1', 'project2']));
+        expect(subProjects.map(p => p.name)).toEqual(
+          expect.arrayContaining(['project1', 'project2'])
+        );
       } finally {
         if (fs.existsSync(sker1Path)) await fs.promises.unlink(sker1Path);
         if (fs.existsSync(sker2Path)) await fs.promises.unlink(sker2Path);
@@ -576,13 +637,18 @@ custom-ignored/
 
       try {
         await fs.promises.mkdir(srcDir, { recursive: true });
-        await fs.promises.writeFile(skerJsonPath, JSON.stringify({ name: 'my-project' }));
+        await fs.promises.writeFile(
+          skerJsonPath,
+          JSON.stringify({ name: 'my-project' })
+        );
         await fs.promises.writeFile(indexFile, 'console.log("hello");');
 
         const builder = new ContextBuilder();
         const rootContext = await builder.buildFromDirectory(testDir);
 
-        const projectContext = rootContext.findChild('my-project') as FolderContext;
+        const projectContext = rootContext.findChild(
+          'my-project'
+        ) as FolderContext;
         expect(projectContext).toBeDefined();
 
         // ❌ 这会失败，因为isProjectRoot属性还没有实现
@@ -601,7 +667,10 @@ custom-ignored/
     });
 
     it('应该基于children快速判断多项目工作空间', async () => {
-      const workspaceDir = path.join(os.tmpdir(), 'sker-test-fast-workspace-' + Date.now());
+      const workspaceDir = path.join(
+        os.tmpdir(),
+        'sker-test-fast-workspace-' + Date.now()
+      );
       const project1Dir = path.join(workspaceDir, 'project1');
       const project2Dir = path.join(workspaceDir, 'project2');
       const normalDir = path.join(workspaceDir, 'docs');
@@ -612,8 +681,14 @@ custom-ignored/
         await fs.promises.mkdir(project1Dir, { recursive: true });
         await fs.promises.mkdir(project2Dir, { recursive: true });
         await fs.promises.mkdir(normalDir, { recursive: true });
-        await fs.promises.writeFile(sker1Path, JSON.stringify({ name: 'project1' }));
-        await fs.promises.writeFile(sker2Path, JSON.stringify({ name: 'project2' }));
+        await fs.promises.writeFile(
+          sker1Path,
+          JSON.stringify({ name: 'project1' })
+        );
+        await fs.promises.writeFile(
+          sker2Path,
+          JSON.stringify({ name: 'project2' })
+        );
 
         const builder = new ContextBuilder();
         const workspaceContext = await builder.buildFromDirectory(workspaceDir);
@@ -623,8 +698,12 @@ custom-ignored/
         expect(isWorkspace).toBe(true);
 
         // 验证子项目被正确标记
-        const project1Context = workspaceContext.findChild('project1') as FolderContext;
-        const project2Context = workspaceContext.findChild('project2') as FolderContext;
+        const project1Context = workspaceContext.findChild(
+          'project1'
+        ) as FolderContext;
+        const project2Context = workspaceContext.findChild(
+          'project2'
+        ) as FolderContext;
         const docsContext = workspaceContext.findChild('docs') as FolderContext;
 
         expect(project1Context.isProjectRoot).toBe(true);
@@ -666,7 +745,9 @@ custom-ignored/
 
         const builder = new ContextBuilder();
         const rootContext = await builder.buildFromDirectory(testDir);
-        const projectContext = rootContext.findChild('my-project') as FolderContext;
+        const projectContext = rootContext.findChild(
+          'my-project'
+        ) as FolderContext;
 
         expect(projectContext).toBeDefined();
         expect(projectContext.isProjectRoot).toBe(true);
@@ -675,10 +756,16 @@ custom-ignored/
         expect(projectContext.projectInfo).toBeDefined();
         expect(projectContext.projectInfo?.name).toBe('my-awesome-project');
         expect(projectContext.projectInfo?.version).toBe('1.2.3');
-        expect(projectContext.projectInfo?.description).toBe('A test project with JSON5 config');
+        expect(projectContext.projectInfo?.description).toBe(
+          'A test project with JSON5 config'
+        );
         expect(projectContext.projectInfo?.['author']).toBe('Test Developer');
-        expect((projectContext.projectInfo?.['scripts'] as any)?.['build']).toBe('npm run compile');
-        expect((projectContext.projectInfo?.['scripts'] as any)?.['test']).toBe('jest');
+        expect(
+          (projectContext.projectInfo?.['scripts'] as any)?.['build']
+        ).toBe('npm run compile');
+        expect((projectContext.projectInfo?.['scripts'] as any)?.['test']).toBe(
+          'jest'
+        );
 
         // getProjectInfo应该直接返回缓存的内容，不需要文件系统访问
         const cachedInfo = await projectContext.getProjectInfo();
@@ -702,7 +789,9 @@ custom-ignored/
 
         const builder = new ContextBuilder();
         const rootContext = await builder.buildFromDirectory(testDir);
-        const projectContext = rootContext.findChild('invalid-project') as FolderContext;
+        const projectContext = rootContext.findChild(
+          'invalid-project'
+        ) as FolderContext;
 
         expect(projectContext).toBeDefined();
         expect(projectContext.isProjectRoot).toBe(true);
@@ -765,7 +854,10 @@ custom-ignored/
         const lastModified = await rootContext.getLastModified();
         const file2Stats = await fs.promises.stat(file2);
 
-        expect(lastModified.getTime()).toBeCloseTo(file2Stats.mtime.getTime(), -2); // 允许2ms误差
+        expect(lastModified.getTime()).toBeCloseTo(
+          file2Stats.mtime.getTime(),
+          -2
+        ); // 允许2ms误差
       } finally {
         if (fs.existsSync(file1)) await fs.promises.unlink(file1);
         if (fs.existsSync(file2)) await fs.promises.unlink(file2);
@@ -787,7 +879,10 @@ custom-ignored/
         await fs.promises.writeFile(file1, 'console.log("hello");');
         await fs.promises.writeFile(file2, '{"name": "test"}');
         await fs.promises.writeFile(file3, 'export function test() {}');
-        await fs.promises.writeFile(file4, 'export const Component = () => {};');
+        await fs.promises.writeFile(
+          file4,
+          'export const Component = () => {};'
+        );
         await fs.promises.writeFile(file5, '# Test Project');
 
         const builder = new ContextBuilder();
@@ -798,17 +893,23 @@ custom-ignored/
         // 查找所有TypeScript文件
         const tsFiles = rootContext.findFilesByPattern(/\.tsx?$/);
         expect(tsFiles).toHaveLength(2);
-        expect(tsFiles.map(f => f.name)).toEqual(expect.arrayContaining(['utils.ts', 'component.tsx']));
+        expect(tsFiles.map(f => f.name)).toEqual(
+          expect.arrayContaining(['utils.ts', 'component.tsx'])
+        );
 
         // 查找所有JavaScript相关文件
         const jsFiles = rootContext.findFilesByPattern(/\.(js|ts|tsx)$/);
         expect(jsFiles).toHaveLength(3);
-        expect(jsFiles.map(f => f.name)).toEqual(expect.arrayContaining(['index.js', 'utils.ts', 'component.tsx']));
+        expect(jsFiles.map(f => f.name)).toEqual(
+          expect.arrayContaining(['index.js', 'utils.ts', 'component.tsx'])
+        );
 
         // 查找配置文件
         const configFiles = rootContext.findFilesByPattern(/\.(json|md)$/);
         expect(configFiles).toHaveLength(2);
-        expect(configFiles.map(f => f.name)).toEqual(expect.arrayContaining(['config.json', 'README.md']));
+        expect(configFiles.map(f => f.name)).toEqual(
+          expect.arrayContaining(['config.json', 'README.md'])
+        );
       } finally {
         if (fs.existsSync(file1)) await fs.promises.unlink(file1);
         if (fs.existsSync(file2)) await fs.promises.unlink(file2);
@@ -821,7 +922,10 @@ custom-ignored/
     });
 
     it('应该通过正则表达式查找文件夹', async () => {
-      const testDir = path.join(os.tmpdir(), 'sker-test-search-folders-' + Date.now());
+      const testDir = path.join(
+        os.tmpdir(),
+        'sker-test-search-folders-' + Date.now()
+      );
       const srcDir = path.join(testDir, 'src');
       const testDirPath = path.join(testDir, 'tests');
       const nodeModulesDir = path.join(testDir, 'node_modules');
@@ -839,18 +943,23 @@ custom-ignored/
         // ❌ 这会失败，因为findFoldersByPattern方法还没有实现
 
         // 查找源码相关文件夹
-        const sourceFolders = rootContext.findFoldersByPattern(/^(src|tests?)$/);
+        const sourceFolders =
+          rootContext.findFoldersByPattern(/^(src|tests?)$/);
         expect(sourceFolders).toHaveLength(2);
-        expect(sourceFolders.map(f => f.name)).toEqual(expect.arrayContaining(['src', 'tests']));
+        expect(sourceFolders.map(f => f.name)).toEqual(
+          expect.arrayContaining(['src', 'tests'])
+        );
 
         // 查找构建相关文件夹
-        const buildFolders = rootContext.findFoldersByPattern(/(dist|build|out)/);
+        const buildFolders =
+          rootContext.findFoldersByPattern(/(dist|build|out)/);
         expect(buildFolders).toHaveLength(1);
         expect(buildFolders[0]?.name).toBe('dist');
       } finally {
         if (fs.existsSync(srcDir)) await fs.promises.rmdir(srcDir);
         if (fs.existsSync(testDirPath)) await fs.promises.rmdir(testDirPath);
-        if (fs.existsSync(nodeModulesDir)) await fs.promises.rmdir(nodeModulesDir);
+        if (fs.existsSync(nodeModulesDir))
+          await fs.promises.rmdir(nodeModulesDir);
         if (fs.existsSync(distDir)) await fs.promises.rmdir(distDir);
         if (fs.existsSync(testDir)) await fs.promises.rmdir(testDir);
       }
@@ -865,9 +974,18 @@ custom-ignored/
 
       try {
         await fs.promises.mkdir(srcDir, { recursive: true });
-        await fs.promises.writeFile(skerJsonPath, JSON.stringify({ name: 'test-project', version: '1.0.0' }));
-        await fs.promises.writeFile(indexFile, 'export function hello() { return "world"; }');
-        await fs.promises.writeFile(readmeFile, '# Test Project\n\nThis is a test project.');
+        await fs.promises.writeFile(
+          skerJsonPath,
+          JSON.stringify({ name: 'test-project', version: '1.0.0' })
+        );
+        await fs.promises.writeFile(
+          indexFile,
+          'export function hello() { return "world"; }'
+        );
+        await fs.promises.writeFile(
+          readmeFile,
+          '# Test Project\n\nThis is a test project.'
+        );
 
         const builder = new ContextBuilder();
         const rootContext = await builder.buildFromDirectory(testDir);

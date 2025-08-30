@@ -70,7 +70,7 @@ export class MCPWorkspaceManager {
       resources: [],
       prompts: [],
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
     this.workspaces.set('global', globalWorkspace);
   }
@@ -102,7 +102,7 @@ export class MCPWorkspaceManager {
       resources: [],
       prompts: [],
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     if (options.description) {
@@ -223,7 +223,9 @@ export class MCPWorkspaceManager {
       throw new Error(`工作空间 "${workspaceId}" 不存在`);
     }
 
-    const index = workspace.resources.findIndex(resource => resource.uri === resourceUri);
+    const index = workspace.resources.findIndex(
+      resource => resource.uri === resourceUri
+    );
     if (index !== -1) {
       workspace.resources.splice(index, 1);
       workspace.updatedAt = new Date();
@@ -242,7 +244,9 @@ export class MCPWorkspaceManager {
       throw new Error(`工作空间 "${workspaceId}" 不存在`);
     }
 
-    const index = workspace.prompts.findIndex(prompt => prompt.name === promptName);
+    const index = workspace.prompts.findIndex(
+      prompt => prompt.name === promptName
+    );
     if (index !== -1) {
       workspace.prompts.splice(index, 1);
       workspace.updatedAt = new Date();
@@ -256,7 +260,7 @@ export class MCPWorkspaceManager {
    */
   getMergedTools(workspaceId?: string): MCPTool[] {
     const globalTools = this.getGlobalWorkspace().tools;
-    
+
     if (!workspaceId || workspaceId === 'global') {
       return [...globalTools];
     }
@@ -276,7 +280,7 @@ export class MCPWorkspaceManager {
    */
   getMergedResources(workspaceId?: string): MCPResource[] {
     const globalResources = this.getGlobalWorkspace().resources;
-    
+
     if (!workspaceId || workspaceId === 'global') {
       return [...globalResources];
     }
@@ -296,7 +300,7 @@ export class MCPWorkspaceManager {
    */
   getMergedPrompts(workspaceId?: string): MCPPrompt[] {
     const globalPrompts = this.getGlobalWorkspace().prompts;
-    
+
     if (!workspaceId || workspaceId === 'global') {
       return [...globalPrompts];
     }

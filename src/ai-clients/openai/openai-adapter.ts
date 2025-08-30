@@ -12,7 +12,7 @@ import {
   UnifiedTool,
   UnifiedChatCompletionParams,
   UnifiedAIConfig,
-  AIProvider
+  AIProvider,
 } from '../base/unified-types';
 
 /**
@@ -26,7 +26,7 @@ export class OpenAIAdapter extends BaseAIClientAdapter {
   constructor(config: UnifiedAIConfig) {
     super();
     this.config = config;
-    
+
     // 初始化OpenAI客户端
     this.client = new OpenAI({
       apiKey: config.apiKey,
@@ -38,7 +38,9 @@ export class OpenAIAdapter extends BaseAIClientAdapter {
   /**
    * 标准聊天完成
    */
-  async chatCompletion(params: UnifiedChatCompletionParams): Promise<UnifiedResponse> {
+  async chatCompletion(
+    params: UnifiedChatCompletionParams
+  ): Promise<UnifiedResponse> {
     this.validateMessages(params.messages);
 
     try {
@@ -47,8 +49,12 @@ export class OpenAIAdapter extends BaseAIClientAdapter {
         messages: this.convertToOpenAIMessages(params.messages),
         max_tokens: params.maxTokens || this.config.maxTokens,
         temperature: params.temperature || this.config.temperature,
-        tools: params.tools ? this.convertToOpenAITools(params.tools) : undefined,
-        tool_choice: params.toolChoice ? this.convertToOpenAIToolChoice(params.toolChoice) : undefined,
+        tools: params.tools
+          ? this.convertToOpenAITools(params.tools)
+          : undefined,
+        tool_choice: params.toolChoice
+          ? this.convertToOpenAIToolChoice(params.toolChoice)
+          : undefined,
         stream: false,
       });
 
@@ -61,7 +67,9 @@ export class OpenAIAdapter extends BaseAIClientAdapter {
   /**
    * 流式聊天完成
    */
-  async* chatCompletionStream(params: UnifiedChatCompletionParams): AsyncIterable<UnifiedChunk> {
+  async *chatCompletionStream(
+    params: UnifiedChatCompletionParams
+  ): AsyncIterable<UnifiedChunk> {
     this.validateMessages(params.messages);
 
     try {
@@ -70,8 +78,12 @@ export class OpenAIAdapter extends BaseAIClientAdapter {
         messages: this.convertToOpenAIMessages(params.messages),
         max_tokens: params.maxTokens || this.config.maxTokens,
         temperature: params.temperature || this.config.temperature,
-        tools: params.tools ? this.convertToOpenAITools(params.tools) : undefined,
-        tool_choice: params.toolChoice ? this.convertToOpenAIToolChoice(params.toolChoice) : undefined,
+        tools: params.tools
+          ? this.convertToOpenAITools(params.tools)
+          : undefined,
+        tool_choice: params.toolChoice
+          ? this.convertToOpenAIToolChoice(params.toolChoice)
+          : undefined,
         stream: true,
       });
 
@@ -86,7 +98,10 @@ export class OpenAIAdapter extends BaseAIClientAdapter {
   /**
    * 带工具调用的聊天完成
    */
-  async chatCompletionWithTools(messages: UnifiedMessage[], tools: UnifiedTool[]): Promise<UnifiedResponse> {
+  async chatCompletionWithTools(
+    messages: UnifiedMessage[],
+    tools: UnifiedTool[]
+  ): Promise<UnifiedResponse> {
     this.validateMessages(messages);
     this.validateTools(tools);
 
@@ -150,7 +165,9 @@ export class OpenAIAdapter extends BaseAIClientAdapter {
   /**
    * 转换为OpenAI消息格式
    */
-  private convertToOpenAIMessages(messages: UnifiedMessage[]): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
+  private convertToOpenAIMessages(
+    messages: UnifiedMessage[]
+  ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
     return messages.map(msg => {
       if (msg.role === 'tool') {
         return {
@@ -183,7 +200,9 @@ export class OpenAIAdapter extends BaseAIClientAdapter {
   /**
    * 转换为OpenAI工具格式
    */
-  private convertToOpenAITools(tools: UnifiedTool[]): OpenAI.Chat.Completions.ChatCompletionTool[] {
+  private convertToOpenAITools(
+    tools: UnifiedTool[]
+  ): OpenAI.Chat.Completions.ChatCompletionTool[] {
     return tools.map(tool => ({
       type: 'function',
       function: {
@@ -210,7 +229,9 @@ export class OpenAIAdapter extends BaseAIClientAdapter {
   /**
    * 转换OpenAI响应为统一格式
    */
-  private convertFromOpenAIResponse(response: OpenAI.Chat.Completions.ChatCompletion): UnifiedResponse {
+  private convertFromOpenAIResponse(
+    response: OpenAI.Chat.Completions.ChatCompletion
+  ): UnifiedResponse {
     return {
       id: response.id,
       object: response.object,
@@ -221,18 +242,22 @@ export class OpenAIAdapter extends BaseAIClientAdapter {
         message: this.convertFromOpenAIMessage(choice.message),
         finishReason: choice.finish_reason as any,
       })),
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
     };
   }
 
   /**
    * 转换OpenAI流式块为统一格式
    */
-  private convertFromOpenAIChunk(chunk: OpenAI.Chat.Completions.ChatCompletionChunk): UnifiedChunk {
+  private convertFromOpenAIChunk(
+    chunk: OpenAI.Chat.Completions.ChatCompletionChunk
+  ): UnifiedChunk {
     return {
       id: chunk.id,
       object: chunk.object,

@@ -159,8 +159,8 @@ export class FolderContext implements Context {
    */
   async isMultiProjectWorkspace(): Promise<boolean> {
     // 基于已扫描的children快速判断
-    const projectRoots = this.children.filter(child =>
-      child.type === 'folder' && (child as FolderContext).isProjectRoot
+    const projectRoots = this.children.filter(
+      child => child.type === 'folder' && (child as FolderContext).isProjectRoot
     );
 
     return projectRoots.length >= 2; // 至少2个子项目才算工作空间
@@ -178,7 +178,9 @@ export class FolderContext implements Context {
     const subProjects: ProjectInfo[] = [];
 
     try {
-      const entries = await fs.promises.readdir(this.path, { withFileTypes: true });
+      const entries = await fs.promises.readdir(this.path, {
+        withFileTypes: true,
+      });
 
       for (const entry of entries) {
         if (entry.isDirectory()) {
@@ -198,9 +200,11 @@ export class FolderContext implements Context {
             subProjects.push(projectInfo);
           } catch (error) {
             // 如果读取失败，创建基本的项目信息
-            console.warn(`无法读取项目配置 ${skerJsonPath}: ${(error as Error).message}`);
+            console.warn(
+              `无法读取项目配置 ${skerJsonPath}: ${(error as Error).message}`
+            );
             subProjects.push({
-              name: entry.name
+              name: entry.name,
             });
           }
         }
@@ -252,7 +256,9 @@ export class FolderContext implements Context {
           totalSize += stats.size;
         } catch (error) {
           // 忽略无法访问的文件
-          console.warn(`无法获取文件大小 ${child.path}: ${(error as Error).message}`);
+          console.warn(
+            `无法获取文件大小 ${child.path}: ${(error as Error).message}`
+          );
         }
       } else if (child.type === 'folder') {
         // 递归计算子文件夹大小
@@ -323,7 +329,9 @@ export class FolderContext implements Context {
       const folderStats = await fs.promises.stat(this.path);
       latestTime = folderStats.mtime;
     } catch (error) {
-      console.warn(`无法获取文件夹修改时间 ${this.path}: ${(error as Error).message}`);
+      console.warn(
+        `无法获取文件夹修改时间 ${this.path}: ${(error as Error).message}`
+      );
     }
 
     // 递归检查所有子文件和子文件夹的修改时间
@@ -342,7 +350,9 @@ export class FolderContext implements Context {
         }
       } catch (error) {
         // 忽略无法访问的文件或文件夹
-        console.warn(`无法获取修改时间 ${child.path}: ${(error as Error).message}`);
+        console.warn(
+          `无法获取修改时间 ${child.path}: ${(error as Error).message}`
+        );
       }
     }
 
@@ -382,7 +392,9 @@ export class FolderContext implements Context {
           matchedFiles.push(child as FileContext);
         }
       } else if (child.type === 'folder') {
-        matchedFiles.push(...(child as FolderContext).findFilesByPattern(pattern));
+        matchedFiles.push(
+          ...(child as FolderContext).findFilesByPattern(pattern)
+        );
       }
     }
 
@@ -421,9 +433,11 @@ export class FolderContext implements Context {
     // 简单的路径包含检查
     const normalizedAncestorPath = path.normalize(ancestorContext.path);
     const normalizedCurrentPath = path.normalize(this.path);
-    
-    return normalizedCurrentPath.startsWith(normalizedAncestorPath + path.sep) ||
-           normalizedCurrentPath.startsWith(normalizedAncestorPath + '/');
+
+    return (
+      normalizedCurrentPath.startsWith(normalizedAncestorPath + path.sep) ||
+      normalizedCurrentPath.startsWith(normalizedAncestorPath + '/')
+    );
   }
 
   /**
@@ -438,11 +452,11 @@ export class FolderContext implements Context {
     const lastModified = await this.getLastModified();
 
     let summary = `文件夹: ${this.name}`;
-    
+
     if (fileCount > 0) {
       summary += `, ${fileCount} files`;
     }
-    
+
     if (folderCount > 0) {
       summary += `, ${folderCount} folders`;
     }

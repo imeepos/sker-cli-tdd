@@ -28,7 +28,7 @@ class AIAssistant {
     try {
       const result = await this.toolManager.executeTool('fetch_json', {
         url: `https://api.github.com/repos/${owner}/${repo}`
-      });
+      }) as any;
 
       if (result.success && result.data) {
         const data = result.data;
@@ -70,7 +70,7 @@ class AIAssistant {
     try {
       const result = await this.toolManager.executeTool('fetch_json', {
         url: `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,precipitation&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`
-      });
+      }) as any;
 
       if (result.success && result.data) {
         const current = result.data.current_weather;
@@ -122,7 +122,7 @@ class AIAssistant {
       // 使用Hacker News API获取热门技术新闻
       const result = await this.toolManager.executeTool('fetch_json', {
         url: 'https://hacker-news.firebaseio.com/v0/topstories.json'
-      });
+      }) as any;
 
       if (result.success && result.data && Array.isArray(result.data)) {
         console.log(`✅ 获取到${result.data.length}条热门新闻`);
@@ -134,7 +134,7 @@ class AIAssistant {
           const storyId = result.data[i];
           const storyResult = await this.toolManager.executeTool('fetch_json', {
             url: `https://hacker-news.firebaseio.com/v0/item/${storyId}.json`
-          });
+          }) as any;
           
           if (storyResult.success && storyResult.data) {
             const story = storyResult.data;
@@ -164,7 +164,7 @@ class AIAssistant {
       const result = await this.toolManager.executeTool('fetch_url', {
         url: url,
         timeout: 5000
-      });
+      }) as any;
 
       console.log(`✅ 网站状态检查结果:`);
       console.log(`   🌐 URL: ${url}`);

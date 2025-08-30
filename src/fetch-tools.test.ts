@@ -25,10 +25,10 @@ describe('FetchToolsProvider', () => {
   describe('getTools', () => {
     it('应该返回网络请求工具列表', () => {
       const tools = provider.getTools(); // ❌ 这会失败 - 正确的！
-      
+
       expect(Array.isArray(tools)).toBe(true);
       expect(tools.length).toBeGreaterThan(0);
-      
+
       // 检查是否包含基本的网络请求工具
       const toolNames = tools.map(tool => tool.name);
       expect(toolNames).toContain('fetch_url');
@@ -37,7 +37,7 @@ describe('FetchToolsProvider', () => {
 
     it('应该返回具有正确结构的工具', () => {
       const tools = provider.getTools(); // ❌ 这会失败 - 正确的！
-      
+
       tools.forEach(tool => {
         expect(tool).toHaveProperty('name');
         expect(tool).toHaveProperty('description');
@@ -56,7 +56,7 @@ describe('FetchToolsProvider', () => {
         status: 200,
         statusText: 'OK',
         text: async () => '<html><body>Test content</body></html>',
-        headers: new Map([['content-type', 'text/html']])
+        headers: new Map([['content-type', 'text/html']]),
       });
 
       // 注册工具到服务器
@@ -67,14 +67,17 @@ describe('FetchToolsProvider', () => {
 
       // 执行URL获取
       const result = await server.executeTool('fetch_url', {
-        url: 'https://httpbin.org/get'
+        url: 'https://httpbin.org/get',
       });
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
       expect(result.status).toBe(200);
       expect(result.url).toBe('https://httpbin.org/get');
-      expect(mockFetch).toHaveBeenCalledWith('https://httpbin.org/get', expect.any(Object));
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://httpbin.org/get',
+        expect.any(Object)
+      );
     });
 
     it('应该能够处理网络请求失败', async () => {
@@ -90,7 +93,7 @@ describe('FetchToolsProvider', () => {
       // 执行失败的URL请求
       const result = await server.executeTool('fetch_url', {
         url: 'http://localhost:99999/nonexistent',
-        timeout: 1000
+        timeout: 1000,
       });
 
       expect(result.success).toBe(false);
@@ -107,7 +110,7 @@ describe('FetchToolsProvider', () => {
         status: 200,
         statusText: 'OK',
         json: async () => mockJsonData,
-        headers: new Map([['content-type', 'application/json']])
+        headers: new Map([['content-type', 'application/json']]),
       });
 
       // 注册工具到服务器
@@ -118,7 +121,7 @@ describe('FetchToolsProvider', () => {
 
       // 执行JSON获取
       const result = await server.executeTool('fetch_json', {
-        url: 'https://httpbin.org/json'
+        url: 'https://httpbin.org/json',
       });
 
       expect(result.success).toBe(true);
@@ -126,7 +129,10 @@ describe('FetchToolsProvider', () => {
       expect(typeof result.data).toBe('object');
       expect(result.data).toEqual(mockJsonData);
       expect(result.status).toBe(200);
-      expect(mockFetch).toHaveBeenCalledWith('https://httpbin.org/json', expect.any(Object));
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://httpbin.org/json',
+        expect.any(Object)
+      );
     });
   });
 });

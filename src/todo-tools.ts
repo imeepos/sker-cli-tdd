@@ -32,7 +32,7 @@ export class TodoToolsProvider implements ToolProvider {
       this.getCompleteTodoTool(),
       this.getQueryTodosTool(),
       this.getTodoStatsTool(),
-      this.getClearTodosTool()
+      this.getClearTodosTool(),
     ];
   }
 
@@ -54,7 +54,7 @@ export class TodoToolsProvider implements ToolProvider {
           if (!params.title) {
             return {
               success: false,
-              error: '标题不能为空'
+              error: '标题不能为空',
             };
           }
 
@@ -63,19 +63,19 @@ export class TodoToolsProvider implements ToolProvider {
             description: params.description,
             priority: params.priority,
             tags: params.tags,
-            dueDate: params.dueDate
+            dueDate: params.dueDate,
           });
 
           return {
             success: true,
             id: todoId,
             title: params.title,
-            message: 'TODO项目添加成功'
+            message: 'TODO项目添加成功',
           };
         } catch (error) {
           return {
             success: false,
-            error: `添加TODO失败: ${(error as Error).message}`
+            error: `添加TODO失败: ${(error as Error).message}`,
           };
         }
       },
@@ -84,20 +84,20 @@ export class TodoToolsProvider implements ToolProvider {
         properties: {
           title: { type: 'string', description: 'TODO标题' },
           description: { type: 'string', description: 'TODO描述' },
-          priority: { 
-            type: 'string', 
+          priority: {
+            type: 'string',
             enum: ['low', 'medium', 'high'],
-            description: '优先级' 
+            description: '优先级',
           },
-          tags: { 
+          tags: {
             type: 'array',
             items: { type: 'string' },
-            description: '标签数组' 
+            description: '标签数组',
           },
-          dueDate: { type: 'number', description: '截止时间戳' }
+          dueDate: { type: 'number', description: '截止时间戳' },
         },
-        required: ['title']
-      }
+        required: ['title'],
+      },
     };
   }
 
@@ -112,24 +112,24 @@ export class TodoToolsProvider implements ToolProvider {
         try {
           await this.todoStorage.initialize();
           const todos = await this.todoStorage.listTodos();
-          
+
           return {
             success: true,
             todos: todos,
-            count: todos.length
+            count: todos.length,
           };
         } catch (error) {
           return {
             success: false,
-            error: `获取TODO列表失败: ${(error as Error).message}`
+            error: `获取TODO列表失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {},
-        required: []
-      }
+        required: [],
+      },
     };
   }
 
@@ -144,32 +144,32 @@ export class TodoToolsProvider implements ToolProvider {
         try {
           await this.todoStorage.initialize();
           const todo = await this.todoStorage.getTodo(params.id);
-          
+
           if (!todo) {
             return {
               success: false,
-              error: `未找到ID为 ${params.id} 的TODO项目`
+              error: `未找到ID为 ${params.id} 的TODO项目`,
             };
           }
 
           return {
             success: true,
-            todo: todo
+            todo: todo,
           };
         } catch (error) {
           return {
             success: false,
-            error: `获取TODO失败: ${(error as Error).message}`
+            error: `获取TODO失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'TODO项目ID' }
+          id: { type: 'string', description: 'TODO项目ID' },
         },
-        required: ['id']
-      }
+        required: ['id'],
+      },
     };
   }
 
@@ -197,25 +197,25 @@ export class TodoToolsProvider implements ToolProvider {
             priority: params.priority,
             tags: params.tags,
             dueDate: params.dueDate,
-            completed: params.completed
+            completed: params.completed,
           });
 
           if (!success) {
             return {
               success: false,
-              error: `未找到ID为 ${params.id} 的TODO项目`
+              error: `未找到ID为 ${params.id} 的TODO项目`,
             };
           }
 
           return {
             success: true,
             id: params.id,
-            message: 'TODO项目更新成功'
+            message: 'TODO项目更新成功',
           };
         } catch (error) {
           return {
             success: false,
-            error: `更新TODO失败: ${(error as Error).message}`
+            error: `更新TODO失败: ${(error as Error).message}`,
           };
         }
       },
@@ -225,21 +225,21 @@ export class TodoToolsProvider implements ToolProvider {
           id: { type: 'string', description: 'TODO项目ID' },
           title: { type: 'string', description: 'TODO标题' },
           description: { type: 'string', description: 'TODO描述' },
-          priority: { 
-            type: 'string', 
+          priority: {
+            type: 'string',
             enum: ['low', 'medium', 'high'],
-            description: '优先级' 
+            description: '优先级',
           },
-          tags: { 
+          tags: {
             type: 'array',
             items: { type: 'string' },
-            description: '标签数组' 
+            description: '标签数组',
           },
           dueDate: { type: 'number', description: '截止时间戳' },
-          completed: { type: 'boolean', description: '是否完成' }
+          completed: { type: 'boolean', description: '是否完成' },
         },
-        required: ['id']
-      }
+        required: ['id'],
+      },
     };
   }
 
@@ -254,26 +254,26 @@ export class TodoToolsProvider implements ToolProvider {
         try {
           await this.todoStorage.initialize();
           await this.todoStorage.deleteTodo(params.id);
-          
+
           return {
             success: true,
             id: params.id,
-            message: 'TODO项目删除成功'
+            message: 'TODO项目删除成功',
           };
         } catch (error) {
           return {
             success: false,
-            error: `删除TODO失败: ${(error as Error).message}`
+            error: `删除TODO失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'TODO项目ID' }
+          id: { type: 'string', description: 'TODO项目ID' },
         },
-        required: ['id']
-      }
+        required: ['id'],
+      },
     };
   }
 
@@ -288,26 +288,26 @@ export class TodoToolsProvider implements ToolProvider {
         try {
           await this.todoStorage.initialize();
           await this.todoStorage.completeTodo(params.id);
-          
+
           return {
             success: true,
             id: params.id,
-            message: 'TODO项目已完成'
+            message: 'TODO项目已完成',
           };
         } catch (error) {
           return {
             success: false,
-            error: `完成TODO失败: ${(error as Error).message}`
+            error: `完成TODO失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'TODO项目ID' }
+          id: { type: 'string', description: 'TODO项目ID' },
         },
-        required: ['id']
-      }
+        required: ['id'],
+      },
     };
   }
 
@@ -322,17 +322,17 @@ export class TodoToolsProvider implements ToolProvider {
         try {
           await this.todoStorage.initialize();
           const todos = await this.todoStorage.queryTodos(params);
-          
+
           return {
             success: true,
             todos: todos,
             count: todos.length,
-            query: params
+            query: params,
           };
         } catch (error) {
           return {
             success: false,
-            error: `查询TODO失败: ${(error as Error).message}`
+            error: `查询TODO失败: ${(error as Error).message}`,
           };
         }
       },
@@ -340,23 +340,23 @@ export class TodoToolsProvider implements ToolProvider {
         type: 'object',
         properties: {
           completed: { type: 'boolean', description: '完成状态' },
-          priority: { 
-            type: 'string', 
+          priority: {
+            type: 'string',
             enum: ['low', 'medium', 'high'],
-            description: '优先级' 
+            description: '优先级',
           },
-          tags: { 
+          tags: {
             type: 'array',
             items: { type: 'string' },
-            description: '标签数组' 
+            description: '标签数组',
           },
           startDate: { type: 'number', description: '开始时间戳' },
           endDate: { type: 'number', description: '结束时间戳' },
           limit: { type: 'number', description: '限制数量' },
-          offset: { type: 'number', description: '偏移量' }
+          offset: { type: 'number', description: '偏移量' },
         },
-        required: []
-      }
+        required: [],
+      },
     };
   }
 
@@ -371,23 +371,23 @@ export class TodoToolsProvider implements ToolProvider {
         try {
           await this.todoStorage.initialize();
           const stats = await this.todoStorage.getTodoStats();
-          
+
           return {
             success: true,
-            stats: stats
+            stats: stats,
           };
         } catch (error) {
           return {
             success: false,
-            error: `获取统计信息失败: ${(error as Error).message}`
+            error: `获取统计信息失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {},
-        required: []
-      }
+        required: [],
+      },
     };
   }
 
@@ -402,23 +402,23 @@ export class TodoToolsProvider implements ToolProvider {
         try {
           await this.todoStorage.initialize();
           await this.todoStorage.clear();
-          
+
           return {
             success: true,
-            message: 'TODO项目清空成功'
+            message: 'TODO项目清空成功',
           };
         } catch (error) {
           return {
             success: false,
-            error: `清空TODO失败: ${(error as Error).message}`
+            error: `清空TODO失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {},
-        required: []
-      }
+        required: [],
+      },
     };
   }
 

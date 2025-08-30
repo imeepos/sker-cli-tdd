@@ -108,7 +108,9 @@ export class MCPServer {
   getTools(): MCPTool[] {
     // 如果有工作空间管理器，返回合并后的工具列表
     if (this.workspaceManager) {
-      const mergedTools = this.workspaceManager.getMergedTools(this.currentWorkspaceId);
+      const mergedTools = this.workspaceManager.getMergedTools(
+        this.currentWorkspaceId
+      );
       // 同时包含服务器直接注册的工具（向后兼容）
       const serverTools = Array.from(this.tools.values());
       return [...serverTools, ...mergedTools];
@@ -131,7 +133,9 @@ export class MCPServer {
 
     // 如果没找到且有工作空间管理器，在合并的工具列表中查找
     if (!tool && this.workspaceManager) {
-      const mergedTools = this.workspaceManager.getMergedTools(this.currentWorkspaceId);
+      const mergedTools = this.workspaceManager.getMergedTools(
+        this.currentWorkspaceId
+      );
       tool = mergedTools.find(t => t.name === name);
     }
 
@@ -168,7 +172,9 @@ export class MCPServer {
    * @returns 资源内容和元数据
    * @throws Error 如果资源未找到则抛出错误
    */
-  async readResource(uri: string): Promise<{ content: string; mimeType: string }> {
+  async readResource(
+    uri: string
+  ): Promise<{ content: string; mimeType: string }> {
     const resource = this.resources.get(uri);
     if (!resource) {
       throw new Error(`资源 "${uri}" 未找到`);
@@ -271,7 +277,9 @@ export class MCPServer {
       throw new Error('工作空间管理器未设置');
     }
 
-    const workspace = this.workspaceManager.getWorkspace(this.currentWorkspaceId);
+    const workspace = this.workspaceManager.getWorkspace(
+      this.currentWorkspaceId
+    );
     if (!workspace) {
       throw new Error(`当前工作空间 "${this.currentWorkspaceId}" 不存在`);
     }

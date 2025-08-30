@@ -28,7 +28,7 @@ export async function runBasicFetchExample(): Promise<void> {
     console.log('🌐 演示基本HTTP GET请求...');
     const getResult = await toolManager.executeTool('fetch_url', {
       url: 'https://httpbin.org/get'
-    });
+    }) as any;
     console.log(`✅ GET请求结果:`, {
       success: getResult.success,
       status: getResult.status,
@@ -40,7 +40,7 @@ export async function runBasicFetchExample(): Promise<void> {
     console.log('\n📊 演示JSON API调用...');
     const jsonResult = await toolManager.executeTool('fetch_json', {
       url: 'https://httpbin.org/json'
-    });
+    }) as any;
     console.log(`✅ JSON API结果:`, {
       success: jsonResult.success,
       status: jsonResult.status,
@@ -55,7 +55,7 @@ export async function runBasicFetchExample(): Promise<void> {
     console.log('\n📄 演示获取网页内容...');
     const htmlResult = await toolManager.executeTool('fetch_url', {
       url: 'https://httpbin.org/html'
-    });
+    }) as any;
     console.log(`✅ HTML内容获取:`, {
       success: htmlResult.success,
       status: htmlResult.status,
@@ -86,7 +86,7 @@ export async function runPracticalApiExample(): Promise<void> {
     console.log('🐙 演示GitHub API调用...');
     const githubResult = await toolManager.executeTool('fetch_json', {
       url: 'https://api.github.com/repos/microsoft/typescript'
-    });
+    }) as any;
     if (githubResult.success && githubResult.data) {
       console.log(`✅ TypeScript仓库信息:`, {
         name: githubResult.data.name,
@@ -101,7 +101,7 @@ export async function runPracticalApiExample(): Promise<void> {
     console.log('\n🌤️ 演示天气API调用...');
     const weatherResult = await toolManager.executeTool('fetch_json', {
       url: 'https://api.open-meteo.com/v1/forecast?latitude=39.9042&longitude=116.4074&current_weather=true'
-    });
+    }) as any;
     if (weatherResult.success && weatherResult.data) {
       console.log(`✅ 北京天气信息:`, {
         temperature: weatherResult.data.current_weather?.temperature,
@@ -114,7 +114,7 @@ export async function runPracticalApiExample(): Promise<void> {
     console.log('\n💭 演示名言API调用...');
     const quoteResult = await toolManager.executeTool('fetch_json', {
       url: 'https://api.quotable.io/random'
-    });
+    }) as any;
     if (quoteResult.success && quoteResult.data) {
       console.log(`✅ 随机名言:`, {
         content: quoteResult.data.content,
@@ -145,7 +145,7 @@ export async function runErrorHandlingExample(): Promise<void> {
   console.log('❌ 演示404错误处理...');
   const notFoundResult = await toolManager.executeTool('fetch_url', {
     url: 'https://httpbin.org/status/404'
-  });
+  }) as any;
   console.log('结果:', {
     success: notFoundResult.success,
     status: notFoundResult.status,
@@ -157,7 +157,7 @@ export async function runErrorHandlingExample(): Promise<void> {
   const timeoutResult = await toolManager.executeTool('fetch_url', {
     url: 'https://httpbin.org/delay/5',
     timeout: 2000 // 2秒超时
-  });
+  }) as any;
   console.log('结果:', {
     success: timeoutResult.success,
     error: timeoutResult.error,
@@ -168,7 +168,7 @@ export async function runErrorHandlingExample(): Promise<void> {
   console.log('\n📄 演示无效JSON处理...');
   const invalidJsonResult = await toolManager.executeTool('fetch_json', {
     url: 'https://httpbin.org/html' // 返回HTML而不是JSON
-  });
+  }) as any;
   console.log('结果:', {
     success: invalidJsonResult.success,
     error: invalidJsonResult.error

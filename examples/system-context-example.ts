@@ -26,7 +26,7 @@ export async function runBasicSystemContextExample(): Promise<void> {
   try {
     // 1. 获取系统摘要
     console.log('📋 获取系统摘要...');
-    const summaryResult = await toolManager.executeTool('get_system_summary', {});
+    const summaryResult = await toolManager.executeTool('get_system_summary', {}) as any;
     if (summaryResult.success) {
       console.log('✅ 系统摘要:');
       console.log(summaryResult.summary);
@@ -36,7 +36,7 @@ export async function runBasicSystemContextExample(): Promise<void> {
 
     // 2. 获取操作系统信息
     console.log('💻 获取操作系统信息...');
-    const osResult = await toolManager.executeTool('get_os_info', {});
+    const osResult = await toolManager.executeTool('get_os_info', {}) as any;
     if (osResult.success) {
       console.log('✅ 操作系统信息:');
       console.log(`   平台: ${osResult.os.platform}`);
@@ -59,7 +59,7 @@ export async function runBasicSystemContextExample(): Promise<void> {
 
     // 3. 获取命令行工具信息
     console.log('🔧 获取命令行工具信息...');
-    const toolsResult = await toolManager.executeTool('get_command_line_tools', {});
+    const toolsResult = await toolManager.executeTool('get_command_line_tools', {}) as any;
     if (toolsResult.success) {
       console.log(`✅ 发现 ${toolsResult.count} 个命令行工具:`);
       toolsResult.tools.forEach((tool: any) => {
@@ -73,7 +73,7 @@ export async function runBasicSystemContextExample(): Promise<void> {
 
     // 4. 获取Shell信息
     console.log('🐚 获取Shell信息...');
-    const shellResult = await toolManager.executeTool('get_shell_info', {});
+    const shellResult = await toolManager.executeTool('get_shell_info', {}) as any;
     if (shellResult.success) {
       console.log(`✅ 发现 ${shellResult.count} 个Shell:`);
       shellResult.shells.forEach((shell: any) => {
@@ -92,7 +92,7 @@ export async function runBasicSystemContextExample(): Promise<void> {
 
     // 5. 获取网络信息
     console.log('🌐 获取网络信息...');
-    const networkResult = await toolManager.executeTool('get_network_info', {});
+    const networkResult = await toolManager.executeTool('get_network_info', {}) as any;
     if (networkResult.success) {
       console.log(`✅ 网络接口信息:`);
       console.log(`   接口数量: ${networkResult.interfaceCount}`);
@@ -128,7 +128,7 @@ export async function runSystemCompatibilityExample(): Promise<void> {
 
   try {
     // 获取完整系统上下文
-    const contextResult = await toolManager.executeTool('get_system_context', {});
+    const contextResult = await toolManager.executeTool('get_system_context', {}) as any;
     
     if (contextResult.success) {
       const context = contextResult.context;

@@ -28,7 +28,7 @@ export class SystemContextToolsProvider {
       this.getOSInfoTool(),
       this.getCommandLineToolsTool(),
       this.getShellInfoTool(),
-      this.getNetworkInfoTool()
+      this.getNetworkInfoTool(),
     ];
   }
 
@@ -38,29 +38,30 @@ export class SystemContextToolsProvider {
   private getSystemContextTool(): MCPTool {
     return {
       name: 'get_system_context',
-      description: '获取完整的系统上下文信息，包括操作系统、命令行工具、Shell类型等',
+      description:
+        '获取完整的系统上下文信息，包括操作系统、命令行工具、Shell类型等',
       handler: async () => {
         try {
           const context = await this.collector.collectSystemContext();
-          
+
           return {
             success: true,
             context,
             collectedAt: context.collectedAt,
-            summary: `收集了${context.commandLineTools.length}个命令行工具和${context.shells.length}个Shell的信息`
+            summary: `收集了${context.commandLineTools.length}个命令行工具和${context.shells.length}个Shell的信息`,
           };
         } catch (error) {
           return {
             success: false,
-            error: `系统上下文收集失败: ${(error as Error).message}`
+            error: `系统上下文收集失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {},
-        required: []
-      }
+        required: [],
+      },
     };
   }
 
@@ -74,24 +75,24 @@ export class SystemContextToolsProvider {
       handler: async () => {
         try {
           const summary = await this.collector.generateContextSummary();
-          
+
           return {
             success: true,
             summary,
-            generatedAt: new Date().toISOString()
+            generatedAt: new Date().toISOString(),
           };
         } catch (error) {
           return {
             success: false,
-            error: `系统摘要生成失败: ${(error as Error).message}`
+            error: `系统摘要生成失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {},
-        required: []
-      }
+        required: [],
+      },
     };
   }
 
@@ -105,7 +106,7 @@ export class SystemContextToolsProvider {
       handler: async () => {
         try {
           const context = await this.collector.collectSystemContext();
-          
+
           return {
             success: true,
             os: context.os,
@@ -113,20 +114,20 @@ export class SystemContextToolsProvider {
             platform: context.os.platform,
             isWindows: context.os.platform === 'win32',
             isLinux: context.os.platform === 'linux',
-            isMacOS: context.os.platform === 'darwin'
+            isMacOS: context.os.platform === 'darwin',
           };
         } catch (error) {
           return {
             success: false,
-            error: `操作系统信息获取失败: ${(error as Error).message}`
+            error: `操作系统信息获取失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {},
-        required: []
-      }
+        required: [],
+      },
     };
   }
 
@@ -140,26 +141,28 @@ export class SystemContextToolsProvider {
       handler: async () => {
         try {
           const context = await this.collector.collectSystemContext();
-          
+
           return {
             success: true,
             tools: context.commandLineTools,
             count: context.commandLineTools.length,
-            availableTools: context.commandLineTools.filter(tool => tool.available),
-            toolNames: context.commandLineTools.map(tool => tool.name)
+            availableTools: context.commandLineTools.filter(
+              tool => tool.available
+            ),
+            toolNames: context.commandLineTools.map(tool => tool.name),
           };
         } catch (error) {
           return {
             success: false,
-            error: `命令行工具信息获取失败: ${(error as Error).message}`
+            error: `命令行工具信息获取失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {},
-        required: []
-      }
+        required: [],
+      },
     };
   }
 
@@ -173,30 +176,32 @@ export class SystemContextToolsProvider {
       handler: async () => {
         try {
           const context = await this.collector.collectSystemContext();
-          
+
           return {
             success: true,
             shells: context.shells,
             currentShell: context.currentShell,
             count: context.shells.length,
             shellNames: context.shells.map(shell => shell.name),
-            hasPowerShell: context.shells.some(shell => 
-              shell.name.toLowerCase().includes('powershell') || shell.name === 'pwsh'
+            hasPowerShell: context.shells.some(
+              shell =>
+                shell.name.toLowerCase().includes('powershell') ||
+                shell.name === 'pwsh'
             ),
-            hasBash: context.shells.some(shell => shell.name === 'bash')
+            hasBash: context.shells.some(shell => shell.name === 'bash'),
           };
         } catch (error) {
           return {
             success: false,
-            error: `Shell信息获取失败: ${(error as Error).message}`
+            error: `Shell信息获取失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {},
-        required: []
-      }
+        required: [],
+      },
     };
   }
 
@@ -210,27 +215,29 @@ export class SystemContextToolsProvider {
       handler: async () => {
         try {
           const context = await this.collector.collectSystemContext();
-          
+
           return {
             success: true,
             network: context.network,
             interfaceCount: context.network.interfaces.length,
             hasInternet: context.network.connectivity.internet,
             hasDNS: context.network.connectivity.dns,
-            externalInterfaces: context.network.interfaces.filter(iface => !iface.internal)
+            externalInterfaces: context.network.interfaces.filter(
+              iface => !iface.internal
+            ),
           };
         } catch (error) {
           return {
             success: false,
-            error: `网络信息获取失败: ${(error as Error).message}`
+            error: `网络信息获取失败: ${(error as Error).message}`,
           };
         }
       },
       schema: {
         type: 'object',
         properties: {},
-        required: []
-      }
+        required: [],
+      },
     };
   }
 }
